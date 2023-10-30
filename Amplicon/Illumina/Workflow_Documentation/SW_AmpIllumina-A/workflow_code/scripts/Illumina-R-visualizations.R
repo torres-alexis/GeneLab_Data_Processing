@@ -22,7 +22,7 @@ library(RColorBrewer)
 args <- commandArgs(trailingOnly = TRUE)
 # Assign arguments to variables based on snakemake shell line
 runsheet <- paste0(args[1])
-sample_info <- args[2] 
+sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
 
