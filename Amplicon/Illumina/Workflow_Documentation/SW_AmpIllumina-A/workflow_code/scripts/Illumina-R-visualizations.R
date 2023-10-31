@@ -200,11 +200,11 @@ ggsave(filename = paste0(richness_out_dir, "richness_by_group", ".png"), plot=ri
 proportions_physeq <- transform_sample_counts(ASV_physeq, function(ASV) ASV / sum(ASV))
 
 relative_phyla <- plot_bar(proportions_physeq, x = "groups", fill = "phylum") + 
-  theme_bw() + theme(text = element_text(size = 15))
+  theme_bw() + theme(text = element_text(size = 12))
 ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), plot=relative_phyla)
 
 relative_classes <- plot_bar(proportions_physeq, x = "groups", fill = "class") + 
-  theme_bw() + theme(text = element_text(size = 18))
+  theme_bw() + theme(text = element_text(size = 12))
 ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=relative_classes)
 
 # 6 Statistically testing for differences
