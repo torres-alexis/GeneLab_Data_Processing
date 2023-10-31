@@ -77,7 +77,8 @@ runsheet <- runsheet[rownames(runsheet) %in% sample_names, ]
 
 count_tab <- read.table(file = counts, 
                         header = TRUE, row.names = 1, sep = "\t")
-tax_tab <- read.table(file = taxonomy, 
+                        
+tax_tab <- read.table(file = tax_tab, 
                       header = TRUE, row.names = 1, sep = "\t")
 deseq_counts <- DESeqDataSetFromMatrix(countData = count_tab, 
                                        colData = runsheet, 
@@ -117,7 +118,8 @@ labels_colors(euc_dend) <- dend_cols
 png(file.path(dendrogram_out_dir, paste0("dendrogram_colored", ".png")), width = 800, height = 600)
 plot(euc_dend, ylab = "VST Euc. dist.")
 dev.off()
-
+#ggsave(filename = paste0(pcoa_out_dir, "phyloseq_PCoA", ".png"), plot=pcoa_plot)
+########################
 
 # 3B Ordination
 
@@ -147,7 +149,6 @@ pcoa_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
   coord_fixed(sqrt(eigen_vals[2]/eigen_vals[1])) + 
   scale_color_manual(values = unique(sample_info_tab$color[order(sample_info_tab$groups)])) + 
   theme_bw() + theme(legend.position = "none",  text = element_text(size = 15)) + ggtitle("PCoA")
-
 ggsave(filename = paste0(pcoa_out_dir, "PCoA", ".png"), plot=pcoa_plot)
 
 #4. Alpha diversity
@@ -161,7 +162,6 @@ dev.off()
 
 # 4b. Richness and diversity estimates
 # create a phyloseq object similar to how we did above in step 3B, only this time also including our taxonomy table:
-
 count_tab_phy <- otu_table(count_tab, taxa_are_rows = TRUE)
 tax_tab_phy <- tax_table(as.matrix(tax_tab))
 ASV_physeq <- phyloseq(count_tab_phy, tax_tab_phy, sample_info_tab_phy)
@@ -178,7 +178,6 @@ richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1
     legend.title.align = 0.5,
     legend.title = element_blank()
   )
-
 ggsave(paste0(richness_out_dir, "richness", ".png"), plot=richness_plot)
 
 richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", measures = c("Chao1", "Shannon")) + 
@@ -194,7 +193,6 @@ richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", m
     axis.text.x = element_blank(),
     legend.title = element_blank()
   )
-
 ggsave(filename = paste0(richness_out_dir, "richness_by_group", ".png"), plot=richness_by_group)
 
 # 5. Taxonomic summaries
@@ -203,12 +201,10 @@ proportions_physeq <- transform_sample_counts(ASV_physeq, function(ASV) ASV / su
 
 relative_phyla <- plot_bar(proportions_physeq, x = "groups", fill = "phylum") + 
   theme_bw() + theme(text = element_text(size = 15))
-
 ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), plot=relative_phyla)
 
 relative_classes <- plot_bar(proportions_physeq, x = "groups", fill = "class") + 
   theme_bw() + theme(text = element_text(size = 18))
-
 ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=relative_classes)
 
 # 6 Statistically testing for differences
@@ -239,7 +235,6 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
                      legend.title.align = 0.5) +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
-
 ggsave(filename=paste0(pcoa_out_dir, "anova_pcoa", ".png"), plot=ordination_plot)
 
 
