@@ -102,10 +102,10 @@ euc_dist
 euc_clust <- hclust(d = euc_dist, method = "ward.D2")
 
 # output 1: Uncolored
-# plot(euc_clust)
-# png(paste0(dendrogram_out_dir, "dendrogram.png"), width = 800, height = 600)
-# plot(euc_clust)
-# dev.off()
+plot(euc_clust)
+png(paste0(dendrogram_out_dir, "dendrogram.png"), width = 800, height = 600)
+plot(euc_clust)
+dev.off()
 
 # output 2: Dendrograms colored by group
 
@@ -235,7 +235,7 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
                      legend.title.align = 0.5) +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
-ggsave(filename=paste0(pcoa_out_dir, "anova_pcoa", ".png"), plot=ordination_plot)
+ggsave(filename=paste0(pcoa_out_dir, "PCoA_anova", ".png"), plot=ordination_plot)
 
 
 #### pairwise comparisons
@@ -262,7 +262,7 @@ plot_comparison <- function(group1, group2) {
     scale_color_manual(values=c("black", "red")) +
     theme_bw() +
     labs(title="Volcano Plot",
-         x=paste("Log2 Fold Change (",group1," vs ",group2,")"),
+         x=paste("Log2 Fold Change\n(",group1," vs ",group2,")"),
          y="-Log10 P-value",
          color=paste0("Significant < ", p_val)) +
     theme(legend.position="top")
