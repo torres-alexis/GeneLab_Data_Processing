@@ -8,7 +8,7 @@ if [ "$#" -ne 3 ]; then
     echo "Error: Incorrect number of arguments.
 Usage: $0 <Path to Runsheet CSV> <Path to Raw Reads Directory> <Path to Output Directory>
 Use full paths or paths relative to the location of the Snakefile.
-Ex: $0 ./runsheet.csv ../raw_reads/ ./workflow/"
+Ex: $0 runsheet.csv ../raw_reads/ workflow/"
     exit 1
 fi
 
