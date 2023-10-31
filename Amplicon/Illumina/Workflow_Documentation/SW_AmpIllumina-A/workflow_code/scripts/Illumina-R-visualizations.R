@@ -205,7 +205,7 @@ ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), plot=relat
 
 relative_classes <- plot_bar(proportions_physeq, x = "groups", fill = "class") + 
   theme_bw() + theme(text = element_text(size = 12))
-ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=relative_classes)
+ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=relative_classes, width = 10, height = 8, dpi = 300)
 
 # 6 Statistically testing for differences
 
@@ -277,7 +277,9 @@ plot_comparison <- function(group1, group2) {
   ggsave(filename=paste0(de_out_dir,"volcano_",
                          gsub(" ", "_", group1),
                          "_vs_",
-                         gsub(" ", "_", group2), ".png"), plot=volcano_plot)
+                         gsub(" ", "_", group2), ".png"),
+                         plot=volcano_plot,
+                         width = 10, height = 8, dpi = 300)
 }
 
 
