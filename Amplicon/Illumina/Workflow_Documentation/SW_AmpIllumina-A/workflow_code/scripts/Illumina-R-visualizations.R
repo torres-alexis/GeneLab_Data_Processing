@@ -210,8 +210,8 @@ ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=rel
 # 6 Statistically testing for differences
 
 # statistical significance stuff
-betadisper(d = euc_dist, group = runsheet$groups) %>% anova()
-adonis_res <- adonis2(formula = euc_dist ~ runsheet$groups)
+betadisper(d = euc_dist, group = sample_info_tab$groups) %>% anova()
+adonis_res <- adonis2(formula = euc_dist ~ sample_info_tab$groups)
 r2_value <- adonis_res$R2[1]
 prf_value <- adonis_res$`Pr(>F)`[1]
 
@@ -225,9 +225,9 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
     x = label_PC1,
     y = label_PC2
   ) + labs(col = "groups") + 
-  geom_text(aes(label = rownames(runsheet), hjust = 0.3, vjust = -0.4)) + 
+  geom_text(aes(label = rownames(sample_info_tab), hjust = 0.3, vjust = -0.4)) + 
   coord_fixed(sqrt(eigen_vals[2]/eigen_vals[1])) + 
-  scale_color_manual(values = unique(runsheet$Color[order(runsheet$groups)])) + 
+  scale_color_manual(values = unique(sample_info_tab$color[order(sample_info_tab$groups)])) + 
   theme_bw() + theme(legend.position = "bottom",  text = element_text(size = 15, ),
                      legend.direction = "vertical",
                      legend.justification = "center",
