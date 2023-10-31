@@ -5,7 +5,8 @@
 
 # Check number of arguments passed to the script
 if [ "$#" -ne 3 ]; then
-    echo "Error: Incorrect number of arguments.\nUsage: $0 <Path to Runsheet CSV> <Path of Raw Reads Directory>
+    echo "Error: Incorrect number of arguments.
+Usage: $0 <Path to Runsheet CSV> <Path to Raw Reads Directory> <Path to Output Directory>
 Use full paths or paths relative to the location of the Snakefile.
 Ex: $0 ./runsheet.csv ../raw_reads/ ./workflow/"
     exit 1

@@ -86,7 +86,7 @@ if config["data_type"] == "PE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["fastqc_out_dir"] + "vsualizations_complete.flag"
+                config["final_outputs_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -107,7 +107,7 @@ if config["data_type"] == "PE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["fastqc_out_dir"] + "vsualizations_complete.flag"
+                config["final_outputs_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -370,7 +370,7 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["fastqc_out_dir"] + "vsualizations_complete.flag"
+                config["final_outputs_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -390,7 +390,7 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["fastqc_out_dir"] + "vsualizations_complete.flag"
+                config["final_outputs_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -622,7 +622,7 @@ rule r_visualizations:
         taxonomy = config["final_outputs_dir"] + config["output_prefix"] + "taxonomy.tsv"
     output:
         # Use completion flag file in place of plot outputs for variable plots
-        complete = config["final_outputs_dir"] + "COMPLETE"
+        complete = config["final_outputs_dir"] + "visualizations_complete.flag"
     params:
         final_outputs_dir = config["final_outputs_dir"],
     log:
