@@ -1,20 +1,72 @@
 #!/bin/bash
 
-# Creates a config.yaml file https://github.com/nasa/GeneLab_Data_Processing/blob/master/Amplicon/Illumina/Workflow_Documentation/SW_AmpIllumina-A/workflow_code/config.yaml
-# Based on values in the runsheet
+# Initialize default values
+output_dir="workflow/"
+min_trimmed_read_length=1
 
-# Check number of arguments passed to the script
-if [ "$#" -ne 3 ]; then
-    echo "Error: Incorrect number of arguments.
-Usage: $0 <Path to Runsheet CSV> <Path to Raw Reads Directory> <Path to Output Directory>
-Use full paths or paths relative to the location of the Snakefile.
-Ex: $0 runsheet.csv ../raw_reads/ workflow/"
+# Parse named arguments
+while [ $# -gt 0 ]; do
+	key="$1"
+	shift
+
+	case $key in
+	-r|--runsheet)
+		runsheet_csv="$1"
+		shift
+		;;
+	-d|--raw_reads)
+		raw_reads_directory="$1"
+		shift
+		;;
+	-o|--output)
+		output_dir="$1"
+		shift
+		;;
+	-m|--minimum-length)
+		min_trimmed_read_length="$1"
+		shift
+		;;
+	*)
+       echo "Unknown argument: $key"
+        echo "Usage: $0 -r|--runsheet <Path to Runsheet CSV>"
+        echo "           -d|--raw_reads <Path to Raw Reads Directory>"
+        echo "           [-o|--output <Path relative to Snakefile or Absolute Path to Output"
+        echo "             Directory (default: workflow/)>]"
+        echo "           [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
+        echo ""
+        echo "Note:"
+        echo "    For -m|--min_trim_length, this is the minimum post-trimming read length. For"
+        echo "    paired end, if one read gets filtered, both reads in a pair are discarded."
+        echo ""
+        echo "Example: $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
+        exit 1
+		;;
+	esac
+done
+
+####
+
+# Check if required named arguments are provided
+if [[ -z "$runsheet_csv" ]] || [[ -z "$raw_reads_directory" ]]; then
+    echo "Missing required arguments."
+    echo "Usage: $0 -r|--runsheet <Path to Runsheet CSV>"
+    echo "           -d|--raw_reads <Path to Raw Reads Directory>"
+    echo "           [-o|--output <Path relative to Snakefile or Absolute Path to Output"
+    echo "             Directory (default: workflow/)>]"
+    echo "           [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
+    echo ""
+    echo "Note:"
+    echo "    For -m|--min_trim_length, this is the minimum post-trimming read length. For"
+    echo "    paired end, if one read gets filtered, both reads in a pair are discarded."
+    echo ""
+    echo "Example: $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
     exit 1
 fi
 
-csv_file=$1
-raw_reads_directory=$2
-output_dir=$3
+echo "Runsheet (CSV File): $runsheet_csv"
+echo "Raw Reads Directory: $raw_reads_directory"
+echo "Output Directory: $output_dir"
+echo "Minimum Trimmed Read Length: $min_trimmed_read_length"
 
 
 sample_ids_file="unique-sample-IDs.txt"
@@ -25,8 +77,8 @@ primers_linked="TRUE"
 mkdir -p "$output_dir"
 
 # Check if the runsheet file exists
-if [ ! -f "$csv_file" ]; then
-    echo "Error: "$csv_file" not found."
+if [ ! -f "$runsheet_csv" ]; then
+    echo "Error: "$runsheet_csv" not found."
     exit 1
 fi
 
@@ -38,19 +90,19 @@ get_col_num() {
 }
 
 # Create unique-sample-IDs.txt
-sample_name_col_num=$(get_col_num "Sample Name" "$csv_file")
+sample_name_col_num=$(get_col_num "Sample Name" "$runsheet_csv")
 
 
 
 # Extract unique sample names and write to sample_names.txt
-awk -F, -v col="$sample_name_col_num" 'NR > 1 && !seen[$col]++ {print $col}' $csv_file > $sample_ids_file
+awk -F, -v col="$sample_name_col_num" 'NR > 1 && !seen[$col]++ {print $col}' $runsheet_csv > $sample_ids_file
 echo "Unique sample names saved to $sample_ids_file"
 
 
 # Get the column number for "paired_end"
-paired_col=$(get_col_num "paired_end" "$csv_file")
+paired_col=$(get_col_num "paired_end" "$runsheet_csv")
 # Extract paired_end values, convert to uppercase, and take the unique value
-paired=$(awk -v col="$paired_col" -F, 'NR > 1 {print toupper($col)}' $csv_file | uniq)
+paired=$(awk -v col="$paired_col" -F, 'NR > 1 {print toupper($col)}' $runsheet_csv | uniq)
 # # Count the number of lines in paired_end
 # line_count=$(echo "$paired_end" | wc -l)
 
@@ -66,27 +118,27 @@ else
 fi
 
 # Get the column number for "raw_R1_suffix"
-raw_r1_suffix_col=$(get_col_num "raw_R1_suffix" "$csv_file")
+raw_r1_suffix_col=$(get_col_num "raw_R1_suffix" "$runsheet_csv")
 # Extract raw_R1_suffix values and take the unique value
-raw_r1_suffix=$(awk -v col="$raw_r1_suffix_col" -F, 'NR > 1 {print $col}' $csv_file | uniq)
+raw_r1_suffix=$(awk -v col="$raw_r1_suffix_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 if [ "$paired" == "TRUE" ]; then
     # Get the column number for "raw_R2_suffix"
-    raw_r2_suffix_col=$(get_col_num "raw_R2_suffix" "$csv_file")
+    raw_r2_suffix_col=$(get_col_num "raw_R2_suffix" "$runsheet_csv")
     # Extract raw_R2_suffix values and take the unique value
-    raw_r2_suffix=$(awk -v col="$raw_r2_suffix_col" -F, 'NR > 1 {print $col}' $csv_file | uniq)
+    raw_r2_suffix=$(awk -v col="$raw_r2_suffix_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 else
     raw_r2_suffix=""
 fi
 
 # Get the column number for "F_primer"
-f_primer_col=$(get_col_num "F_Primer" "$csv_file")
+f_primer_col=$(get_col_num "F_Primer" "$runsheet_csv")
 # Extract F_primer values and take the unique value
-f_primer=$(awk -v col="$f_primer_col" -F, 'NR > 1 {print $col}' $csv_file | uniq)
+f_primer=$(awk -v col="$f_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 if [ "$paired" == "TRUE" ]; then
     # Get the column number for "R_primer"
-    r_primer_col=$(get_col_num "R_Primer" "$csv_file")
+    r_primer_col=$(get_col_num "R_Primer" "$runsheet_csv")
     # Extract R_primer values and take the unique value
-    r_primer=$(awk -v col="$r_primer_col" -F, 'NR > 1 {print $col}' $csv_file | uniq)
+    r_primer=$(awk -v col="$r_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 
     # Also get linked primers if paired, using reverse complement of other primer:
     f_linked_primer="^${f_primer}...$(echo "$r_primer" | rev | tr 'ACGTMRWSYKVHDBN' 'TGCAMKWSRMBDHVNY')"
@@ -99,9 +151,9 @@ else
 fi
 
 # Get the column number for "Parameter Value[Library Selection]"
-target_region_col=$(get_col_num "Parameter Value[Library Selection]" "$csv_file")
+target_region_col=$(get_col_num "Parameter Value[Library Selection]" "$runsheet_csv")
 # Extract target_region values and take the unique value
-target_region=$(awk -v col="$target_region_col" -F, 'NR > 1 {print $col}' $csv_file | uniq)
+target_region=$(awk -v col="$target_region_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 
 
 # Write header to config.yaml
@@ -124,7 +176,7 @@ echo "##########################################################################
 
 echo "## Path to runsheet:
 runsheet:
-    \"$csv_file\"
+    \"$runsheet_csv\"
 " >> config.yaml
 
 echo "## Set to "PE" for paired-end, "SE" for single-end. (if single-end, enter appropriate info below for the "_R1_" variables and ignore the "_R2_" ones)
@@ -199,7 +251,7 @@ right_maxEE:
 
 ## minimum length threshold for cutadapt
 min_cutadapt_len:
-    1
+    $minimum_trimmed_read_length
 
 
 ######################################################################
