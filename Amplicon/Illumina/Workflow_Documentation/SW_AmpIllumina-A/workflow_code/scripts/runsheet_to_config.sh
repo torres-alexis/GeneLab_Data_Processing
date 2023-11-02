@@ -4,6 +4,25 @@
 # Initialize default values
 output_dir="workflow/"
 min_trimmed_read_length=1
+    echo ""
+# Function to display usage
+print_usage() {
+    echo "Usage: $0"
+    echo "       -r|--runsheet <Path to Runsheet CSV>"
+    echo "       -d|--raw_reads <Path to Raw Reads Dir>"
+    echo "       [-o|--output <Path relative to Snakefile or"
+    echo "        Absolute Path to Output Directory (default: workflow/)>]"
+    echo "       [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
+    echo "       [-h|--help Display the help menu]"
+
+    echo "Note:"
+    echo "       -m specifies the minimum post-trimming read length."
+    echo "       For paired end: if one read gets filtered, both reads"
+    echo "       in the pair are discarded."
+
+    echo "Example:"
+    echo "       $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
+}
 
 # Parse named arguments
 while [ $# -gt 0 ]; do
@@ -27,47 +46,24 @@ while [ $# -gt 0 ]; do
 		min_trimmed_read_length="$1"
 		shift
 		;;
+    -h|--help)
+        print_usage
+        exit 0
+        ;;
 	*)
         echo "Error: Unknown argument $key"
-        echo "Usage: $0"
-        echo "       -r|--runsheet <Path to Runsheet CSV>"
-        echo "       -d|--raw_reads <Path to Raw Reads Dir>"
-        echo "       [-o|--output <Path (default: workflow/) relative to Snakefile or"
-        echo "        Absolute Path to Output Directory>]"
-        echo "       [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
-
-        echo "Note:"
-        echo "       -m specifies the minimum post-trimming read length."
-        echo "       For paired end: if one read gets filtered, both reads"
-        echo "       in the pair are discarded."
-
-        echo "Example:"
-        echo "       $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
+        echo ""
+        print_usage
         exit 1
 		;;
 	esac
 done
 
-####
-
 # Check if required named arguments are provided
 if [[ -z "$runsheet_csv" ]] || [[ -z "$raw_reads_directory" ]]; then
-    echo "Missing required arguments."
-    echo "Usage: $0"
-    echo "       -r|--runsheet <Path to Runsheet CSV>"
-    echo "       -d|--raw_reads <Path to Raw Reads Dir>"
-    echo "       [-o|--output <Path (default: workflow/) relative to Snakefile or"
-    echo "        Absolute Path to Output Directory>]"
-    echo "       [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
-
-    echo "Note:"
-    echo "       -m specifies the minimum post-trimming read length."
-    echo "       For paired end: if one read gets filtered, both reads"
-    echo "       in the pair are discarded."
-
-    echo "Example:"
-    echo "       $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
-
+    echo "Error: Missing required arguments."
+    echo ""
+    print_usage
     exit 1
 fi
 
@@ -76,13 +72,11 @@ echo "Raw Reads Directory: $raw_reads_directory"
 echo "Output Directory: $output_dir"
 echo "Minimum Trimmed Read Length: $min_trimmed_read_length"
 
-
 sample_ids_file="unique-sample-IDs.txt"
 
 primers_linked="TRUE"
 
-# Make the output directory if it doesn't exist
-mkdir -p "$output_dir"
+
 
 # Check if the runsheet file exists
 if [ ! -f "$runsheet_csv" ]; then
@@ -205,6 +199,7 @@ fi
 
 
 
+f_primer=""
 
 # Get the column number for "F_primer"
 f_primer_col=$(get_col_num "F_Primer" "$runsheet_csv")
@@ -213,7 +208,17 @@ if [ -z "$f_primer_col" ]; then
     exit 1
 fi
 # Extract F_primer values and take the unique value
-f_primer=$(awk -v col="$f_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
+f_primer_value=$(awk -v col="$f_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
+# Check if the f_primer_value is a csv, tsv, or text file
+if [[ "$f_primer_value" == *".csv"* ]] || [[ "$f_primer_value" == *".tsv"* ]] || [[ "$f_primer_value" == *".txt"* ]]; then
+    f_primer="SET THIS MANUALLY FROM THE PRIMERS FILE"
+    echo ""
+    echo "Warning: The F_Primer column references a file."
+    echo "Set 'f_primer' in config.yaml using the primers file."
+else
+    f_primer=$f_primer_value
+fi
+# Extract reverse primers and create the linked primers, also echo CSV primers info
 if [ "$paired" == "TRUE" ]; then
     # Get the column number for "R_primer"
     r_primer_col=$(get_col_num "R_Primer" "$runsheet_csv")
@@ -222,12 +227,25 @@ if [ "$paired" == "TRUE" ]; then
         exit 1
     fi
     # Extract R_primer values and take the unique value
-    r_primer=$(awk -v col="$r_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
+    r_primer_value=$(awk -v col="$r_primer_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
 
-    # Also get linked primers if paired, using reverse complement of other primer:
-    f_linked_primer="^${f_primer}...$(echo "$r_primer" | rev | tr 'ACGTMRWSYKVHDBN' 'TGCAMKWSRMBDHVNY')"
-    r_linked_primer="^${r_primer}...$(echo "$f_primer" | rev | tr 'ACGTMRWSYKVHDBN' 'TGCAMKWSRMBDHVNY')"
+    # Check if the r_primer_value is a csv, tsv, or text file
+    if [[ "$r_primer_value" == *".csv"* ]] || [[ "$r_primer_value" == *".tsv"* ]] || [[ "$r_primer_value" == *".txt"* ]]; then
+        r_primer="SET THIS MANUALLY FROM THE PRIMERS FILE"
+        echo "Warning: The R_Primer column references a file."
+        echo "Set 'r_primer' in config.yaml using the primers file."
+        echo "For linked primers in the YAML:"
+        echo "Use sequence & its reverse complement:"
+        echo "F_linked_primer: \"^F_SEQ...REVERSE_OF_R_SEQ\""
+        echo "R_linked_primer: \"^R_SEQ...REVERSE_OF_F_SEQ\""
+        echo ""
+    else
+        r_primer=$r_primer_value
 
+        # Also get linked primers if paired, using reverse complement of other primer:
+        f_linked_primer="^${f_primer}...$(echo "$r_primer" | rev | tr 'ACGTMRWSYKVHDBN' 'TGCAMKWSRMBDHVNY')"
+        r_linked_primer="^${r_primer}...$(echo "$f_primer" | rev | tr 'ACGTMRWSYKVHDBN' 'TGCAMKWSRMBDHVNY')"
+    fi
 else
     r_primer=""
     f_linked_primer=""
@@ -242,7 +260,17 @@ if [ -z "$target_region_col" ]; then
 fi
 # Extract target_region values and take the unique value
 target_region=$(awk -v col="$target_region_col" -F, 'NR > 1 {print $col}' $runsheet_csv | uniq)
+# Check if target_region is neither 16S nor ITS
+if [[ "$target_region" != "16S" && "$target_region" != "ITS" ]]; then
+    echo "Warning: Neither '16S' nor 'ITS' found in the runsheet. Defaulting to '16S'."
+    target_region="16S"
+    echo "Set target_region in config.yaml to '16S' or 'ITS' to change this default"
+    echo "value before running the Snakemake workflow."
+    echo ""
+fi
 
+# Make the output directory if it doesn't exist
+mkdir -p "$output_dir"
 
 # Write header to config.yaml
 echo "############################################################################################
