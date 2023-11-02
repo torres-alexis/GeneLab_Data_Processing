@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # config.yaml format is based on https://github.com/nasa/GeneLab_Data_Processing/blob/master/Amplicon/Illumina/Workflow_Documentation/SW_AmpIllumina-A/workflow_code/config.yaml
+
 # Initialize default values
 output_dir="workflow/"
 min_trimmed_read_length=1
@@ -8,11 +9,11 @@ min_trimmed_read_length=1
 # Function to display usage
 print_usage() {
     echo "Usage: $0"
-    echo "       -r|--runsheet <Path to Runsheet CSV>"
-    echo "       -d|--raw_reads <Path to Raw Reads Dir>"
+    echo "       -r|--runsheet <Path to runsheet CSV>"
+    echo "       -d|--raw_reads <Path to raw reads dir>"
     echo "       [-o|--output <Path relative to Snakefile or"
-    echo "        Absolute Path to Output Directory (default: workflow/)>]"
-    echo "       [-m|--min_trim_length <Minimum Trimmed Read Length (default: 1)>]"
+    echo "        absolute path to output directory (default: workflow/)>]"
+    echo "       [-m|--min_length <Minimum trimmed read length (default: 1)>]"
     echo "       [-h|--help Display the help menu]"
 
     echo "Note:"
