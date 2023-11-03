@@ -368,7 +368,7 @@ right_maxEE:
 
 ## minimum length threshold for cutadapt
 min_cutadapt_len:
-    $minimum_trimmed_read_length
+    $min_trimmed_read_length
 
 
 ######################################################################

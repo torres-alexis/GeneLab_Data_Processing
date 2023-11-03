@@ -77,7 +77,7 @@ runsheet <- runsheet[rownames(runsheet) %in% sample_names, ]
 
 count_tab <- read.table(file = counts, 
                         header = TRUE, row.names = 1, sep = "\t")
-
+count_tab <- count_tab[, rownames(runsheet)]
 tax_tab <- read.table(file = taxonomy, 
                       header = TRUE, row.names = 1, sep = "\t")
 deseq_counts <- DESeqDataSetFromMatrix(countData = count_tab, 
