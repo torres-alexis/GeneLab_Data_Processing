@@ -117,6 +117,16 @@ count_tab <- read.table(file = counts,
 transformed_sample_names <- make.names(sample_names, unique = TRUE)
 # Keep only samples used in the sample info (should be redundant step)
 count_tab <- count_tab[, transformed_sample_names]
+
+# Keep only genes with at least 1 count
+count_tab <- count_tab[rowSums(count_tab) > 0, ]
+# Check if every gene has a 0 in the row, add +1 pseudocount for VST
+if (all(apply(count_tab, 1, any))) {
+  # Add pseudocount of 1 to the entire counts data frame
+  count_tab <- count_tab + 1
+}
+
+
 # Move shortened sample names to sample_names
 sample_names <- rownames(runsheet)
 # Rename counts columns with shortened names
