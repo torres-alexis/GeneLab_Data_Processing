@@ -32,25 +32,21 @@ final_outputs_dir <- paste0(args[5])
 
 # Make plot output directories
 dendrogram_out_dir <- paste0(final_outputs_dir, "dendrogram/")
-print(dendrogram_out_dir)
 if (!dir.exists(dendrogram_out_dir)) {
   dir.create(dendrogram_out_dir)
 }
 
 pcoa_out_dir <- paste0(final_outputs_dir, "PCoA/")
-print(pcoa_out_dir)
 if (!dir.exists(pcoa_out_dir)) {
   dir.create(pcoa_out_dir)
 }
 
 rarefaction_out_dir <- paste0(final_outputs_dir, "rarefaction/")
-print(rarefaction_out_dir)
 if (!dir.exists(rarefaction_out_dir)) {
   dir.create(rarefaction_out_dir)
 }
 
 richness_out_dir <- paste0(final_outputs_dir, "richness/")
-print(richness_out_dir)
 if (!dir.exists(richness_out_dir)) {
   dir.create(richness_out_dir)
 }
@@ -62,7 +58,6 @@ if (!dir.exists(taxonomy_out_dir)) {
 }
 
 de_out_dir <- paste0(final_outputs_dir, "de/")
-print(de_out_dir)
 if (!dir.exists(de_out_dir)) {
   dir.create(de_out_dir)
 }
@@ -75,18 +70,23 @@ runsheet <- as.data.frame(read.table(file = runsheet,
 # Use only samples listed in sample_info
 sample_names <- readLines(sample_info)
 
-# Keep only columns with the unique_sample_ids present in the read1 name
 # Reorder the runsheet df to match the unique_sample_ids
-# Identify the matching rows based on the partial strings in sample_names
+# Identify the matching rows by removing suffix from basename of file
+
+remove_suffix <- function(path, suffix) {
+  file_name <- basename(path)
+  sub(suffix, "", file_name)
+}
 matching_rows <- sapply(sample_names, function(sn) {
-  which(sapply(rownames(runsheet), function(rn) grepl(sn, runsheet[rn, "read1_path"])))
+  which(sapply(1:nrow(runsheet), function(i) {
+    remove_suffix(runsheet$read1_path[i], runsheet$raw_R1_suffix[i]) == sn
+  }))
 })
 
-# Flatten the list to a vector
-matching_rows <- unlist(matching_rows)
+matching_rows <- unlist(matching_rows, use.names = FALSE)
+matching_rows <- unique(matching_rows)
 
-# Subset and reorder the runsheet based on the identified matching rows
-#runsheet_reordered <- runsheet[matching_rows, ]
+# Subset the runsheet
 runsheet <- runsheet[matching_rows, ]
 
 # Remove the longest common prefix from the sample names (for visualizations)
@@ -111,15 +111,16 @@ remove_common_prefix <- function(strs) {
 shortened_row_names <- remove_common_prefix(rownames(runsheet))
 rownames(runsheet) <- shortened_row_names
 
-# Put sample names into sample_names rather than the read file names
-sample_names <- rownames(runsheet)
-
-
 count_tab <- read.table(file = counts, 
                         header = TRUE, row.names = 1, sep = "\t")
-#count_tab_clone <- count_tab
-#colnames(count_tab_clone) <- rownames(runsheet_reordered)
-#colnames(count_tab) <- rownames(runsheet_reordered)
+# Convert sample names to match those in counts table
+transformed_sample_names <- make.names(sample_names, unique = TRUE)
+# Keep only samples used in the sample info (should be redundant step)
+count_tab <- count_tab[, transformed_sample_names]
+# Move shortened sample names to sample_names
+sample_names <- rownames(runsheet)
+# Rename counts columns with shortened names
+
 colnames(count_tab) <- rownames(runsheet)
 tax_tab <- read.table(file = taxonomy, 
                       header = TRUE, row.names = 1, sep = "\t")
