@@ -11,6 +11,7 @@ library(grid)
 ##################################################################################
 ## R visualization script for Illumina paired-end amplicon data                 ##
 ##################################################################################
+
 # For local testing:
 # runsheet_file <- ""
 # sample_info <- ""
@@ -25,9 +26,6 @@ runsheet <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
-
-final_outputs_dir <- paste0(args[5]) 
-
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
@@ -86,9 +84,9 @@ find_max_cex <- function(labels, space_available, starting_cex, cex_step = 0.01)
     
     if (max_label_width > space_available) {
       max_cex <- max_cex - cex_step
-      if (max_cex < cex_step) {
+      if (max_cex < 0.1) {
         warning("Labels might not fit in the available space with the current settings.")
-        return(0) # Return 0 to if no suitable cex found
+        return(0.1) # Return size .1 if no suitable cex found
       }
     } else {
       return(max_cex)
@@ -116,7 +114,6 @@ richness_out_dir <- paste0(final_outputs_dir, "richness/")
 taxonomy_out_dir <- paste0(final_outputs_dir, "taxonomy/")
 de_out_dir <- paste0(final_outputs_dir, "de/")
 
-
 # List of all directory variables
 out_dirs <- list(final_outputs_dir, dendrogram_out_dir, pcoa_out_dir, rarefaction_out_dir, richness_out_dir, taxonomy_out_dir, de_out_dir)
 
@@ -138,7 +135,6 @@ tax_tab <- read.table(file = taxonomy,
 # Use only samples listed in sample_info, which should correspond to the file names
 sample_names <- readLines(sample_info)
 deseq2_sample_names <- make.names(sample_names, unique = TRUE)
-## TEST HERE 
 
 # Remove extensions from filenames in runsheet
 runsheet$basename <- mapply(remove_suffix, runsheet[[read1_path_colname]], runsheet[[raw_R1_suffix_colname]])
@@ -155,17 +151,10 @@ runsheet <- runsheet[order(runsheet[[groups_colname]]), ]
 # Reorder count_tab columns to match the order in the runsheet
 count_tab <- count_tab[, runsheet$basename]
 
-# Identify the longest common prefix in the row names (if necessary)
+# Identify the longest common prefix in the row names
 common_prefix <- longest_common_prefix(rownames(runsheet))
 
-# Remove the longest common prefix from the basenames (if it's not empty or undesired)
-if (nchar(common_prefix) > 0) {
-  runsheet$basename <- sapply(runsheet$basename, function(name) {
-    sub(common_prefix, "", name)
-  })
-}
-
-# Remove the longest common prefix from the row names (if it's not empty or undesired)
+# Remove the longest common prefix from the row names
 if (nchar(common_prefix) > 0) {
   shortened_names <- sapply(rownames(runsheet), function(name) {
     sub(paste0("^", common_prefix), "", name)
@@ -180,15 +169,15 @@ rownames(runsheet) <- shortened_names
 colnames(count_tab) <- shortened_names
 
 if (!identical(rownames(runsheet), colnames(count_tab))) {
-  stop("The rownames of runsheet do not match the colnames of count_tab.")
+  stop("The read file names in the runsheet do not match the colnames of count_tab.")
 }
 
 # Keep only genes with at least 1 count
 count_tab <- count_tab[rowSums(count_tab) > 0, ]
 count_tab_vst <- count_tab
+
 # Check if every gene has a 0 in the row, add +1 pseudocount for VST, not ideal but fixes VST for sparse counts if needed
 if (all(apply(count_tab_vst, 1, any))) {
-  # Add pseudocount of 1 to the entire counts data frame
   count_tab_vst <- count_tab_vst + 1
 }
 
@@ -228,7 +217,6 @@ height_in_pixels <- height_in_inches * dpi
 
 # Hierarchical Clustering
 sample_info_tab <- runsheet[, c(groups_colname, color_colname)]
-print("hi")
 
 # Add short group names and legend text column to sample_info
 sample_info_tab$short_groups <- as.integer(factor(sample_info_tab[[groups_colname]], levels = unique(sample_info_tab[[groups_colname]])))
@@ -249,8 +237,8 @@ labels_colors(euc_dend) <- dend_cols
 
 
 ##########
-
 default_cex = 1
+# Lower cex if over 40 samples to prevent names from crashing on plot
 default_cex <- adjust_cex(length(rownames(sample_info_tab)))
 
 png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
@@ -263,6 +251,7 @@ plot_region <- par("usr")
 plot_height <- (plot_region[4] - plot_region[3]) / dpi
 space_available <- plot_height
 
+# Lower cex based on max sample names to prevent clipping of sample names on plot
 max_cex <- find_max_cex(rownames(sample_info_tab), space_available = space_available * 1.2, starting_cex = default_cex)
 
 euc_dend %>% set("labels_cex", max_cex) %>% plot(ylab = "VST Euc. dist.") 
@@ -290,7 +279,7 @@ label_PC1 <- sprintf("PC1 [%.1f%%]", percent_variance[1])
 label_PC2 <- sprintf("PC2 [%.1f%%]", percent_variance[2])
 
 
-# Save unlabelled PCoA plot
+# Save unlabeled PCoA plot
 ordination_plot_u <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") + 
   geom_point(size = 1) + 
   labs( 
@@ -299,7 +288,8 @@ ordination_plot_u <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
     col = "Groups"
   ) +
   coord_fixed(sqrt(eigen_vals[2]/eigen_vals[1])) + 
-  scale_color_manual(values = sample_info_tab[[color_colname]]) + 
+  scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
+                     labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) +
   theme_bw() + theme(legend.position = "bottom",  text = element_text(size = 15, ),
                      legend.direction = "vertical",
                      legend.justification = "center",
@@ -319,7 +309,8 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
   ) + 
   geom_text(aes(label = rownames(sample_info_tab)), show.legend = FALSE, hjust = 0.3, vjust = -0.4, size = 4) + 
   coord_fixed(sqrt(eigen_vals[2]/eigen_vals[1])) + 
-  scale_color_manual(values = sample_info_tab[[color_colname]]) +
+  scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
+                     labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) +
   theme_bw() + theme(legend.position = "bottom",  text = element_text(size = 15, ),
                      legend.direction = "vertical",
                      legend.justification = "center",
@@ -328,7 +319,6 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
 ggsave(filename=paste0(pcoa_out_dir, "PCoA_w_labels", ".png"), plot=ordination_plot, width = 11.1, height = 8.33, dpi = 300)
-
 
 ########################
 
@@ -344,12 +334,10 @@ sample_info_tab_names <- tibble::rownames_to_column(sample_info_tab, var = "Site
 p <- p %>%
   left_join(sample_info_tab_names, by = "Site")
 
-group_colors <- sample_info_tab[[color_colname]]
-names(group_colors) <- sample_info_tab$groups
-
 rareplot <- ggplot(p, aes(x = Sample, y = Species, group = Site, color = groups)) + 
   geom_line() + 
-  scale_color_manual(values = group_colors) + 
+  scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
+                     labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) +
   labs(x = "Number of Samples", y = "Number of ASVs", col = "Groups") + 
   theme_bw() +
   theme(legend.position = "bottom",
@@ -361,22 +349,21 @@ rareplot <- ggplot(p, aes(x = Sample, y = Species, group = Site, color = groups)
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank()) +
   guides(color = guide_legend(title = "Groups"))
-
-# Save the plot
 ggsave(filename = paste0(rarefaction_out_dir, "rarefaction.png"), plot=rareplot, width = 8.33, height = 8.33, dpi = 300)
 
-# 4b. Richness and diversity estimates
-# create a phyloseq object similar to how we did above in step 3B, only this time also including our taxonomy table:
 
+# 4b. Richness and diversity estimates
+
+# create a phyloseq object similar to how we did above in step 3B, only this time also including our taxonomy table:
 count_tab_phy <- otu_table(count_tab, taxa_are_rows = TRUE)
 tax_tab_phy <- tax_table(as.matrix(tax_tab))
 ASV_physeq <- phyloseq(count_tab_phy, tax_tab_phy, sample_info_tab_phy)
 
-colors_vector <- setNames(sample_info_tab[[color_colname]], ASV_physeq@sam_data$short_group_labels)
-
-richness_plot <- plot_richness(ASV_physeq, color = "short_group_labels", measures = c("Chao1", "Shannon")) + 
-  scale_color_manual(values = colors_vector) + 
-  theme_bw() +
+richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1", "Shannon")) + 
+  scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
+                     labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) + 
+  theme_bw() +labs(x = "Samples",
+                   color = "Groups") +
   theme(
     text = element_text(size = 15),
     legend.position = "bottom",
@@ -384,18 +371,16 @@ richness_plot <- plot_richness(ASV_physeq, color = "short_group_labels", measure
     legend.justification = "center",
     legend.box.just = "center",
     legend.title.align = 0.5,
-    axis.text.x = element_blank(),
-    legend.title = element_blank()
+    axis.text.x = element_blank()
   )
 ggsave(paste0(richness_out_dir, "richness_by_sample", ".png"), plot=richness_plot, width = 11.1, height = 8.33, dpi = 300)
 
-colors_vector <- setNames(sample_info_tab[[color_colname]], ASV_physeq@sam_data$short_group_labels)
-short_group_labels_vector <- unique(ASV_physeq@sam_data$short_groups)
-
-richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "short_group_labels", measures = c("Chao1", "Shannon")) +
-  scale_color_manual(values = colors_vector) +
-  scale_x_discrete(labels = short_group_labels_vector) +
-  theme_bw() + labs(colors = "Groups") +
+richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", measures = c("Chao1", "Shannon")) +
+  scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
+                     labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) + 
+  scale_x_discrete(labels = unique(sample_info_tab$short_groups[order(sample_info_tab[[groups_colname]])])) +
+  theme_bw() + labs(colors = "Groups",
+                    x = "Groups") +
   theme(
     text = element_text(size = 15),
     legend.position = "bottom",
@@ -407,26 +392,70 @@ richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "short_grou
   ) 
 ggsave(filename = paste0(richness_out_dir, "richness_by_group", ".png"), plot=richness_by_group, width = 11.1, height = 8.33, dpi = 300)
 
+# Extract legend from unlabeled pca plot, also save it as its own plot
+legend <- g_legend(ordination_plot)
+grid.newpage()
+grid.draw(legend)
+legend_filename <- paste0(final_outputs_dir, "color_legend.png")
+increment <- ifelse(length(unique(sample_info_tab$groups)) > 9, ceiling((length(unique(sample_info_tab$groups)) - 9) / 3), 0)
+legend_height <- 3 + increment
+ggsave(legend_filename, plot = legend, device = "png", width = 11.1, height = legend_height, dpi = 300)
+
+
 # 5. Taxonomic summaries
+# Calculate new plot height of legend is taller than ~ default / 4 
+
+# Get height of legend
+heights_in_cm <- sapply(legend$heights, function(h) {
+  if (is.null(h)) {
+    # Assign 0 to null heights
+    return(unit(0, "cm"))
+  } else {
+    # Convert the unit to centimeters
+    return(convertUnit(h, "cm", valueOnly = TRUE))
+  }
+})
+legend_height_in_cm <- sum(heights_in_cm)
+legend_height_in_inches <- legend_height_in_cm / 2.54
+
+taxonomy_plots_height <- width_in_inches
+required_height_in_inches <- 4 * legend_height_in_inches + 0.5
+if (legend_height_in_inches < required_height_in_inches) {
+  # Adjust width_in_inches to make sure the legend fits
+  taxonomy_plots_height <- required_height_in_inches
+}
+
 proportions_physeq <- transform_sample_counts(ASV_physeq, function(ASV) ASV / sum(ASV))
 proportions_physeq@sam_data$short_groups <- as.character(proportions_physeq@sam_data$short_groups)
 
 relative_phyla <- plot_bar(proportions_physeq, x = "short_groups", fill = "phylum") + 
   theme_bw() + theme(text = element_text(size = 9)) + labs(x = "Groups")
-ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), plot=relative_phyla, width = 11.1, height = 8.33, dpi = 300)
+plot_layout <- grid.layout(nrow = 2, heights = unit(c(3, 1), "null"))
+grid.newpage()
+pushViewport(viewport(layout = plot_layout))
+print(relative_phyla, vp = viewport(layout.pos.row = 1))
+pushViewport(viewport(layout.pos.row = 2))
+grid.draw(legend)
+upViewport(0)
+grid_image <- grid.grab()
+ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
 
 relative_classes <- plot_bar(proportions_physeq, x = "short_groups", fill = "class") + 
   theme_bw() + theme(text = element_text(size = 9)) + labs(x = "Groups")
-ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=relative_classes, width = 11.1, height = 8.33, dpi = 300)
+plot_layout <- grid.layout(nrow = 2, heights = unit(c(3, 1), "null"))
+grid.newpage()
+pushViewport(viewport(layout = plot_layout))
+print(relative_classes, vp = viewport(layout.pos.row = 1))
+pushViewport(viewport(layout.pos.row = 2))
+grid.draw(legend)
+upViewport(0)
+grid_image <- grid.grab()
+ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
+
 
 # 6 Statistically testing for differences
 
-# Ordination
-
-
-
 #### pairwise comparisons
-
 unique_groups <- unique(runsheet$groups)
 deseq_obj <- phyloseq_to_deseq2(physeq = ASV_physeq, design = ~groups)
 deseq_modeled <- DESeq(deseq_obj)
@@ -475,13 +504,3 @@ comparisons <- expand.grid(group1 = unique_groups, group2 = unique_groups)
 comparisons <- subset(comparisons, group1 != group2)
 
 apply(comparisons, 1, function(pair) plot_comparison(pair['group1'], pair['group2']))
-
-
-##########
-# Extract legend from unlabeled pca plot
-# Print to new file
-legend <- g_legend(ordination_plot_u)
-grid.newpage()
-grid.draw(legend)
-legend_filename <- paste0(final_outputs_dir, "color_legend.png")
-ggsave(legend_filename, plot = legend, device = "png", width = 11.1, height = 4, dpi = 300)
