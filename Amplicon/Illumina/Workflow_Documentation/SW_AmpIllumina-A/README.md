@@ -13,7 +13,7 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
     - [2. Download the workflow template files](#2-download-the-workflow-template-files)
     - [3. Configure the input files](#3-configure-the-input-files)
       - [3a. Automate Configuration with Scripts](#3a-automate-configuration-with-scripts)
-      - [3b. Prepare the runsheet](#3b-prepare-the-runsheet)
+      - [3b. Set up the runsheet](#3b-set-up-the-runsheet)
       - [3c. Set up unique-sample-IDs.txt](#3c-set-up-unique-sample-idstxt)
       - [3d. Set up config.yaml](#3d-set-up-configyaml)
     - [4. Run the workflow](#4-run-the-workflow)
@@ -70,7 +70,7 @@ pip install git+https://github.com/torres-alexis/dp_tools.git@amplicon_updates
 ```
 **Download the ISA files:** Use the dp_tools script `dpt-get-isa-archive`.
 ```sh
-dpt-get-isa-archive GLDS-###
+dpt-get-isa-archive --accession GLDS-###
 ```
 **Generate the runsheet:** Use the dp_tools script `dpt-isa-to-archive` to generate a runsheet from the study's ISA files.
 ```bash
@@ -80,7 +80,7 @@ dpt-isa-to-runsheet --accession GLDS-### --config-type amplicon --config-version
 **Create unique-sample-IDs.txt and config.yaml:** Once the runsheet is ready, the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script located in the scripts directory to generate the unique-sample-IDs.txt and config.yaml files. When running the script, provide either absolute paths or paths relative to the Snakefile's location. For consistency and to avoid path-related errors during execution of the Snakemake workflow, it is recommended to use absolute paths. This ensures that config.yaml is the only input file required in the workflow_code directory when initiating the workflow.
 
 
-#### 3b. Prepare the runsheet
+#### 3b. Set up the runsheet
 To process your dataset with the workflow, you should first prepare a runsheet CSV file that contains the required information for your samples. If you are working with a GeneLab OSDR dataset, the `dpt-isa-to-runsheet` script can be used to generate a runsheet from the associated study's ISA files. If you are using other datasets, the runsheet will need to be prepared manually.
 
 The runsheet requires the following columns, in no particular order after the first:
@@ -99,8 +99,34 @@ The runsheet requires the following columns, in no particular order after the fi
 | Sample-1    | 16S                                | TRUE       | AGAGTTTGATCCTGGCTCAG         | TTACCGCGGCTGCTGGCAC          | Sample1_R1_raw.fastq.gz filename or pathname     | Sample1_R2_raw.fastq.gz filename or pathname     | _R1_raw.fastq.gz | _R2_raw.fastq.gz | Ground Control             | 2 Weeks           | Ground Control & 2 weeks |
 | Sample-2    | 16S                                | TRUE       | AGAGTTTGATCCTGGCTCAG         | TTACCGCGGCTGCTGGCAC          | Sample2_R1_raw.fastq.gz filename or pathname     | Sample2_R2_raw.fastq.gz filename or pathname     | _R1_raw.fastq.gz | _R2_raw.fastq.gz | Space Flight               | 3 Weeks           | Space Flight & 3 weeks   |
 
-After the runsheet is prepared, you can manually configure [unique-sample-IDs.txt](workflow_code/unique-sample-IDs.txt)  and [config.yaml](workflow_code/config.yaml) or use the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script to generate these two files based on your runsheet.
+After the runsheet is prepared, you can manually configure [unique-sample-IDs.txt](workflow_code/unique-sample-IDs.txt)  and [config.yaml](workflow_code/config.yaml) or use the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script to generate these two files based on your runsheet. To use the script:
 
+1. **Runsheet File:** Make sure the runsheet CSV file is complete and includes the required columns.
+2. **Raw Reads:** Have the directory of raw reads prepared and know the path to this directory.
+3. **Execution:** Navigate to the workflow directory and run the script with the appropriate options. 
+> Note: You may have to make this script executable with the following command: 
+
+```bash
+chmod +x /PATH/TO/GeneLab_Data_Processing/Amplicon/Illumina/Workflow_Documentation/SW_AmpIllumina-workflow_code/scripts/runsheet_to_config.sh
+```
+
+Here is the usage syntax for using the `runsheet_to_config.sh` script from the workflow directory:
+
+```bash
+./workflow_code/scripts/runsheet_to_config.sh -r <path_to_runsheet.csv> -d <path_to_raw_reads> [-o <path_to_output_directory>] [-m <minimum_trimmed_read_length>]
+```
+
+**Parameter Definitions:**
+
+* `-r` or `--runsheet` – Path to the runsheet CSV file, which must be either absolute or relative to the Snakefile. The runsheet should be formatted correctly with all necessary columns.
+* `-d` or `--raw_reads` – Path to the directory containing the raw sequencing reads. This can be an absolute path or relative to the Snakefile.
+* `-o` or `--output` (optional) – Path to the output directory where the Snakefile outputs will be created. If not specified, the default relative path `workflow/` is used.
+* `-m `or `--min_length` (optional) – The minimum length allowed for trimmed reads. If a read is shorter than this length after trimming, it will be discarded. For paired-end reads, if one read of the pair is discarded, the other will be as well. Default: `1`.
+
+Example being run from the Snakefile directory using relative paths:
+```bash
+./scripts/runsheet_to_config.sh -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1
+``````
 #### 3c. Set up unique-sample-IDs.txt
 
 You will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process. 
