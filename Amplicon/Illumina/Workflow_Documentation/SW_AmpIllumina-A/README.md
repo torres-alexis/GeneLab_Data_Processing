@@ -6,10 +6,17 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 
 ## Utilizing the workflow
 
-1. [Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)  
-2. [Download the workflow template files](#2-download-the-workflow-template-files)  
-3. [Modify the variables in the config.yaml file](#3-modify-the-variables-in-the-configyaml-file)  
-4. [Run the workflow](#4-run-the-workflow)  
+- [SW\_AmpIllumina-A Workflow Information and Usage Instructions](#sw_ampillumina-a-workflow-information-and-usage-instructions)
+  - [General workflow info](#general-workflow-info)
+  - [Utilizing the workflow](#utilizing-the-workflow)
+    - [1. Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)
+    - [2. Download the workflow template files](#2-download-the-workflow-template-files)
+    - [3. Configure the input files](#3-configure-the-input-files)
+      - [3a. Automate Configuration with Scripts](#3a-automate-configuration-with-scripts)
+      - [3b. Prepare the runsheet](#3b-prepare-the-runsheet)
+      - [3c. Set up unique-sample-IDs.txt](#3c-set-up-unique-sample-idstxt)
+      - [3d. Set up config.yaml](#3d-set-up-configyaml)
+    - [4. Run the workflow](#4-run-the-workflow)
 
 ### 1. Install conda, mamba, and `genelab-utils` package
 We recommend installing a Miniconda, Python3 version appropriate for your system, as exemplified in [the above link](https://astrobiomike.github.io/unix/conda-intro#getting-and-installing-conda).  
@@ -49,8 +56,54 @@ This downloaded the workflow into a directory called `SW_AmpIllumina-*/`, with t
 > ```
 
 
-### 3. Modify the variables in the config.yaml file
-Once you've downlonaded the workflow template, you can modify the variables in the [config.yaml](workflow_code/config.yaml) file as needed. For example, you will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process. 
+### 3. Configure the input files
+
+#### 3a. Automate Configuration with Scripts
+
+If you are working with GeneLab OSDR datasets, the entire process of generating configuration files can be automated using scripts from dp_tools and the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script. 
+
+You will need to install a specific development branch of dp_tools that contains updates for amplicon sequencing data. This branch can be found at [https://github.com/torres-alexis/dp_tools/tree/amplicon_updates](https://github.com/torres-alexis/dp_tools/tree/amplicon_updates).
+
+You can install this development branch to your active conda environment using pip with the following command:
+```bash
+pip install git+https://github.com/torres-alexis/dp_tools.git@amplicon_updates
+```
+**Download the ISA files:** Use the dp_tools script `dpt-get-isa-archive`.
+```sh
+dpt-get-isa-archive GLDS-###
+```
+**Generate the runsheet:** Use the dp_tools script `dpt-isa-to-archive` to generate a runsheet from the study's ISA files.
+```bash
+dpt-isa-to-runsheet --accession GLDS-### --config-type amplicon --config-version Latest --isa-archive /path/to/GLDS-###_GLDS-###-ISA.zip
+```
+
+**Create unique-sample-IDs.txt and config.yaml:** Once the runsheet is ready, the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script located in the scripts directory to generate the unique-sample-IDs.txt and config.yaml files. When running the script, provide either absolute paths or paths relative to the Snakefile's location. For consistency and to avoid path-related errors during execution of the Snakemake workflow, it is recommended to use absolute paths. This ensures that config.yaml is the only input file required in the workflow_code directory when initiating the workflow.
+
+
+#### 3b. Prepare the runsheet
+To process your dataset with the workflow, you should first prepare a runsheet CSV file that contains the required information for your samples. If you are working with a GeneLab OSDR dataset, the `dpt-isa-to-runsheet` script can be used to generate a runsheet from the associated study's ISA files. If you are using other datasets, the runsheet will need to be prepared manually.
+
+The runsheet requires the following columns, in no particular order after the first:
+
+- **Sample Name:** A unique identifier for each sample.
+- **Parameter Value[Library Selection]:** Library type, either '16S' or 'ITS'
+- **paired_end:** 'TRUE' or 'FALSE' indicating whether the sequencing is paired-end (TRUE) or single-end (FALSE).
+- **F_Primer and R_Primer:** The sequences of the forward and reverse primers. Only one primer sequence should be entered in each respective column. For single-end data, only **F_Primer** is required.
+- **read1_path** and **read2_path:** For paired-end data, the filenames or pathnames for the forward and reverse sequence files, respectively. For single-end data, only **read1_path** is required.
+- **raw_R1_suffix** and **raw_R2_suffix:** The suffixes that identify the raw read files. These columns should contain only one value each. For single-end data, only **raw_R1_suffix** is required.
+- **groups:** Define the experimental groups for each sample, using an '&' to differentiate between factors. For example, 'Ground Control & 2 weeks' indicates the sample's conditions related to the Spaceflight and Time factors.
+
+
+| Sample Name | Parameter Value[Library Selection] | paired_end | F_Primer                     | R_Primer                     | read1_path                                        | read2_path                                        | raw_R1_suffix   | raw_R2_suffix   | Factor Value[Spaceflight] | Factor Value[Time] | groups                   |
+|-------------|------------------------------------|------------|------------------------------|------------------------------|---------------------------------------------------|---------------------------------------------------|-----------------|-----------------|----------------------------|-------------------|--------------------------|
+| Sample-1    | 16S                                | TRUE       | AGAGTTTGATCCTGGCTCAG         | TTACCGCGGCTGCTGGCAC          | Sample1_R1_raw.fastq.gz filename or pathname     | Sample1_R2_raw.fastq.gz filename or pathname     | _R1_raw.fastq.gz | _R2_raw.fastq.gz | Ground Control             | 2 Weeks           | Ground Control & 2 weeks |
+| Sample-2    | 16S                                | TRUE       | AGAGTTTGATCCTGGCTCAG         | TTACCGCGGCTGCTGGCAC          | Sample2_R1_raw.fastq.gz filename or pathname     | Sample2_R2_raw.fastq.gz filename or pathname     | _R1_raw.fastq.gz | _R2_raw.fastq.gz | Space Flight               | 3 Weeks           | Space Flight & 3 weeks   |
+
+After the runsheet is prepared, you can manually configure [unique-sample-IDs.txt](workflow_code/unique-sample-IDs.txt)  and [config.yaml](workflow_code/config.yaml) or use the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script to generate these two files based on your runsheet.
+
+#### 3c. Set up unique-sample-IDs.txt
+
+You will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process. 
 
 > Note: If you are unfamiliar with how to specify paths, one place you can learn more is [here](https://astrobiomike.github.io/unix/getting-started#the-unix-file-system-structure).  
 
@@ -79,6 +132,9 @@ cat unique-sample-IDs.txt
 Sample-1
 Sample-2
 ```
+
+#### 3d. Set up config.yaml
+Once the runsheet CSV file and unique-samples-IDs.txt file are set up, you can modify the variables in the [config.yaml](workflow_code/config.yaml) file as needed. All paths in the configuration file should be absolute paths or paths relative to the Snakefile.
 
 ### 4. Run the workflow
 

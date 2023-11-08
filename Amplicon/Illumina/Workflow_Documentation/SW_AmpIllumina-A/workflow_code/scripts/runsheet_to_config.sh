@@ -9,10 +9,12 @@ min_trimmed_read_length=1
 # Function to display usage
 print_usage() {
     echo "Usage: $0"
-    echo "       -r|--runsheet <Path to runsheet CSV>"
-    echo "       -d|--raw_reads <Path to raw reads dir>"
-    echo "       [-o|--output <Path relative to Snakefile or"
-    echo "        absolute path to output directory (default: workflow/)>]"
+    echo "       -r|--runsheet <Path to runsheet CSV,"
+    echo "        relative to the Snakefile or as an absolute path."
+    echo "       -d|--raw_reads <Path to directory containing the raw reads,"
+    echo "        relative to the Snakefile or as an absolute path."
+    echo "       [-o|--output <Path to output directory, relative to the Snakefile"
+    echo "         or as an absolute path. (default: workflow/)>]"
     echo "       [-m|--min_length <Minimum trimmed read length (default: 1)>]"
     echo "       [-h|--help Display the help menu]"
 
