@@ -1,19 +1,27 @@
-# SW_AmpIllumina-A Workflow Information and Usage Instructions
+# SW_AmpIllumina-A Workflow Information and Usage Instructions <!-- omit in toc -->
 
 
-## General workflow info
+## General workflow info <!-- omit in toc -->
 The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIllumina), [GL-DPPD-7104-A.md](../../Pipeline_GL-DPPD-7104_Versions/GL-DPPD-7104-A.md), is implemented as a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow and utilizes [conda](https://docs.conda.io/en/latest/) environments to install/run all tools. This workflow (SW_AmpIllumina-A) is run using the command line interface (CLI) of any unix-based system. The workflow can be used even if you are unfamiliar with Snakemake and conda, but if you want to learn more about those, [this Snakemake tutorial](https://snakemake.readthedocs.io/en/stable/tutorial/tutorial.html) within [Snakemake's documentation](https://snakemake.readthedocs.io/en/stable/) is a good place to start for that, and an introduction to conda with installation help and links to other resources can be found [here at Happy Belly Bioinformatics](https://astrobiomike.github.io/unix/conda-intro).  
 
-## Utilizing the workflow
+<br>
 
-1. [Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)  
-2. [Download the workflow template files](#2-download-the-workflow-template-files)  
+---
+
+## Utilizing the workflow <!-- omit in toc -->
+
+1. [Install conda, mamba, and genelab-utils package](#1-install-conda-mamba-and-genelab-utils-package)
+2. [Download the workflow template files](#2-download-the-workflow-template-files)
 3. [Set up the runsheet](#3-set-up-the-runsheet)
   3a. [Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data](#3a-approach-1-running-the-workflow-on-a-genelab-illumina-amplicon-sequencing-dataset-with-automatic-generation-of-the-runsheet-and-retrieval-of-the-raw-sequencing-data)
   3b. [Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet](#3b-approach-2-running-the-workflow-on-non-glds-datasets-using-a-user-generated-runsheet)
 4. [Configure config.yaml and unique-sample-IDs.txt](#4-configure-configyaml-and-unique-sample-idstxt)
 5. [Run the workflow](#5-run-the-workflow)
- 
+
+<br>
+
+___
+
 ### 1. Install conda, mamba, and `genelab-utils` package
 We recommend installing a Miniconda, Python3 version appropriate for your system, as exemplified in [the above link](https://astrobiomike.github.io/unix/conda-intro#getting-and-installing-conda).  
 
@@ -36,6 +44,8 @@ The environment then needs to be activated:
 ```bash
 conda activate genelab-utils
 ```
+<br>
+___
 
 ### 2. Download the workflow template files
 All files required for utilizing the GeneLab workflow for processing Illumina amplicon sequencing data are in the [workflow_code](workflow_code) directory. 
@@ -52,12 +62,16 @@ This downloaded the workflow into a directory called `SW_AmpIllumina-*/`, with t
 > ```bash
 > GL-get-workflow Amplicon-Illumina --wanted-version 1.0.0
 > ``` -->
+>
 
+<br>
+
+___
 ### 3. Set up the runsheet
 
 To process your dataset using the Snakemake workflow, you will need to prepare a runsheet containing the required metadata for your dataset.
 
-#### 3.a Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data
+#### 3a. Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data
 
 If you are working with a GeneLab OSDR dataset, you can use dp_tools scripts to generate this runsheet.
 
@@ -80,11 +94,16 @@ dpt-isa-to-runsheet --accession GLDS-### --config-type amplicon --config-version
 
 When using the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) as detailed in section [4](#4-configure-configyaml-and-unique-sample-idstxt), raw reads will be automatically retrieved and downloaded to the `workflow_code/raw_reads` directory.
 
-#### 3.b Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet
+
+#### 3b. Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet
 
 If you are working with a non-GLDS dataset, you must manually create the runsheet for your dataset to run the workflow.
 
 > Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
+
+<br>
+
+___
 
 ### 4. Configure config.yaml and unique-sample-IDs.txt
 
@@ -117,7 +136,7 @@ Example execution from the [workflow_code/](workflow_code/) directory:
 ./scripts/runsheet_to_config.sh -r runsheet.csv -o /path/to/custom_outputs_directory/ -m 1
 ```
 
-
+___
 
 Below are instructions to prepare the two files manually if needed.
 
@@ -150,6 +169,10 @@ cat unique-sample-IDs.txt
 Sample-1
 Sample-2
 ```
+
+<br>
+
+___
 
 ### 5. Run the workflow
 
