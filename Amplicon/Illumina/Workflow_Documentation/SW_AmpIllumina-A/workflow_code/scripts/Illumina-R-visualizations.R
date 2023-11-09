@@ -26,6 +26,7 @@ runsheet_file <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
+final_outputs_dir <- paste0(args[5])
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
