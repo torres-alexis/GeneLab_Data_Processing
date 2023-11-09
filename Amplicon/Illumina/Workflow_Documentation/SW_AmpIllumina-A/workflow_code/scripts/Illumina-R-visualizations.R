@@ -136,8 +136,20 @@ tax_tab <- read.table(file = taxonomy,
 sample_names <- readLines(sample_info)
 deseq2_sample_names <- make.names(sample_names, unique = TRUE)
 
+
+# Check if the runsheet uses links instead of local file paths
+uses_links <- any(grepl("^(http|https)://|genelab-data.ndc.nasa.gov", runsheet[[read1_path_colname]]))
 # Remove extensions from filenames in runsheet
-runsheet$basename <- mapply(remove_suffix, runsheet[[read1_path_colname]], runsheet[[raw_R1_suffix_colname]])
+if (uses_links) {
+  runsheet$basename <- sapply(runsheet[[read1_path_colname]], function(x) {
+    # Extract what is after 'file=' and before any '&' or other URL parameters
+    matches <- regmatches(x, regexec("file=([^&]+\\.gz)", x))
+    return(matches[[1]][2]) # The second element of the match is the capture group
+  })
+} else {
+  runsheet$basename <- mapply(remove_suffix, runsheet[[read1_path_colname]], runsheet[[raw_R1_suffix_colname]])
+}
+
 # Make the basenames DESeq2 compatible
 runsheet$basename <- make.names(runsheet$basename, unique = TRUE)
 
@@ -475,12 +487,12 @@ plot_comparison <- function(group1, group2) {
   # ASVs promoted in space on right, reduced on left
   p <- ggplot(volcano_data, aes(x=log2FoldChange, y=-log10(padj), color=significant)) +
     geom_point(alpha=0.7, size=2) +
-    scale_color_manual(values=c("black", "red"), labels=c(paste0("Not Significant (padj > ", p_val, ")"), paste0("Significant (padj ≤ ", p_val, ")"))) +
+    scale_color_manual(values=c("black", "red"), labels=c(paste0("padj > ", p_val), paste0("padj ≤ ", p_val))) +
     theme_bw() +
     labs(title="Volcano Plot",
          x=paste("Log2 Fold Change\n(",group1," vs ",group2,")"),
          y="-Log10 P-value",
-         color=paste0("Significant padj: ", p_val)) +
+         color=paste0("")) +
     theme(legend.position="top")
   
   # label points and plot

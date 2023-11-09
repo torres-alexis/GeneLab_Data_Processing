@@ -3,28 +3,33 @@
 # config.yaml format is based on https://github.com/nasa/GeneLab_Data_Processing/blob/master/Amplicon/Illumina/Workflow_Documentation/SW_AmpIllumina-A/workflow_code/config.yaml
 
 # Initialize default values
-output_dir="workflow/"
+raw_reads_directory="raw_reads/" 
+output_dir="workflow_output/"
 min_trimmed_read_length=1
+download_counter_file=$(mktemp)
+
     echo ""
 # Function to display usage
 print_usage() {
     echo "Usage: $0"
-    echo "       -r|--runsheet <Path to runsheet CSV,"
-    echo "        relative to the Snakefile or as an absolute path."
-    echo "       -d|--raw_reads <Path to directory containing the raw reads,"
-    echo "        relative to the Snakefile or as an absolute path."
-    echo "       [-o|--output <Path to output directory, relative to the Snakefile"
-    echo "         or as an absolute path. (default: workflow/)>]"
-    echo "       [-m|--min_length <Minimum trimmed read length (default: 1)>]"
-    echo "       [-h|--help Display the help menu]"
-
-    echo "Note:"
-    echo "       -m specifies the minimum post-trimming read length."
-    echo "       For paired end: if one read gets filtered, both reads"
-    echo "       in the pair are discarded."
-
+    echo "This script must be executed from the 'workflow_code' directory."
+    echo ""
+    echo "Required arguments:"
+    echo "  -r, --runsheet <path>    Path to runsheet CSV file, relative to the"
+    echo "                           'workflow_code' directory or as an absolute path."
+    
+    echo "Optional arguments:"
+    echo "  -o, --output <path>      Path to output directory, relative to the"
+    echo "                           'workflow_code' directory or as an absolute path."
+    echo "                           Default is 'workflow_output/'"
+    echo "  -m, --min_length <num>   Minimum trimmed read length."
+    echo "                           For paired end data: if one read gets filtered,"
+    echo "                           both reads are discarded."
+    echo "                           Default is 1"
+    echo "  -h, --help               Display this help menu and exit."
+    echo ""
     echo "Example:"
-    echo "       $0 -r runsheet.csv -d ../raw_reads/ -o workflow/ -m 1"
+    echo "    $0 -r runsheet.csv -o workflow_output/ -m 1"
 }
 
 # Parse named arguments
@@ -37,15 +42,11 @@ while [ $# -gt 0 ]; do
 		runsheet_csv="$1"
 		shift
 		;;
-	-d|--raw_reads)
-		raw_reads_directory="$1"
-		shift
-		;;
 	-o|--output)
 		output_dir="$1"
 		shift
 		;;
-	-m|--minimum-length)
+	-m|--min_length)
 		min_trimmed_read_length="$1"
 		shift
 		;;
@@ -63,7 +64,7 @@ while [ $# -gt 0 ]; do
 done
 
 # Check if required named arguments are provided
-if [[ -z "$runsheet_csv" ]] || [[ -z "$raw_reads_directory" ]]; then
+if [[ -z "$runsheet_csv" ]]; then
     echo "Error: Missing required arguments."
     echo ""
     print_usage
@@ -71,7 +72,7 @@ if [[ -z "$runsheet_csv" ]] || [[ -z "$raw_reads_directory" ]]; then
 fi
 
 echo "Runsheet: $runsheet_csv"
-echo "Raw Reads Directory: $raw_reads_directory"
+#echo "Raw Reads Directory: $raw_reads_directory"
 echo "Output Directory: $output_dir"
 echo "Minimum Trimmed Read Length: $min_trimmed_read_length"
 
@@ -102,13 +103,7 @@ if [ -z "$paired_col" ]; then
 fi
 # Extract paired_end values, convert to uppercase, and take the unique value
 paired=$(awk -v col="$paired_col" -F, 'NR > 1 {print toupper($col)}' $runsheet_csv | uniq)
-# # Count the number of lines in paired_end
-# line_count=$(echo "$paired_end" | wc -l)
 
-# if [ "$line_count" -gt 1 ]; then
-#     echo "Error: Multiple values detected for paired_end. Please ensure consistency in the runsheet."
-#     exit 1
-# fi
 # Check the value and set data_type accordingly
 if [ "$paired" == "TRUE" ]; then
     data_type="PE"
@@ -144,16 +139,6 @@ else
 fi
 
 
-# Create unique-sample-IDs.txt
-# sample_name_col_num=$(get_col_num "Sample Name" "$runsheet_csv")
-#awk -F, -v col="$sample_name_col_num" 'NR > 1 && !seen[$col]++ {print $col}' $runsheet_csv > $sample_ids_file
-# echo "Unique sample names saved to $sample_ids_file"
-
-# Refactored to get the sample IDs from the file names, for cases where sample name col does not match read{1,2}_path names
-# Extract sample IDs using raw_r1_suffix
-# Get the columns for "read1_path" and "read2_path"
-# Extract unique sample names and write to sample_names.txt
-
 read1_path_col=$(get_col_num "read1_path" "$runsheet_csv")
 if [ -z "$read1_path_col" ]; then
     echo "Error: 'read1_path' column not found in the runsheet."
@@ -170,15 +155,156 @@ else
     read2_path_col=""
 fi
 
-# Extract sample IDs from read1_path column using raw_r1_suffix
-# Logic: get basenames, replace suffix with ""
-sample_ids_r1=$(awk -F, 'NR > 1 {split($'"$read1_path_col"', arr, "/"); name=arr[length(arr)]; gsub("'"$raw_r1_suffix"'","",name); print name}' $runsheet_csv | sort -u)
+
+check_for_links() {
+    local col_num=$1
+    if awk -v col="$col_num" -F, 'NR > 1 {print $col}' "$runsheet_csv" | grep -E -q '(http|https)://|genelab-data.ndc.nasa.gov'; then
+        return 0 # True, URLs are detected
+    else
+        return 1 # False, URLs are not detected
+    fi
+}
+
+# Function to set the boolean uses_links based on column checks
+set_uses_links_flag() {
+    local read1_col_num=$1
+    local uses_links=false
+    
+    # Check for links in "read1_path" column
+    if check_for_links "$read1_col_num"; then
+        uses_links=true
+    fi
+    echo "$uses_links"
+}
+
+uses_links=$(set_uses_links_flag "$read1_path_col")
+
+if [ "$uses_links" == "true" ]; then
+    echo "Links are being used in the runsheet."
+else
+    echo "Local paths are being used in the runsheet."
+fi
+
+# Prompt function definition
+prompt_user_for_download() {
+    read -p "The $raw_reads_directory directory is not empty. Download read files anyway? [y/N]: " yn
+    [[ $yn =~ ^[Yy]$ ]]
+}
+
+# Function to download a file and ensure a proper filename
+download_file() {
+    local url=$1
+    local out_dir=$2
+    local filename=$(echo "$url" | sed -n 's/.*file=\([^&]*\).*/\1/p')
+
+    if [ -n "$filename" ]; then
+        if wget -O "$out_dir/$filename" "$url" > /dev/null 2>&1; then
+            echo "Downloaded $filename"
+            echo "$filename" >> "$download_counter_file"
+        else
+            # If wget fails, use curl as a backup
+            if curl -o "$out_dir/$filename" "$url" > /dev/null 2>&1; then
+                echo "Downloaded $filename"
+                echo "$filename" >> "$download_counter_file"
+            else
+                echo "Failed to download: $filename"
+            fi
+        fi
+    else
+        echo "Not a valid URL: $url"
+    fi
+}
+
+# Function to process the runsheet and initiate downloads
+process_and_download_reads() {
+    local runsheet=$1
+    local r1_col=$2
+    local r2_col=$3
+    local out_dir=$4
+
+    # Read the file line by line starting from the second line
+    tail -n +2 "$runsheet" | while IFS=, read -r -a fields; do
+        local r1_path="${fields[r1_col-1]}"
+        local r2_path="${fields[r2_col-1]}"
+
+        # Download read 1 path
+        download_file "$r1_path" "$out_dir" 
+
+        # If paired is true, download read 2 path
+        if [ ! -z "$r2_path" ]; then
+            download_file "$r2_path" "$out_dir" 
+        fi
+    done
+}
+
+# Check if $raw_reads_directory is empty
+if [ "$uses_links" == "true" ]; then
+    mkdir -p "$raw_reads_directory"
+    if [ -d "$raw_reads_directory" ] && [ "$(ls -A "$raw_reads_directory")" ]; then
+        # Directory exists and is not empty, prompt the user
+        if prompt_user_for_download; then
+            echo "Downloading read files to $raw_reads_directory"
+            process_and_download_reads "$runsheet_csv" "$read1_path_col" "$read2_path_col" "$raw_reads_directory"
+            number_of_downloaded_files=$(awk 'END {print NR}' "$download_counter_file")
+            echo "Downloaded $number_of_downloaded_files files."
+            rm "$download_counter_file"
+        else
+            echo "Skipping download."
+        fi
+    else
+        echo "Downloading files to $raw_reads_directory"
+        process_and_download_reads "$runsheet_csv" "$read1_path_col" "$read2_path_col" "$raw_reads_directory"
+        number_of_downloaded_files=$(awk 'END {print NR}' "$download_counter_file")
+        echo "Downloaded $number_of_downloaded_files files."
+        rm "$download_counter_file"
+    fi
+else
+    echo "Local paths are being used."
+fi
+
+
+# Set raw reads directory based on the path in read1_path if the runsheet is not using download links for paths
+if [ "$uses_links" == "true" ]; then
+    :
+else
+    first_read1_path=$(awk -v col="$read1_path_col" -F, 'NR==2 {print $col; exit}' "$runsheet_csv")
+    raw_reads_directory="$(dirname "$first_read1_path")/"
+fi
+
+
+if [ "$uses_links" == "true" ]; then
+    # Logic for URLs using sed to extract the filename
+    sample_ids_r1=$(awk -F, -v col="$read1_path_col" 'NR > 1 {
+        print $col
+      }' "$runsheet_csv" | sed -n 's/.*[?&]file=\([^&]*\).*/\1/p' | sed "s/$raw_r1_suffix\$//" | sort -u)
+else
+    # Logic for local paths
+    sample_ids_r1=$(awk -F, -v col="$read1_path_col" -v r1_suffix="$raw_r1_suffix" 'NR > 1 {
+        split($col, arr, "/")
+        name=arr[length(arr)]
+        gsub(r1_suffix, "", name)
+        print name
+      }' "$runsheet_csv" | sort -u)
+fi
 
 # If paired end, extract sample IDs from read2_path and compare them with those extracted from read1_path
 if [ -n "$raw_r2_suffix" ]; then
-    # If raw_r2_suffix is not empty, extract sample IDs using it
-    sample_ids_r2=$(awk -v r2="$raw_r2_suffix" -v col="$read2_path_col" -F, 'NR > 1 {split($col, arr, "/"); name=arr[length(arr)]; gsub(r2,"",name); print name}' $runsheet_csv | sort -u)
-
+    if [ "$uses_links" == "true" ]; then
+        # Logic for URLs using sed to extract the filename
+        sample_ids_r2=$(awk -F, -v col="$read2_path_col" 'NR > 1 {
+            print $col
+          }' "$runsheet_csv" | sed -n 's/.*[?&]file=\([^&]*\).*/\1/p' | sed "s/$raw_r2_suffix\$//" | sort -u)
+    else
+        # Logic for local paths
+        sample_ids_r2=$(awk -F, -v col="$read2_path_col" -v r2_suffix="$raw_r2_suffix" 'NR > 1 {
+            split($col, arr, "/")
+            name=arr[length(arr)]
+            gsub(r2_suffix, "", name)
+            print name
+          }' "$runsheet_csv" | sort -u)
+    fi
+    
+   
     # Compare the two sample ID lists directly
     diff_lines=$(paste <(echo "$sample_ids_r1") <(echo "$sample_ids_r2") | awk '$1!=$2{print NR}')
 
@@ -199,6 +325,7 @@ if [ -z "$sample_ids_r1" ]; then
 else
     echo "$sample_ids_file was successfully created."
 fi
+
 
 
 
