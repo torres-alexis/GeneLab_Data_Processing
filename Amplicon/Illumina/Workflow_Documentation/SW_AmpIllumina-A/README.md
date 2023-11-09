@@ -6,16 +6,13 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 
 ## Utilizing the workflow
 
-- [SW\_AmpIllumina-A Workflow Information and Usage Instructions](#sw_ampillumina-a-workflow-information-and-usage-instructions)
-  - [General workflow info](#general-workflow-info)
-  - [Utilizing the workflow](#utilizing-the-workflow)
-    - [1. Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)
-    - [2. Download the workflow template files](#2-download-the-workflow-template-files)
-    - [3. Set up the runsheet](#3-set-up-the-runsheet)
-      - [3.a Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data](#3a-approach-1-running-the-workflow-on-a-genelab-illumina-amplicon-sequencing-dataset-with-automatic-generation-of-the-runsheet-and-retrieval-of-the-raw-sequencing-data)
-      - [3.b Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet](#3b-approach-2-running-the-workflow-on-non-glds-datasets-using-a-user-generated-runsheet)
-    - [4. Configure config.yaml and unique-sample-IDs.txt](#4-configure-configyaml-and-unique-sample-idstxt)
-    - [5. Run the workflow](#5-run-the-workflow)
+1. [Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)  
+2. [Download the workflow template files](#2-download-the-workflow-template-files)  
+3. [Set up the runsheet](#3-set-up-the-runsheet)
+3a. [Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data](#3a-approach-1-running-the-workflow-on-a-genelab-illumina-amplicon-sequencing-dataset-with-automatic-generation-of-the-runsheet-and-retrieval-of-the-raw-sequencing-data)
+3b. [Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet](#3b-approach-2-running-the-workflow-on-non-glds-datasets-using-a-user-generated-runsheet)
+4. [Configure config.yaml and unique-sample-IDs.txt](#4-configure-configyaml-and-unique-sample-idstxt)
+5. [Run the workflow](#5-run-the-workflow)
  
 ### 1. Install conda, mamba, and `genelab-utils` package
 We recommend installing a Miniconda, Python3 version appropriate for your system, as exemplified in [the above link](https://astrobiomike.github.io/unix/conda-intro#getting-and-installing-conda).  
@@ -75,7 +72,6 @@ pip install git+https://github.com/torres-alexis/dp_tools.git@amplicon_updates
 ```bash
 dpt-get-isa-archive --accession GLDS-###
 ```
-
 **Generate the runsheet:** Use the dp_tools script `dpt-isa-to-archive` to generate a runsheet from the study's ISA files.
 
 ```bash
@@ -121,12 +117,11 @@ Example execution from the [workflow_code/](workflow_code/) directory:
 ./scripts/runsheet_to_config.sh -r runsheet.csv -o /path/to/custom_outputs_directory/ -m 1
 ```
 
-___
-**Manual Configuration of `config.yaml` and `unique_sample_IDS.txt`**
 
-Below are instructions to set up the two files manually if necessary.
 
-You can modify the variables in the [config.yaml](workflow_code/config.yaml) file as needed. For example, you will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process.
+Below are instructions to prepare the two files manually if needed.
+
+You can modify the variables in the [config.yaml](workflow_code/config.yaml) file as needed. For example, you will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process. 
 
 > Note: If you are unfamiliar with how to specify paths, one place you can learn more is [here](https://astrobiomike.github.io/unix/getting-started#the-unix-file-system-structure).  
 
@@ -151,7 +146,7 @@ You would set up your `unique-sample-IDs.txt` file as follows:
 cat unique-sample-IDs.txt
 ```
 
-```bash
+```
 Sample-1
 Sample-2
 ```
@@ -172,3 +167,5 @@ snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p
 * `-p` – specifies to print out each command being run to the screen
 
 See `snakemake -h` and [Snakemake's documentation](https://snakemake.readthedocs.io/en/stable/) for more options and details.
+
+---
