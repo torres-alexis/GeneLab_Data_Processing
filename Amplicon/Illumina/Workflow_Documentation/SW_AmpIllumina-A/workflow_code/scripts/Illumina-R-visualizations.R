@@ -22,7 +22,7 @@ library(grid)
 # For Snakemake:
 # Assign arguments to variables based on snakemake shell line
 args <- commandArgs(trailingOnly = TRUE)
-runsheet <- paste0(args[1])
+runsheet_file <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
@@ -126,8 +126,10 @@ for (dir_path in out_dirs) {
 
 # Read in processed data
 runsheet <- as.data.frame(read.table(file = runsheet_file, 
-                                     header = TRUE, sep = ",", 
-                                     row.names = 1))
+                                     header = TRUE, sep = ","))
+row.names(runsheet) <- runsheet$'Sample.Name'
+runsheet$'Sample.Name' <- NULL
+
 count_tab <- read.table(file = counts, 
                         header = TRUE, row.names = 1, sep = "\t")
 tax_tab <- read.table(file = taxonomy, 
