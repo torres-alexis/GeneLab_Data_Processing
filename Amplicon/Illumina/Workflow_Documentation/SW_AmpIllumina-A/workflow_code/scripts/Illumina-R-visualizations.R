@@ -26,7 +26,7 @@ runsheet_file <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
-final_outputs_dir <- paste0(args[5])
+final_outputs_dir <- paste0(args[5], 'plots/')
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
@@ -76,24 +76,6 @@ adjust_cex <- function(num_samples, start_samples = 40, end_samples = 150, defau
   return(adjusted_cex)
 }
 
-# Find max cex for dendrogram 
-find_max_cex <- function(labels, space_available, starting_cex, cex_step = 0.01) {
-  max_cex <- starting_cex
-  repeat {
-    label_widths <- sapply(labels, strwidth, cex = max_cex, units = "inch")
-    max_label_width <- max(label_widths)
-    
-    if (max_label_width > space_available) {
-      max_cex <- max_cex - cex_step
-      if (max_cex < 0.1) {
-        warning("Labels might not fit in the available space with the current settings.")
-        return(0.1) # Return size .1 if no suitable cex found
-      }
-    } else {
-      return(max_cex)
-    }
-  }
-}
 
 # Extract legend from a plot
 g_legend <- function(a.gplot){ 
@@ -262,12 +244,22 @@ png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
     res = dpi)
 euc_dend %>% set("labels_cex", default_cex) %>% plot(ylab = "VST Euc. dist.") 
 
-plot_region <- par("usr")
-plot_height <- (plot_region[4] - plot_region[3]) / dpi
-space_available <- plot_height
+# Set for 11x8 plot margins, else try ggdendrogram
+space_available <- height_in_inches/5.3
+
+calculate_max_cex <- function(n, space_avail) {
+  base_char_width_inch <- 0.1  # average width of a character in inches at cex = 1
+  
+  # Calculate the maximum cex that fits the space
+  max_cex <- space_avail / (n * base_char_width_inch)
+  
+  return(max_cex)
+}
 
 # Lower cex based on max sample names to prevent clipping of sample names on plot
-max_cex <- find_max_cex(rownames(sample_info_tab), space_available = space_available * 1.2, starting_cex = default_cex)
+max_length <- max(nchar(rownames(sample_info_tab)))
+max_cex <- calculate_max_cex(max_length, space_available)
+max_cex <- min(max_cex, default_cex)
 
 euc_dend %>% set("labels_cex", max_cex) %>% plot(ylab = "VST Euc. dist.") 
 dev.off()
@@ -313,7 +305,6 @@ ordination_plot_u <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
 ggsave(filename=paste0(pcoa_out_dir, "PCoA_without_labels", ".png"), plot=ordination_plot_u, width = 11.1, height = 8.33, dpi = 300)
-dev.off()
 # Save labeled PCoA plot
 ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") + 
   geom_point(size = 1) + 
@@ -334,14 +325,12 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
 ggsave(filename=paste0(pcoa_out_dir, "PCoA_w_labels", ".png"), plot=ordination_plot, width = 11.1, height = 8.33, dpi = 300)
-dev.off()
 ########################
 
 #4. Alpha diversity
 
 # 4a. Rarefaction curves
 
-png(file = paste0(rarefaction_out_dir, "rarefaction", ".png"))
 p <- rarecurve(x = t(count_tab), step = 100, col = sample_info_tab[[color_colname]], 
                lwd = 2, ylab = "ASVs", label = FALSE, tidy = TRUE)
 
@@ -365,7 +354,6 @@ rareplot <- ggplot(p, aes(x = Sample, y = Species, group = Site, color = groups)
         panel.grid.minor = element_blank()) +
   guides(color = guide_legend(title = "Groups"))
 ggsave(filename = paste0(rarefaction_out_dir, "rarefaction.png"), plot=rareplot, width = 8.33, height = 8.33, dpi = 300)
-dev.off()
 
 # 4b. Richness and diversity estimates
 
@@ -389,7 +377,7 @@ richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1
     axis.text.x = element_blank()
   )
 ggsave(paste0(richness_out_dir, "richness_by_sample", ".png"), plot=richness_plot, width = 11.1, height = 8.33, dpi = 300)
-dev.off()
+
 richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", measures = c("Chao1", "Shannon")) +
   scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
                      labels = unique(sample_info_tab$short_group_labels[order(sample_info_tab[[groups_colname]])])) + 
@@ -406,7 +394,7 @@ richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", m
     legend.title = element_blank()
   ) 
 ggsave(filename = paste0(richness_out_dir, "richness_by_group", ".png"), plot=richness_by_group, width = 11.1, height = 8.33, dpi = 300)
-dev.off()
+
 # Extract legend from unlabeled pca plot, also save it as its own plot
 legend <- g_legend(ordination_plot)
 grid.newpage()
@@ -415,7 +403,7 @@ legend_filename <- paste0(final_outputs_dir, "color_legend.png")
 increment <- ifelse(length(unique(sample_info_tab$groups)) > 9, ceiling((length(unique(sample_info_tab$groups)) - 9) / 3), 0)
 legend_height <- 3 + increment
 ggsave(legend_filename, plot = legend, device = "png", width = 11.1, height = legend_height, dpi = 300)
-dev.off()
+
 
 # 5. Taxonomic summaries
 # Calculate new plot height of legend is taller than ~ default / 4 
@@ -454,7 +442,7 @@ grid.draw(legend)
 upViewport(0)
 grid_image <- grid.grab()
 ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
-dev.off()
+
 relative_classes <- plot_bar(proportions_physeq, x = "short_groups", fill = "class") + 
   theme_bw() + theme(text = element_text(size = 9)) + labs(x = "Groups")
 plot_layout <- grid.layout(nrow = 2, heights = unit(c(3, 1), "null"))
@@ -466,7 +454,7 @@ grid.draw(legend)
 upViewport(0)
 grid_image <- grid.grab()
 ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
-dev.off()
+
 
 # 6 Statistically testing for differences
 
