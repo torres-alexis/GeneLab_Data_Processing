@@ -230,6 +230,7 @@ def handle_url_downloads(runsheet_df, output_file='unique_sample_IDs.txt'):
         download_files = user_response.lower() == 'y'
 
     if download_files:
+        print("Downloading read files...")
         for _, row in runsheet_df.iterrows():
             sample_id = row['Sample Name']
             download_url_to_file(row['read1_path'], os.path.join(raw_reads_dir, sample_id + row['raw_R1_suffix']))
