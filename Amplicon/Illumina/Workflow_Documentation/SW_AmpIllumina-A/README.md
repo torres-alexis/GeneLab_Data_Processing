@@ -10,13 +10,13 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 
 ## Utilizing the workflow <!-- omit in toc -->
 
-1. [Install conda, mamba, and genelab-utils package](#1-install-conda-mamba-and-genelab-utils-package)
-2. [Download the workflow template files](#2-download-the-workflow-template-files)
-3. [Set up the runsheet](#3-set-up-the-runsheet) \
-  3a. [Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data](#3a-approach-1-running-the-workflow-on-a-genelab-illumina-amplicon-sequencing-dataset-with-automatic-generation-of-the-runsheet-and-retrieval-of-the-raw-sequencing-data) \
-  3b. [Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet](#3b-approach-2-running-the-workflow-on-non-glds-datasets-using-a-user-generated-runsheet)
-4. [Configure config.yaml and unique-sample-IDs.txt](#4-configure-configyaml-and-unique-sample-idstxt)
-5. [Run the workflow](#5-run-the-workflow)
+- [1. Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)
+- [2. Download the workflow template files](#2-download-the-workflow-template-files)
+- [3. Run the workflow using `run_workflow.py`](#3-run-the-workflow-using-run_workflowpy)
+  - [3a. Approach 1: Run the workflow on GeneLab Illumina amplicon sequencing dataset with automatic retrieval of raw read files and metadata](#3a-approach-1-run-the-workflow-on-genelab-illumina-amplicon-sequencing-dataset-with-automatic-retrieval-of-raw-read-files-and-metadata)
+- [3b. Approach 2: Run the workflow using a local or user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
+- [3c. Approach 3: Run the workflow using pre-configured settings](#3c-approach-3-run-the-workflow-using-pre-configured-settings)
+
 
 <br>
 
@@ -69,80 +69,87 @@ This downloaded the workflow into a directory called `SW_AmpIllumina-*/`, with t
 <br>
 
 ___
-### 3. Set up the runsheet
 
-To process your dataset using the Snakemake workflow, you will need to prepare a runsheet containing the required metadata for your dataset.
+### 3. Run the workflow using `run_workflow.py`
 
-#### 3a. Approach 1: Running the workflow on a GeneLab Illumina amplicon sequencing dataset with automatic generation of the runsheet and retrieval of the raw sequencing data
+The `run_workflow.py` script in the `workflow_code/scripts` directory can be used to set up configuration files needed for the workflow and execute the workflow.
 
-If you are working with a GeneLab OSDR dataset, you can use dp_tools scripts to generate this runsheet.
-
-You will need to install a development branch of dp_tools that contains updates for processing amplicon sequencing data. This branch can be found at [https://github.com/torres-alexis/dp_tools/tree/amplicon_updates](https://github.com/torres-alexis/dp_tools/tree/amplicon_updates).
-
-You can install this development branch to your active conda environment using pip with the following command:
-```bash
-pip install git+https://github.com/torres-alexis/dp_tools.git@amplicon_updates
-```
-
-**Download the ISA files:** Use the dp_tools script `dpt-get-isa-archive` to download a study's ISA files.
-```bash
-dpt-get-isa-archive --accession GLDS-###
-```
-**Generate the runsheet:** Use the dp_tools script `dpt-isa-to-archive` to generate a runsheet from the study's ISA files.
-
-```bash
-dpt-isa-to-runsheet --accession GLDS-### --config-type amplicon --config-version Latest --isa-archive /path/to/GLDS-###_GLDS-###-ISA.zip
-```
-
-When using the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) as detailed in section [4](#4-configure-configyaml-and-unique-sample-idstxt), raw reads will be automatically retrieved and downloaded to the `workflow_code/raw_reads` directory.
-
-
-#### 3b. Approach 2: Running the workflow on Non-GLDS Datasets using a user-generated runsheet
-
-If you are working with a non-GLDS dataset, you must manually create the runsheet for your dataset to run the workflow.
-
-> Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
+Navigate to the `workflow_code` directory to use this script.
 
 <br>
 
 ___
 
-### 4. Configure config.yaml and unique-sample-IDs.txt
-
-`config.yaml` contains variables which the Snakemake workflow uses to perform its processing. `unique-sample-IDS.txt` contains the unique identifiers for each sample's read file(s).
-
-These two files can be generated from a runsheet using the [runsheet-to-config.sh](workflow_code/scripts/runsheet-to-config.sh) script.
-
-This script should be executed from the [workflow_code/](workflow_code/) folder. When running the script, provide either absolute paths or paths relative to the Snakefile's location. For consistency and to avoid path-related errors during execution of the Snakemake workflow, it is recommended to use absolute paths.
-
-> Note: You may have to make this script executable with the following command: 
+#### 3a. Approach 1: Run the workflow on GeneLab Illumina amplicon sequencing dataset with automatic retrieval of raw read files and metadata
 
 ```bash
-chmod +x /PATH/TO/workflow_code/scripts/runsheet_to_config.sh
+python ./scripts/run_workflow.py --OSD ### --run
 ```
 
-Here is the usage syntax for using the `runsheet_to_config.sh` script from the [workflow_code/](workflow_code/) directory:
+This command will download the ISA file for the relevant study, create runsheet(s) for Illumina amplicon sequencing assays from the study, download the raw read files to `./raw_reads/` and set up the configuration files before executing the workflow.
 
-```bash
-./scripts/runsheet_to_config.sh -r <path_to_runsheet.csv> [-o <path_to_output_directory>] [-m <minimum_trimmed_read_length>]
-```
-
-**Parameter Definitions:**
-
-* `-r` or `--runsheet` – Path to the runsheet CSV file, which must be either absolute or relative to the Snakefile. The runsheet should be formatted correctly with all necessary columns.
-* `-o` or `--output` (optional) – Path to the output directory where the Snakefile outputs will be created. Default: `workflow_output/`
-* `-m `or `--min_length` (optional) – The minimum length allowed for trimmed reads. If a read is shorter than this length after trimming, it will be discarded. For paired-end reads, if one read of the pair is discarded, the other will be as well. Default: `1`
-
-Example execution from the [workflow_code/](workflow_code/) directory:
-```bash
-./scripts/runsheet_to_config.sh -r runsheet.csv -o /path/to/custom_outputs_directory/ -m 1
-```
-
-<br> 
+<br>
 
 ___
 
-**Below are instructions to prepare the two files manually if necessary.**
+### 3b. Approach 2: Run the workflow using a local or user-created runsheet
+
+If you are working with a GeneLab Illumina amplicon sequencing dataset or a non-OSD dataset, the process for setting up and running the workflow using an existing runsheet is the same.
+
+If you are working with a non-GLDS dataset, you must manually create the runsheet for your dataset to run the workflow.
+
+> Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
+
+```bash
+python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run
+```
+
+- For a GeneLab dataset, this command will download the raw read files listed in the runsheet to `./raw_reads/` and set up the configuration files before executing the workflow.
+- For a non-OSD dataset, it will set up and run the workflow on local raw read data using a user-created runsheet.
+
+### 3c. Approach 3: Run the workflow using pre-configured settings
+
+Use this approach if you have already set up or manually modified your config.yaml and other necessary files. To execute the Snakemake workflow with these pre-configured settings, simply use the `--run` argument.
+
+```bash
+python ./scripts/run_workflow.py --run
+```
+
+This command will start the Snakemake workflow using the existing `config.yaml` file, skipping the setup steps.
+
+<br>
+
+___
+
+**Parameters for `run_workflow.py`:**
+
+
+- **Set up for Approach 1**
+
+  - `-o`, `--OSD` - Sets up the Snakemake workflow for a GeneLab OSD dataset. Pulls necessary metadata and read files. Acceptable Formats: `###,` `OSD-###`, `GLDS-###`.
+
+- **Set up for Approach 2**
+
+  - `-r`, `--runsheetPath` - Sets up the Snakemake workflow using a specified runsheet file. If the runsheet contains URLs, the script downloads the read files to `./raw_reads/`.
+
+- **Optional parameters**
+
+  - `-d`, `--outputDir` - Specifies the output directory for the workflow. Used only if `-o` or `-r` is specified. Default: `./workflow_output/`
+
+<br>
+
+- **Executing the workflow**
+  - `-x`, `--run` - Command used to execute the snakemake workflow. Default: `snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p` 
+
+___
+
+**Below are instructions to prepare the configuration files and run the workflow manually if necessary.**
+
+**Configuration files needed for the workflow**
+
+`config.yaml` contains variables which the Snakemake workflow uses to perform its processing. `unique-sample-IDS.txt` contains the unique identifiers for each sample's read file(s).
+
+
 
 You can modify the variables in the [config.yaml](workflow_code/config.yaml) file as needed. For example, you will have to provide a text file containing a single-column list of unique sample identifiers (see an example of how to set this up below). You will also need to indicate the paths to your input data (raw reads) and, if necessary, modify each variable to be consistent with the study you want to process. 
 
@@ -178,7 +185,8 @@ Sample-2
 
 ___
 
-### 5. Run the workflow
+
+**Running the workflow from the command line**
 
 While in the directory holding the Snakefile, config.yaml, and other workflow files that you downloaded in [step 2](#2-download-the-workflow-template-files), here is one example command of how to run the workflow:
 
