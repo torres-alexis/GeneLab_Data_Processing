@@ -14,8 +14,8 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 - [2. Download the workflow template files](#2-download-the-workflow-template-files)
 - [3. Run the workflow using `run_workflow.py`](#3-run-the-workflow-using-run_workflowpy)
   - [3a. Approach 1: Run the workflow on GeneLab Illumina amplicon sequencing dataset with automatic retrieval of raw read files and metadata](#3a-approach-1-run-the-workflow-on-genelab-illumina-amplicon-sequencing-dataset-with-automatic-retrieval-of-raw-read-files-and-metadata)
-  - [3b. Approach 2: Run the workflow using a local or user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
-  - [3c. Approach 3: Run the workflow using pre-configured settings](#3c-approach-3-run-the-workflow-using-pre-configured-settings)
+- [3b. Approach 2: Run the workflow using a local or user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
+- [3c. Approach 3: Run the workflow using pre-configured settings](#3c-approach-3-run-the-workflow-using-pre-configured-settings)
 
 
 <br>
@@ -86,7 +86,7 @@ ___
 python ./scripts/run_workflow.py --OSD ### --run
 ```
 
-This command will download the ISA file for the relevant study, create runsheet(s) for Illumina amplicon sequencing assays from the study, download the raw read files to `./raw_reads/` and set up the configuration files before executing the workflow.
+This approach processes data from the NASA GeneLab Open Science Data Repository (OSDR). Upon execution, the command downloads the OSD/GLDS ISA file, which contains the necessary metadata for creating a runsheet. It will then create the runsheet, download the raw read files listed in the runsheet into `./raw_reads/` and prepare the necessary configuration files before executing the workflow using the default Snakemake run command.
 
 <br>
 
@@ -96,7 +96,7 @@ ___
 
 If you are working with a GeneLab Illumina amplicon sequencing dataset or a non-OSD dataset, the process for setting up and running the workflow using an existing runsheet is the same.
 
-If you are working with a non-GLDS dataset, you must manually create the runsheet for your dataset to run the workflow.
+If you are working with a non-OSD dataset, you must manually create the runsheet for your dataset to run the workflow.
 
 > Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
 
@@ -109,7 +109,7 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run
 
 ### 3c. Approach 3: Run the workflow using pre-configured settings
 
-Use this approach if you have already set up or manually modified your config.yaml and other necessary files. To execute the Snakemake workflow with these pre-configured settings, simply use the `--run` argument.
+Use this approach if you have already set up or manually modified `config.yaml` and other necessary files. To execute the Snakemake workflow with these pre-configured settings, simply use the `--run` argument.
 
 ```bash
 python ./scripts/run_workflow.py --run
@@ -188,7 +188,7 @@ ___
 
 **Running the workflow from the command line**
 
-While in the directory holding the Snakefile, config.yaml, and other workflow files that you downloaded in [step 2](#2-download-the-workflow-template-files), here is one example command of how to run the workflow:
+While in the `workflow_code/` directory containing the `Snakefile`, `config.yaml`, and other workflow files that you downloaded in [step 2](#2-download-the-workflow-template-files), here is one example command of how to run the workflow from the command line:
 
 ```bash
 snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p
