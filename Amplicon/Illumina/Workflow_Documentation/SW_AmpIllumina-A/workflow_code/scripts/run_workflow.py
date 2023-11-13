@@ -27,7 +27,7 @@ import requests
 ##########################
 # 1. Validate schema of runsheet
 # 2. Check if read_paths are URLs, prompt for download
-# 3. Create config.yaml and unique-sample_IDs.txt
+# 3. Create config.yaml and unique-sample-IDs.txt
 # 4. If --run is used: run the workflow
 
 # Process OSD arg: if numeric, append OSD-, if OSD-# or GLDS-#, leave it
@@ -178,7 +178,7 @@ def check_runsheet_read_paths(runsheet_df):
 
     return uses_url
 
-def sample_IDs_from_local(runsheet_df, output_file='unique-sample_IDs.txt'):
+def sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt'):
     # Check if the DataFrame is paired-end
     paired_end = runsheet_df['paired_end'].eq(True).all()
 
@@ -199,10 +199,10 @@ def sample_IDs_from_local(runsheet_df, output_file='unique-sample_IDs.txt'):
     
     print(f"Unique sample IDs written to {output_file}")
 
-def handle_url_downloads(runsheet_df, output_file='unique-sample_IDs.txt'):
+def handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt'):
     # Check if the DataFrame is paired-end
     paired_end = runsheet_df['paired_end'].eq(True).all()
-    # Write 'Sample Name' into unique-sample_IDs.txt
+    # Write 'Sample Name' into unique-sample-IDs.txt
     with open(output_file, 'w') as file:
         for sample_name in runsheet_df['Sample Name']:
             file.write(sample_name + '\n')
@@ -433,7 +433,7 @@ def main():
         runsheet_file = args.runsheetPath
 
     # Validate and load the runsheet if a file is specified
-    # Create unique-sample_IDs.txt based on filenames or 'Sample Name' if URLs
+    # Create unique-sample-IDs.txt based on filenames or 'Sample Name' if URLs
     # Download files if necessary
     if args.OSD or args.runsheetPath:
         if runsheet_file:
@@ -442,11 +442,11 @@ def main():
             if runsheet_df is not None:
                 uses_urls = check_runsheet_read_paths(runsheet_df)
 
-                # Create the 'unique-sample_IDs.txt' file and download read files if necessary
+                # Create the 'unique-sample-IDs.txt' file and download read files if necessary
                 if uses_urls:
-                    handle_url_downloads(runsheet_df, output_file='unique-sample_IDs.txt')
+                    handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt')
                 else:
-                    sample_IDs_from_local(runsheet_df, output_file='unique-sample_IDs.txt')
+                    sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt')
 
                 # Create the config.yaml file
                 create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir)
