@@ -126,14 +126,12 @@ deseq2_sample_names <- make.names(sample_names, unique = TRUE)
 # Extract what is after 'file=' and before any '&' or other URL parameters
 uses_links <- any(grepl("^(http|https)://|genelab-data.ndc.nasa.gov", runsheet[[read1_path_colname]]))
 if (uses_links) {
-  runsheet[[read1_path_colname]] <- sapply(runsheet[[read1_path_colname]], function(x) {
-    matches <- regmatches(x, regexec("file=([^&]+\\.gz)", x))
-    return(matches[[1]][2]) # The second element of the match is the capture group
-  })
+    # Use rownames as basenames if links are used
+    runsheet$basename <- rownames(runsheet)
+} else {
+    # Remove extensions from filenames in runsheet for local file paths
+    runsheet$basename <- mapply(remove_suffix, runsheet[[read1_path_colname]], runsheet[[raw_R1_suffix_colname]])
 }
-
-# Remove extensions from filenames in runsheet
-runsheet$basename <- mapply(remove_suffix, runsheet[[read1_path_colname]], runsheet[[raw_R1_suffix_colname]])
 
 # Make the basenames DESeq2 compatible
 runsheet$basename <- make.names(runsheet$basename, unique = TRUE)
