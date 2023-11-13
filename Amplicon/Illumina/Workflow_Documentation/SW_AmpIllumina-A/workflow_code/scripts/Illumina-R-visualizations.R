@@ -26,7 +26,7 @@ runsheet_file <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
-final_outputs_dir <- paste0(args[5], 'plots/')
+final_outputs_dir <- paste0(args[5], '/plots/')
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
@@ -459,7 +459,26 @@ ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=gri
 #### pairwise comparisons
 unique_groups <- unique(runsheet$groups)
 deseq_obj <- phyloseq_to_deseq2(physeq = ASV_physeq, design = ~groups)
-deseq_modeled <- DESeq(deseq_obj)
+
+# https://rdrr.io/bioc/phyloseq/src/inst/doc/phyloseq-mixture-models.R 
+deseq_modeled <- tryCatch({
+  # Attempt to run DESeq
+  DESeq(deseq_obj)
+}, error = function(e) {
+  message("Error encountered in DESeq, applying alternative method for size factor estimation...")
+  
+  # Define the geometric mean function
+  gm_mean = function(x, na.rm=TRUE) {
+    exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  }
+  geoMeans = apply(counts(deseq_obj), 1, gm_mean)
+  
+  # Apply the alternative size factor estimation method
+  deseq_obj <- estimateSizeFactors(deseq_obj, geoMeans=geoMeans)
+  
+  # Call DESeq again with alternative geom mean size est
+  DESeq(deseq_obj)
+})
 
 # make the volcanoplot
 plot_comparison <- function(group1, group2) {
