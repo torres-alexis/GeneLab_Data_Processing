@@ -14,8 +14,8 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 - [2. Download the workflow template files](#2-download-the-workflow-template-files)
 - [3. Run the workflow using `run_workflow.py`](#3-run-the-workflow-using-run_workflowpy)
   - [3a. Approach 1: Run the workflow on GeneLab Illumina amplicon sequencing dataset with automatic retrieval of raw read files and metadata](#3a-approach-1-run-the-workflow-on-genelab-illumina-amplicon-sequencing-dataset-with-automatic-retrieval-of-raw-read-files-and-metadata)
-- [3b. Approach 2: Run the workflow using a local or user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
-- [3c. Approach 3: Run the workflow using pre-configured settings](#3c-approach-3-run-the-workflow-using-pre-configured-settings)
+  - [3b. Approach 2: Run the workflow using a local or user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
+  - [3c. Approach 3: Run the workflow using pre-configured settings](#3c-approach-3-run-the-workflow-using-pre-configured-settings)
 
 
 <br>
