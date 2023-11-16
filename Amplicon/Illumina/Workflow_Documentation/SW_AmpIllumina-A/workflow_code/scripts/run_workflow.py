@@ -338,6 +338,12 @@ def create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir):
         file.write("## target region (16S or ITS acceptable; determines which reference database is used for taxonomic classification)\n")
         file.write(f"target_region:\n    \"{target_region}\"\n\n")
 
+        file.write("## concatenate only with dada2 instead of merging paired reads if TRUE\n")
+        file.write("# this is typically used with primers like 515-926, that captured 18S fragments that are typically too long to merge\n")
+        file.write("# note that 16S and 18S should have been separated already prior to running this workflow\n")
+        file.write("# this should likely be left as FALSE for any option other than \"18S\" above\n\n")
+        file.write("concatenate_reads_only:\n    \"FALSE\"\n\n")
+
         file.write("## values to be passed to dada2's filterAndTrim() function:\n")
         file.write("left_trunc:\n    0\n")
         file.write("right_trunc:\n    0\n")
