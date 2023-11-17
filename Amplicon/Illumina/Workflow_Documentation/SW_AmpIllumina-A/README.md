@@ -141,10 +141,10 @@ ___
 The outputs from the `run_workflow.py` and differential abundance analysis (DAA) / visualizations scripts are described below:
 > Note: Outputs from the Amplicon Seq - Illumina pipeline are documented in the [GL-DPPD-7104-A.md](../../Pipeline_GL-DPPD-7104_Versions/GL-DPPD-7104-A.md) processing protocol.
 
-- Metadata Outputs:
+- **Metadata Outputs:**
   - \*_AmpSeq_v1_runsheet.csv (table containing metadata required for processing, including the raw reads files location)
   - \*-ISA.zip (the ISA archive of the OSD datasets to be processed, downloaded from the OSDR)
   - config.yaml (configuration file containing the metadata from the runsheet (\*_AmpSeq_v1_runsheet.csv), required for running the SW_AmpIllumina workflow) 
-- DAA and Visualization Outputs:  
+- **DAA and Visualization Outputs:**  
   - <Alexis, make a list is the same format of the metadata output above of each output generated from the DAA/viz script - don't forget to include the DAA csv table, since you will be adding that as an output>
 
