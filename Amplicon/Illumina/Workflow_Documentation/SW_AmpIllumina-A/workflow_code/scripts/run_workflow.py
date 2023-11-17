@@ -111,23 +111,30 @@ def handle_runsheet_selection(runsheet_files):
         print(f"Using runsheet: {selected_runsheet}")
         return selected_runsheet
     elif len(runsheet_files) > 1:
-        # Prompt the user to select a runsheet file
-        print("Select a runsheet to use:")
-        for idx, file in enumerate(runsheet_files, start=1):
-            print(f"[{idx}] {file}")
+        return None
 
-        # Wait for user input and validate it
-        while True:
-            try:
-                selection = int(input("Enter the number of the runsheet: "))
-                if 1 <= selection <= len(runsheet_files):
-                    selected_runsheet = runsheet_files[selection - 1]
-                    print(f"Selected {selected_runsheet}.")
-                    return selected_runsheet
-                else:
-                    print("Invalid selection. Please enter a number from the list.")
-            except ValueError:
-                print("Invalid input. Please enter a number.")
+
+
+
+
+        # Logic for prompting the user which runsheet to use
+        # Prompt the user to select a runsheet file
+        # print("Select a runsheet to use:")
+        # for idx, file in enumerate(runsheet_files, start=1):
+        #     print(f"[{idx}] {file}")
+
+        # # Wait for user input and validate it
+        # while True:
+        #     try:
+        #         selection = int(input("Enter the number of the runsheet: "))
+        #         if 1 <= selection <= len(runsheet_files):
+        #             selected_runsheet = runsheet_files[selection - 1]
+        #             print(f"Selected {selected_runsheet}.")
+        #             return selected_runsheet
+        #         else:
+        #             print("Invalid selection. Please enter a number from the list.")
+        #     except ValueError:
+        #         print("Invalid input. Please enter a number.")
 
 
 # Neutral functions
@@ -172,7 +179,7 @@ def check_runsheet_read_paths(runsheet_df):
 
     uses_url = is_url(first_row['read1_path'])
     if uses_url:
-        print("Runsheet references Genelab URLs.")
+        print("Runsheet references URLs.")
     else:
         print("Runsheet references local read files.")
 
@@ -200,6 +207,7 @@ def sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt'):
     print(f"Unique sample IDs written to {output_file}")
 
 def handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt'):
+    print("Downloading read files...")
     # Check if the DataFrame is paired-end
     paired_end = runsheet_df['paired_end'].eq(True).all()
     # Write 'Sample Name' into unique-sample-IDs.txt
@@ -212,30 +220,29 @@ def handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt'):
     if not os.path.exists(raw_reads_dir):
         os.makedirs(raw_reads_dir)
 
-    # Count samples that already have read files in the folder
-    existing_files_count = 0
+    # Initialize count for skipped downloads
+    skipped_downloads_count = 0
+    # Iterate over each row and download files if they don't exist
     for _, row in runsheet_df.iterrows():
         sample_id = row['Sample Name']
-        read1_filename = sample_id + row['raw_R1_suffix']
-        read2_filename = sample_id + row['raw_R2_suffix'] if paired_end else None
+        read1_path = os.path.join(raw_reads_dir, sample_id + row['raw_R1_suffix'])
+        read2_path = os.path.join(raw_reads_dir, sample_id + row['raw_R2_suffix']) if paired_end else None
 
-        if os.path.exists(os.path.join(raw_reads_dir, read1_filename)) or \
-           (paired_end and os.path.exists(os.path.join(raw_reads_dir, read2_filename))):
-            existing_files_count += 1
+        # Download Read 1 if it doesn't exist
+        if not os.path.exists(read1_path):
+            download_url_to_file(row['read1_path'], read1_path)
+        else:
+            skipped_downloads_count += 1
 
-    # Prompt user for downloading raw read files
-    download_files = True
-    if existing_files_count > 0:
-        user_response = input(f" Read files for {existing_files_count} samples in this dataset are already present in the ./raw_reads/ directory. Redownload all of them anyway? [y/N]: ")
-        download_files = user_response.lower() == 'y'
+        # Download Read 2 if it doesn't exist and if paired_end
+        if paired_end and read2_path and not os.path.exists(read2_path):
+            download_url_to_file(row['read2_path'], read2_path)
+        elif paired_end and read2_path:
+            skipped_downloads_count += 1
 
-    if download_files:
-        print("Downloading read files...")
-        for _, row in runsheet_df.iterrows():
-            sample_id = row['Sample Name']
-            download_url_to_file(row['read1_path'], os.path.join(raw_reads_dir, sample_id + row['raw_R1_suffix']))
-            if paired_end:
-                download_url_to_file(row['read2_path'], os.path.join(raw_reads_dir, sample_id + row['raw_R2_suffix']))
+    # Print the number of skipped downloads
+    if skipped_downloads_count > 0:
+        print(f"{skipped_downloads_count} read files were present. Skipped downloads for those.")
 
 def download_url_to_file(url, file_path):
     response = requests.get(url, stream=True)
@@ -253,7 +260,7 @@ def reverse_complement(seq):
                   'D': 'H', 'H': 'D', 'N': 'N'}
     return ''.join(complement.get(base, base) for base in reversed(seq))
 
-def create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir):
+def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir):
     # Extract necessary variables from runsheet_df
     data_type = "PE" if runsheet_df['paired_end'].eq(True).all() else "SE"
     raw_R1_suffix = runsheet_df['raw_R1_suffix'].unique()[0]
@@ -272,7 +279,6 @@ def create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir):
 
     # Other default values
     output_dir = os.path.abspath(output_dir) + '/'
-    min_trimmed_read_length = 1
     trim_primers = "TRUE"
     primers_linked = "TRUE"
 
@@ -351,7 +357,7 @@ def create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir):
         file.write("right_maxEE:\n    1\n\n")
 
         file.write("## minimum length threshold for cutadapt\n")
-        file.write(f"min_cutadapt_len:\n    {min_trimmed_read_length}\n\n")
+        file.write(f"pcutadapt_len:\n    {min_trimmed_length}\n\n")
 
         file.write("######################################################################\n")
         file.write("##### The rest only need to be altered if we want to change them #####\n")
@@ -406,6 +412,11 @@ def main():
     parser.add_argument('-r', '--runsheetPath',
                         help='Set up the Snakemake workflow using a specified runsheet file.',
                         type=str)
+    
+    parser.add_argument('-m', '--min_trimmed_length',
+                    default=130,  # Default value
+                    help='Minimum length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130',
+                    type=int)
 
     parser.add_argument('-d', '--outputDir',
                         default='./workflow_output/',  # Default value
@@ -419,6 +430,7 @@ def main():
                         help='Execute the Snakemake workflow. Optionally provide a custom Snakemake command. Default: "snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p"')
     args = parser.parse_args()
     output_dir = args.outputDir
+    min_trimmed_length = args.min_trimmed_length
 
     # If OSD is used, pull ISA metadata for the study, create and select the runsheet
     if args.OSD:
@@ -428,6 +440,8 @@ def main():
             runsheet_files = convert_isa_to_runsheet(accession_number, isa_zip)
             if runsheet_files:
                 runsheet_file = handle_runsheet_selection(runsheet_files)
+                if runsheet_file is None:
+                    sys.exit("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
             else:
                 print("No runsheet files were created.")
         else:
@@ -455,7 +469,7 @@ def main():
                     sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt')
 
                 # Create the config.yaml file
-                create_config_yaml(runsheet_file, runsheet_df, uses_urls, output_dir)
+                create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir)
                 print("Snakemake workflow setup is complete.")
             else:
                 print("Failed to validate the runsheet file.", file=sys.stderr)
