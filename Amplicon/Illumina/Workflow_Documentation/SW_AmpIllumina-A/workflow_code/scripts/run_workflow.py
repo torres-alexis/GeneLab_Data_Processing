@@ -104,14 +104,37 @@ def convert_isa_to_runsheet(accession_number, isa_zip):
             sys.exit(1)
 
 # Prompt the user to select a runsheet if more than 1 were created, else just return the single runsheet
-def handle_runsheet_selection(runsheet_files):
+def handle_runsheet_selection(runsheet_files, target=None):
     if len(runsheet_files) == 1:
         # Automatically use the single runsheet file
         selected_runsheet = runsheet_files[0]
         print(f"Using runsheet: {selected_runsheet}")
         return selected_runsheet
     elif len(runsheet_files) > 1:
-        return None
+        if target:
+            matching_runsheets = []
+            for runsheet in runsheet_files:
+                try:
+                    runsheet_df = pd.read_csv(runsheet)
+                    target_region = runsheet_df['Parameter Value[Library Selection]'].unique()[0]
+                    if target_region == target:
+                        matching_runsheets.append(runsheet)
+                except Exception as e:
+                    print(f"Error reading {runsheet}: {e}")
+
+            if len(matching_runsheets) == 1:
+                # One matching runsheet found
+                selected_runsheet = matching_runsheets[0]
+                print(f"Using runsheet: {selected_runsheet}")
+                return selected_runsheet
+
+            # Either no matching runsheets or multiple matching runsheets found
+            print("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
+            return None
+        else:
+            # If no target specified and multiple runsheets are available
+            print("Multiple runsheets found but no genomic target specified. Cannot proceed. Use -t {16S, 18S, ITS} or --target {16S, 18S, ITS} to specify which assay/dataset to use.")
+            return None
 
 
 
@@ -242,7 +265,7 @@ def handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt'):
 
     # Print the number of skipped downloads
     if skipped_downloads_count > 0:
-        print(f"{skipped_downloads_count} read files were present. Skipped downloads for those.")
+        print(f"{skipped_downloads_count} read file(s) were already present and were not downloaded.")
 
 def download_url_to_file(url, file_path):
     response = requests.get(url, stream=True)
@@ -357,7 +380,7 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
         file.write("right_maxEE:\n    1\n\n")
 
         file.write("## minimum length threshold for cutadapt\n")
-        file.write(f"pcutadapt_len:\n    {min_trimmed_length}\n\n")
+        file.write(f"min_cutadapt_len:\n    {min_trimmed_length}\n\n")
 
         file.write("######################################################################\n")
         file.write("##### The rest only need to be altered if we want to change them #####\n")
@@ -406,31 +429,54 @@ def main():
     )
     
     parser.add_argument('-o', '--OSD',
+                        metavar='osd_number',
                         help='Set up the Snakemake workflow for a GeneLab OSD dataset and pull necessary read files and metadata. Acceptable formats: ###, OSD-###, GLDS-###',
                         type=str)
     
     parser.add_argument('-r', '--runsheetPath',
+                        metavar='/path/to/runsheet.csv',
                         help='Set up the Snakemake workflow using a specified runsheet file.',
                         type=str)
     
     parser.add_argument('-m', '--min_trimmed_length',
-                    default=130,  # Default value
-                    help='Minimum length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130',
-                    type=int)
+                        metavar='length',
+                        default=130,  # Default value
+                        help='Minimum length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130',
+                        type=int)
+    
+    parser.add_argument('-t', '--target',
+                        metavar='target',
+                        choices=['16S', '18S', 'ITS'],
+                        help='Specify the genomic target for the assay. Options: 16S, 18S, ITS. This is used to select the appropriate dataset from an OSD study when multiple options are available.',
+                        type=str)
 
     parser.add_argument('-d', '--outputDir',
+                        metavar='dir',
                         default='./workflow_output/',  # Default value
                         help='Specify the output directory for the workflow. This argument is only used if -o or -r is specified. Default: ./workflow/',
                         type=str)
     
     parser.add_argument('-x', '--run',
+                        metavar='command',
                         nargs='?',
                         const="snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p",
                         type=str,
                         help='Execute the Snakemake workflow. Optionally provide a custom Snakemake command. Default: "snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p"')
-    args = parser.parse_args()
+
+    # Check if no arguments were provided
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        parser.print_help()
+        sys.exit(1)
+    
     output_dir = args.outputDir
     min_trimmed_length = args.min_trimmed_length
+    target = args.target
 
     # If OSD is used, pull ISA metadata for the study, create and select the runsheet
     if args.OSD:
@@ -439,9 +485,9 @@ def main():
         if isa_zip:
             runsheet_files = convert_isa_to_runsheet(accession_number, isa_zip)
             if runsheet_files:
-                runsheet_file = handle_runsheet_selection(runsheet_files)
+                runsheet_file = handle_runsheet_selection(runsheet_files, target)
                 if runsheet_file is None:
-                    sys.exit("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
+                    sys.exit()
             else:
                 print("No runsheet files were created.")
         else:
