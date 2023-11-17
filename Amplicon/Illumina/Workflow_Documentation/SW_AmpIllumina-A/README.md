@@ -12,10 +12,10 @@ The current GeneLab Illumina amplicon sequencing data processing pipeline (AmpIl
 
 1. [Install conda, mamba, and `genelab-utils` package](#1-install-conda-mamba-and-genelab-utils-package)
 2. [Download the workflow template files](#2-download-the-workflow-template-files)
-3. [Run the workflow using `run_workflow.py`](#3-run-the-workflow-using-run_workflowpy)
-   3a. [Approach 1: Run the workflow on a GeneLab Amplicon (Illumina) sequencing dataset with automatic retrieval of raw read files and metadata](#3a-approach-1-run-the-workflow-on-genelab-illumina-amplicon-sequencing-dataset-with-automatic-retrieval-of-raw-read-files-and-metadata)
-   3b. [Approach 2: Run the workflow on a non-OSD dataset using a user-created runsheet](#3b-approach-2-run-the-workflow-using-a-local-or-user-created-runsheet)
-4. [Additional output files]()
+3. [Run the workflow using `run_workflow.py`](#3-run-the-workflow-using-run_workflowpy)   
+   3a. [Approach 1: Run the workflow on a GeneLab Amplicon (Illumina) sequencing dataset with automatic retrieval of raw read files and metadata](#3a-approach-1-run-the-workflow-on-a-genelab-amplicon-illumina-sequencing-dataset-with-automatic-retrieval-of-raw-read-files-and-metadata)   
+   3b. [Approach 2: Run the workflow on a non-OSD dataset using a user-created runsheet](#3b-approach-2-run-the-workflow-on-a-non-osd-dataset-using-a-user-created-runsheet)   
+4. [Additional output files](#additional-output-files)
 
 <br>
 
@@ -69,7 +69,7 @@ ___
 
 ### 3. Run the workflow using `run_workflow.py`
 
-While in the `SW_AmpIllumina-A_1.2.0` directory that was downloaded in [step 2](#2-download-the-workflow-template-files), you are now able to run the workflow using the `run_workflow.py` script in the `scripts/` sub-directory to set up the configuration files needed to execute the workflow.
+While in the `SW_AmpIllumina-A_1.2.0` directory that was downloaded in [step 2](#2-download-the-workflow-template-files), you are now able to run the workflow using the `run_workflow.py` script in the [scripts/](workflow_code/scripts) sub-directory to set up the configuration files needed to execute the workflow.
 
 > Note: The commands to run the workflow in each approach listed below allows for two sets of options. The options specified outside of the quotation marks are specific to the `run_workflow.py` script, and the options specified within the quotation marks are specific to `snakemake`.
 
@@ -89,7 +89,7 @@ python ./scripts/run_workflow.py --OSD OSD-487 --run "snakemake --use-conda --co
 
 ___
 
-### 3b. Approach 2: Run the workflow on a non-OSD dataset using a user-created runsheet
+#### 3b. Approach 2: Run the workflow on a non-OSD dataset using a user-created runsheet
 
 > If processing a non-OSD dataset, you must manually create the runsheet for your dataset to run the workflow. Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
 
