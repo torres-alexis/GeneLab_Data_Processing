@@ -88,7 +88,8 @@ if config["data_type"] == "PE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
                 config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml"
+                config["metadata_out_dir"] + "config.yaml",
+                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -111,7 +112,8 @@ if config["data_type"] == "PE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
                 config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml"
+                config["metadata_out_dir"] + "config.yaml",
+                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -378,7 +380,8 @@ if config["data_type"] == "SE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
                 config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml"
+                config["metadata_out_dir"] + "config.yaml",
+                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -400,7 +403,8 @@ if config["data_type"] == "SE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
                 config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml"
+                config["metadata_out_dir"] + "config.yaml",
+                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -680,16 +684,24 @@ rule save_metadata:
     """This rule copies the config.yaml file and the unique sample IDs file to the output folder."""
     input:
         config_file = "config.yaml",
-        sample_file = sample_IDs_file
+        sample_file = sample_IDs_file,
+        runsheet = config["runsheet"],
+        isa_archive = config["isa_archive"]
 
     output:
         config_out = config["metadata_out_dir"] + "config.yaml",
-        sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+        sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+        runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"]),
+        isa_archive_out = config["metadata_out_dir"] + os.path.basename(config["isa_archive"])
 
     shell:
         """
         cp {input.config_file} {output.config_out}
         cp {input.sample_file} {output.sample_out}
+        cp {input.runsheet} {output.runsheet_out}
+        if [ -n "{input.isa_archive}" ]; then
+            cp {input.isa_archive} {output.isa_archive_out}
+        fi
         """
 
 

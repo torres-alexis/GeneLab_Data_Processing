@@ -66,7 +66,8 @@ def download_isa_archive(accession_number):
             # Move the file back to the current directory
             shutil.move(os.path.join(temp_dir, downloaded_file), downloaded_file)
 
-            return downloaded_file
+            full_path = os.path.abspath(downloaded_file)
+            return full_path
 
         except subprocess.CalledProcessError as e:
             print("An error occurred while downloading ISA archive.", file=sys.stderr)
@@ -283,7 +284,7 @@ def reverse_complement(seq):
                   'D': 'H', 'H': 'D', 'N': 'N'}
     return ''.join(complement.get(base, base) for base in reversed(seq))
 
-def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir):
+def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir):
     # Extract necessary variables from runsheet_df
     data_type = "PE" if runsheet_df['paired_end'].eq(True).all() else "SE"
     raw_R1_suffix = runsheet_df['raw_R1_suffix'].unique()[0]
@@ -333,6 +334,9 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
         file.write("###########################################################################\n")
         file.write("##### These need to match what is specific to our system and our data #####\n")
         file.write("###########################################################################\n\n")
+
+        file.write("## Path to ISA archive, only needed for saving a copy as metadata:\n")
+        file.write(f"isa_archive:\n   \"{isa_zip}\"\n\n")
 
         file.write("## Path to runsheet:\n")
         file.write(f"runsheet:\n    \"{os.path.abspath(runsheet_file)}\"\n\n")
@@ -492,6 +496,7 @@ def main():
     output_dir = args.outputDir
     min_trimmed_length = args.min_trimmed_length
     target = args.target
+    isa_zip = ""
 
     # If OSD is used, pull ISA metadata for the study, create and select the runsheet
     if args.OSD:
@@ -530,7 +535,7 @@ def main():
                     sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt')
 
                 # Create the config.yaml file
-                create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir)
+                create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir)
                 print("Snakemake workflow setup is complete.")
             else:
                 print("Failed to validate the runsheet file.", file=sys.stderr)
