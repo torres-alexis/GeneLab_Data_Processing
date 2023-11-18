@@ -145,7 +145,7 @@ The outputs from the `run_workflow.py` and differential abundance analysis (DAA)
   - \*_AmpSeq_v1_runsheet.csv (table containing metadata required for processing, including the raw reads files location)
   - \*-ISA.zip (the ISA archive of the OSD datasets to be processed, downloaded from the OSDR)
   - config.yaml (configuration file containing the metadata from the runsheet (\*_AmpSeq_v1_runsheet.csv), required for running the SW_AmpIllumina workflow) 
-  - Unique-Sample-IDs.txt (text file containing the IDs of each sample used, required for running the SW_AmpIllumina workflow)
+  - unique-sample-IDs.txt (text file containing the IDs of each sample used, required for running the SW_AmpIllumina workflow)
 - **DAA and Visualization Outputs:**  
   - dendrogram_by_group.png (Dendrogram of euclidean distance - based hierarchical clustering of the samples, colored by experimental groups) 
   - PCoA_w_labels.png (Principle Coordinates Analysis plot of VST transformed ASV counts, with sample labels)
