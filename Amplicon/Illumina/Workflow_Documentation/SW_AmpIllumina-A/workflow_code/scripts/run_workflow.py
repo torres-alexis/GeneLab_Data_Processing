@@ -572,14 +572,19 @@ def main():
         if sample_info_file and os.path.exists(sample_info_file):
             os.remove(sample_info_file)
         
+        if isa_zip:
+            try:
+                os.remove(isa_zip)
+            except FileNotFoundError:
+                pass  # Ignore file not found error silently
+            except Exception:
+                pass 
         # Remove all files if OSD run
         if args.OSD:
             os.remove(runsheet_file)  # Assuming runsheet_file is a variable holding the file name
-            os.remove(isa_zip)  # Assuming isa_zip is a variable holding the file name
             os.remove("config.yaml")  # Ensure this is the correct file name
 
         if args.runsheetPath:
-            os.remove(isa_zip)  # Assuming isa_zip is a variable holding the file name
             os.remove("config.yaml")  # Ensure this is the correct file name
 
 

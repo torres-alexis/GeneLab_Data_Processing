@@ -526,8 +526,8 @@ deseq_modeled <- tryCatch({
 })
 
 # save final differential abundance counts, individual group comparison results
-write.tsv(counts(deseq_modeled, normalized=TRUE), file = paste0(de_out_dir, "normalized_counts.tsv"))
 
+write.table(counts(deseq_modeled, normalized=TRUE), file = paste0(de_out_dir, "normalized_counts.tsv"), sep="\t", row.names=TRUE, quote=FALSE)
 # make the volcanoplot
 plot_comparison <- function(group1, group2) {
   

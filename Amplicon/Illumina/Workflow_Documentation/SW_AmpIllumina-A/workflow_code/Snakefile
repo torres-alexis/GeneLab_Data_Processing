@@ -680,32 +680,45 @@ rule combine_cutadapt_logs_and_summarize:
         rm {input.counts}
         """
 
-rule save_metadata:
-    """This rule copies the config.yaml file and the unique sample IDs file to the output folder."""
-    input:
-        config_file = "config.yaml",
-        sample_file = sample_IDs_file,
-        runsheet = config["runsheet"],
+def isa_archive_exists():
+    return config["isa_archive"] and os.path.isfile(config["isa_archive"])
 
-    params:
-        isa_archive = config["isa_archive"]
-
-    output:
-        config_out = config["metadata_out_dir"] + "config.yaml",
-        sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-        runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"]),
-        isa_archive_out = config["metadata_out_dir"] + os.path.basename(config["isa_archive"])
-
-    shell:
-        """
-        cp {input.config_file} {output.config_out}
-        cp {input.sample_file} {output.sample_out}
-        cp {input.runsheet} {output.runsheet_out}
-        if [ -n "{params.isa_archive}" ]; then
-            cp {params.isa_archive} {output.isa_archive_out}
-        fi
-        """
-
+if isa_archive_exists():
+    rule save_metadata_with_isa:
+    """ this rule copies the metadata files used for Approach 1 / for OSD runs into output folder"""
+        input:
+            config_file = "config.yaml",
+            sample_file = sample_IDs_file,
+            runsheet = config["runsheet"],
+        output:
+            config_out = config["metadata_out_dir"] + "config.yaml",
+            sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+            runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"]),
+            isa_archive_out = config["metadata_out_dir"] + os.path.basename(config["isa_archive"])
+        shell:
+            """
+            cp {input.config_file} {output.config_out}
+            cp {input.sample_file} {output.sample_out}
+            cp {input.runsheet} {output.runsheet_out}
+            cp {input.runsheet} {output.isa_archive_out}
+            """
+else:
+    rule save_metadata_without_isa:
+    """ this rule copies the metadata files used for Approach 1 / for runsheetPath runs  (all but ISA) into output folder"""
+        input:
+            config_file = "config.yaml",
+            sample_file = sample_IDs_file,
+            runsheet = config["runsheet"],
+        output:
+            config_out = config["metadata_out_dir"] + "config.yaml",
+            sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+            runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"])
+        shell:
+            """
+            cp {input.config_file} {output.config_out}
+            cp {input.sample_file} {output.sample_out}
+            cp {input.runsheet} {output.runsheet_out}
+            """
 
 
 rule clean_all:
