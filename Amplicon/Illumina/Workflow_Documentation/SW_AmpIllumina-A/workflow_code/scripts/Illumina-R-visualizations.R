@@ -26,7 +26,7 @@ runsheet_file <- paste0(args[1])
 sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
-final_outputs_dir <- paste0(args[5], '/plots/')
+final_outputs_dir <- paste0(args[5])
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
@@ -90,20 +90,23 @@ g_legend <- function(a.gplot){
 ###########################################
 
 # Assign the directory paths to variables
-dendrogram_out_dir <- paste0(final_outputs_dir, "dendrogram/")
-pcoa_out_dir <- paste0(final_outputs_dir, "PCoA/")
-rarefaction_out_dir <- paste0(final_outputs_dir, "rarefaction/")
-richness_out_dir <- paste0(final_outputs_dir, "richness/")
-taxonomy_out_dir <- paste0(final_outputs_dir, "taxonomy/")
-de_out_dir <- paste0(final_outputs_dir, "de/")
+dendrogram_out_dir <- paste0(final_outputs_dir, "dendrogram", .Platform$file.sep)
+pcoa_out_dir <- paste0(final_outputs_dir, "PCoA", .Platform$file.sep)
+rarefaction_out_dir <- paste0(final_outputs_dir, "rarefaction", .Platform$file.sep)
+richness_out_dir <- paste0(final_outputs_dir, "richness", .Platform$file.sep)
+taxonomy_out_dir <- paste0(final_outputs_dir, "taxonomy", .Platform$file.sep)
+de_out_dir <- paste0(final_outputs_dir, "de", .Platform$file.sep)
+
+abundance_out_dir <- paste0(de_out_dir, "differential_abundance", .Platform$file.sep)
+volcano_out_dir <- paste0(de_out_dir, "volcano", .Platform$file.sep)
 
 # List of all directory variables
-out_dirs <- list(final_outputs_dir, dendrogram_out_dir, pcoa_out_dir, rarefaction_out_dir, richness_out_dir, taxonomy_out_dir, de_out_dir)
+out_dirs <- list(final_outputs_dir, dendrogram_out_dir, pcoa_out_dir, rarefaction_out_dir, richness_out_dir, taxonomy_out_dir, de_out_dir, abundance_out_dir, volcano_out_dir)
 
 # Loop through each directory path to check and create if necessary
 for (dir_path in out_dirs) {
   if (!dir.exists(dir_path)) {
-    dir.create(dir_path)
+    dir.create(dir_path, recursive = TRUE)
   }
 }
 
@@ -146,22 +149,26 @@ runsheet <- runsheet[order(runsheet[[groups_colname]]), ]
 # Reorder count_tab columns to match the order in the runsheet
 count_tab <- count_tab[, runsheet$basename]
 
-# Identify the longest common prefix in the row names
-common_prefix <- longest_common_prefix(rownames(runsheet))
+# Rename runsheet row names
+rownames(runsheet) <- runsheet$basename
 
-# Remove the longest common prefix from the row names
-if (nchar(common_prefix) > 0) {
-  shortened_names <- sapply(rownames(runsheet), function(name) {
-    sub(paste0("^", common_prefix), "", name)
-  })
-} else {
-  # If there is no common prefix, use the original row names
-  shortened_names <- rownames(runsheet)
-}
 
-# Update the row names in the runsheet and column names in count_tab
-rownames(runsheet) <- shortened_names
-colnames(count_tab) <- shortened_names
+# # Identify the longest common prefix in the row names
+# common_prefix <- longest_common_prefix(rownames(runsheet))
+
+# # Remove the longest common prefix from the row names
+# if (nchar(common_prefix) > 0) {
+#   shortened_names <- sapply(rownames(runsheet), function(name) {
+#     sub(paste0("^", common_prefix), "", name)
+#   })
+# } else {
+#   # If there is no common prefix, use the original row names
+#   shortened_names <- rownames(runsheet)
+# }
+
+# # Update the row names in the runsheet and column names in count_tab
+# rownames(runsheet) <- shortened_names
+# colnames(count_tab) <- shortened_names
 
 if (!identical(rownames(runsheet), colnames(count_tab))) {
   stop("The read file names in the runsheet do not match the colnames of count_tab.")
@@ -236,11 +243,6 @@ default_cex = 1
 # Lower cex if over 40 samples to prevent names from crashing on plot
 default_cex <- adjust_cex(length(rownames(sample_info_tab)))
 
-png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
-    width = width_in_pixels,
-    height = height_in_pixels,
-    res = dpi)
-euc_dend %>% set("labels_cex", default_cex) %>% plot(ylab = "VST Euc. dist.") 
 
 # Set for 11x8 plot margins, else try ggdendrogram
 space_available <- height_in_inches/5.3
@@ -254,13 +256,32 @@ calculate_max_cex <- function(n, space_avail) {
   return(max_cex)
 }
 
+
 # Lower cex based on max sample names to prevent clipping of sample names on plot
 max_length <- max(nchar(rownames(sample_info_tab)))
 max_cex <- calculate_max_cex(max_length, space_available)
 max_cex <- min(max_cex, default_cex)
 
-euc_dend %>% set("labels_cex", max_cex) %>% plot(ylab = "VST Euc. dist.") 
+legend_groups <- unique(sample_info_tab$groups)
+legend_colors <- unique(sample_info_tab$color)
+num_unique_groups <- length(legend_groups)
+legend_cex <- ifelse(num_unique_groups > 5, 1 / (num_unique_groups / 5), 1)
+
+png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
+    width = width_in_pixels,
+    height = height_in_pixels,
+    res = dpi)
+par(mar = c(10.5, 4.1, 0.6 , 2.1))
+euc_dend %>% set("labels_cex", default_cex) %>% plot(ylab = "VST Euc. dist.") 
+par(xpd=TRUE)
+legend("bottom", inset = c(0, -.34), legend = legend_groups, fill = legend_colors, bty = 'n', cex = legend_cex)
 dev.off()
+par(original_par)
+
+
+
+
+
 
 # making a phyloseq object with our transformed table
 vst_count_phy <- otu_table(object = vst_trans_count_tab, taxa_are_rows = TRUE)
@@ -349,7 +370,8 @@ rareplot <- ggplot(p, aes(x = Sample, y = Species, group = Site, color = groups)
         legend.box.just = "center",
         legend.title.align = 0.5,
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()) +
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(t = 10, r = 20, b = 10, l = 10, unit = "pt")) +
   guides(color = guide_legend(title = "Groups"))
 ggsave(filename = paste0(rarefaction_out_dir, "rarefaction.png"), plot=rareplot, width = 8.33, height = 8.33, dpi = 300)
 
@@ -359,6 +381,25 @@ ggsave(filename = paste0(rarefaction_out_dir, "rarefaction.png"), plot=rareplot,
 count_tab_phy <- otu_table(count_tab, taxa_are_rows = TRUE)
 tax_tab_phy <- tax_table(as.matrix(tax_tab))
 ASV_physeq <- phyloseq(count_tab_phy, tax_tab_phy, sample_info_tab_phy)
+
+
+calculate_text_size <- function(num_samples, start_samples = 25, min_size = 3) {
+  max_size = 12  # Maximum size for up to start_samples
+  # Hardcoded slope value; adjust this as needed for the desired rate of decrease
+  slope = -0.12
+
+  if (num_samples <= start_samples) {
+    return(max_size)
+  } else {
+    # Calculate the current size with the hardcoded slope
+    current_size = max_size + slope * (num_samples - start_samples)
+    
+    # Ensure the size doesn't go below the minimum
+    return(max(current_size, min_size))
+  }
+}
+
+richness_sample_label_size <- calculate_text_size(length(rownames(sample_info_tab)))
 
 richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1", "Shannon")) + 
   scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
@@ -372,7 +413,10 @@ richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1
     legend.justification = "center",
     legend.box.just = "center",
     legend.title.align = 0.5,
-    axis.text.x = element_blank()
+    axis.text.x = element_text(angle = 90,
+                               size = richness_sample_label_size,
+                               vjust = 0.5,  # Vertically center the text
+                               hjust = 1)
   )
 ggsave(paste0(richness_out_dir, "richness_by_sample", ".png"), plot=richness_plot, width = 11.1, height = 8.33, dpi = 300)
 
@@ -460,6 +504,7 @@ ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=gri
 unique_groups <- unique(runsheet$groups)
 deseq_obj <- phyloseq_to_deseq2(physeq = ASV_physeq, design = ~groups)
 
+
 # https://rdrr.io/bioc/phyloseq/src/inst/doc/phyloseq-mixture-models.R 
 deseq_modeled <- tryCatch({
   # Attempt to run DESeq
@@ -479,6 +524,9 @@ deseq_modeled <- tryCatch({
   # Call DESeq again with alternative geom mean size est
   DESeq(deseq_obj)
 })
+
+# save final differential abundance counts, individual group comparison results
+write.csv(counts(deseq_modeled), file = paste0(de_out_dir, "counts", ".csv"))
 
 # make the volcanoplot
 plot_comparison <- function(group1, group2) {
@@ -510,12 +558,17 @@ plot_comparison <- function(group1, group2) {
     head(10)
   
   volcano_plot <- p + geom_text_repel(data=top_points, aes(label=row.names(top_points)), size=3)
-  ggsave(filename=paste0(de_out_dir,"volcano_",
+  ggsave(filename=paste0(volcano_out_dir,"volcano_",
                          gsub(" ", "_", group1),
                          "_vs_",
                          gsub(" ", "_", group2), ".png"),
          plot=volcano_plot,
          width = 11.1, height = 8.33, dpi = 300)
+  
+  write.csv(deseq_res, file = paste0(abundance_out_dir,
+                        gsub(" ", "_", group1),
+                        "_vs_",
+                        gsub(" ", "_", group2), ".csv"))
 }
 
 

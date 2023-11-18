@@ -114,15 +114,18 @@ output_prefix:
     ""
 
 ## output directories (all relative to processing directory, they will be created if needed)
+metadata_out_dir:
+    "workflow_output/Metadata/"
 fastqc_out_dir:
-    "workflow/FastQC_Outputs/"
+    "workflow_output/FastQC_Outputs/"
 trimmed_reads_dir:
-    "workflow/Trimmed_Sequence_Data/"
+    "workflow_output/Trimmed_Sequence_Data/"
 filtered_reads_dir:
-    "workflow/Filtered_Sequence_Data/"
+    "workflow_output/Filtered_Sequence_Data/"
 final_outputs_dir:
-    "workflow/Final_Outputs/"
-
+    "workflow_output/Final_Outputs/"
+plots_dir:
+    ""workflow_output/Final_Outputs/"Plots/"
 
 ############################################################
 ###################### GENERAL INFO ########################

@@ -312,6 +312,13 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    metadata_out_dir = os.path.join(output_dir, "Metadata") + os.sep
+    fastqc_out_dir = os.path.join(output_dir, "FastQC_Outputs") + os.sep
+    trimmed_reads_dir = os.path.join(output_dir, "Trimmed_Sequence_Data") + os.sep
+    filtered_reads_dir = os.path.join(output_dir, "Filtered_Sequence_Data") + os.sep
+    final_outputs_dir = os.path.join(output_dir, "Final_Outputs") + os.sep
+    plots_dir = os.path.join(final_outputs_dir, "Plots") + os.sep
+
     # Write to config.yaml
     with open('config.yaml', 'w') as file:
         file.write("############################################################################################\n")
@@ -364,13 +371,19 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
         file.write("## discard untrimmed, sets the \"--discard-untrimmed\" option if TRUE\n")
         file.write("discard_untrimmed:\n    \"TRUE\"\n\n")
 
-        file.write("## target region (16S or ITS acceptable; determines which reference database is used for taxonomic classification)\n")
+        file.write("## target region (16S, 18S, or ITS is acceptable)\n")
+        file.write("  # this determines which reference database is used for taxonomic classification\n")
+        file.write("  # all are pulled from the pre-packaged DECIPHER downloads page here: http://www2.decipher.codes/Downloads.html\n")
+        file.write("  # 16S uses SILVA\n")
+        file.write("  # ITS uses UNITE\n")
+        file.write("  # 18S uses PR2\n")
         file.write(f"target_region:\n    \"{target_region}\"\n\n")
 
         file.write("## concatenate only with dada2 instead of merging paired reads if TRUE\n")
         file.write("  # this is typically used with primers like 515-926, that captured 18S fragments that are typically too long to merge\n")
         file.write("  # note that 16S and 18S should have been separated already prior to running this workflow\n")
         file.write("  # this should likely be left as FALSE for any option other than \"18S\" above\n\n")
+
         file.write("concatenate_reads_only:\n    \"FALSE\"\n\n")
 
         file.write("## values to be passed to dada2's filterAndTrim() function:\n")
@@ -397,10 +410,12 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
         file.write("output_prefix:\n    \"\"\n\n")
 
         file.write("## output directories (all relative to processing directory, they will be created if needed)\n")
-        file.write(f"fastqc_out_dir:\n    \"{output_dir}FastQC_Outputs/\"\n")
-        file.write(f"trimmed_reads_dir:\n    \"{output_dir}Trimmed_Sequence_Data/\"\n")
-        file.write(f"filtered_reads_dir:\n    \"{output_dir}Filtered_Sequence_Data/\"\n")
-        file.write(f"final_outputs_dir:\n    \"{output_dir}Final_Outputs/\"\n\n")
+        file.write(f"metadata_out_dir:\n    \"{metadata_out_dir}\"\n")
+        file.write(f"fastqc_out_dir:\n    \"{fastqc_out_dir}\"\n")
+        file.write(f"trimmed_reads_dir:\n    \"{trimmed_reads_dir}\"\n")
+        file.write(f"filtered_reads_dir:\n    \"{filtered_reads_dir}\"\n")
+        file.write(f"final_outputs_dir:\n    \"{final_outputs_dir}\"\n")
+        file.write(f"plots_dir:\n    \"{plots_dir}\"\n\n")
 
         # For general info and example usage command
         file.write("############################################################\n")
@@ -408,7 +423,7 @@ def create_config_yaml(runsheet_file, runsheet_df, min_trimmed_length, uses_urls
         file.write("############################################################\n")
         file.write("# Workflow is currently equipped to work with paired-end data only, and reads are expected to be gzipped\n\n")
         file.write("## example usage command ##\n")
-        file.write("# snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p\n")
+        file.write("# snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p\n\n")
         file.write("# `--use-conda` – this specifies to use the conda environments included in the workflow\n")
         file.write("# `--conda-prefix` – this allows us to point to where the needed conda environments should be stored...\n")
         file.write("# `-j` – this lets us set how many jobs Snakemake should run concurrently...\n")

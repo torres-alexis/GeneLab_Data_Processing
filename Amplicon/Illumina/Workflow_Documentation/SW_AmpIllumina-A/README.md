@@ -146,5 +146,13 @@ The outputs from the `run_workflow.py` and differential abundance analysis (DAA)
   - \*-ISA.zip (the ISA archive of the OSD datasets to be processed, downloaded from the OSDR)
   - config.yaml (configuration file containing the metadata from the runsheet (\*_AmpSeq_v1_runsheet.csv), required for running the SW_AmpIllumina workflow) 
 - **DAA and Visualization Outputs:**  
-  - <Alexis, make a list is the same format of the metadata output above of each output generated from the DAA/viz script - don't forget to include the DAA csv table, since you will be adding that as an output>
-
+  - \*dendrogram_by_group.png (Dendrogram of euclidean distance - based hierarchical clustering of the samples, colored by experimental groups.) 
+  - \*PCoA_w_labels.png (Principle Coordinates Analysis plot of VST transformed OTU counts, with sample labels)
+  - \*PCoA_without_labels.png (Principle Coordinates Analysis plot of VST transformed OTU counts, without labels)
+  - \*Rarefaction.png (Rarefaction plot visualizing sample-wise species richness)
+  - \* richness_by_sample.png (Chao1 richness estimates and Shannon diversity estimates for each sample)
+  - \* richness_by_group.png (Chao1 richness estimates and Shannon diversity estimates for each group)
+  - \* richness_by_relative_classes.png (Bar plot taxonomic summary of proportions of phyla identified in each group, by class)
+  - \* richness_by_relative_phyla.png (Bar plot taxonomic summary of proportions of phyla identified in each group, by phyla)
+  - \* {group1}\_vs_{group2}.csv (Differential abundance tables for all pairwise contrasts of  groups)
+  - \* volcano\_{group1}\_vs_{group2}.png (Volcano plots for all pairwise contrasts of groups)

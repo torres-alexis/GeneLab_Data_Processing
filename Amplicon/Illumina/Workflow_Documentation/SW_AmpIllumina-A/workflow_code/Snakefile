@@ -49,9 +49,9 @@ if len(set(sample_ID_list)) != len(sample_ID_list):
 ########################################
 
 if config["trim_primers"] == "TRUE":
-    needed_dirs = [config["fastqc_out_dir"], config["trimmed_reads_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], "benchmarks"]
+    needed_dirs = [config["metadata_out_dir"], config["fastqc_out_dir"], config["trimmed_reads_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
 else:
-    needed_dirs = [config["fastqc_out_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], "benchmarks"]
+    needed_dirs = [config["metadata_out_dir"], config["fastqc_out_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
 
 for dir in needed_dirs:
     try:
@@ -86,7 +86,8 @@ if config["data_type"] == "PE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["final_outputs_dir"] + "visualizations_complete.flag"
+                config["plots_dir"] + "visualizations_complete.flag",
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -107,7 +108,8 @@ if config["data_type"] == "PE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["final_outputs_dir"] + "visualizations_complete.flag"
+                config["plots_dir"] + "visualizations_complete.flag",
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -372,7 +374,8 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["final_outputs_dir"] + "visualizations_complete.flag"
+                config["plots_dir"] + "visualizations_complete.flag",
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -392,7 +395,8 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["final_outputs_dir"] + "visualizations_complete.flag"
+                config["plots_dir"] + "visualizations_complete.flag",
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -624,16 +628,16 @@ rule r_visualizations:
         taxonomy = config["final_outputs_dir"] + config["output_prefix"] + "taxonomy.tsv"
     output:
         # Use completion flag file in place of plot outputs for variable plots
-        complete = config["final_outputs_dir"] + "visualizations_complete.flag"
+        complete = config["plots_dir"] + "visualizations_complete.flag"
     params:
-        final_outputs_dir = config["final_outputs_dir"],
+        plots_dir = config["plots_dir"],
     log:
         "R-visualizations.log"
     benchmark:
         "benchmarks/run_R-benchmarks.tsv"
     shell:
         """
-        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.final_outputs_dir}"
+        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.plots_dir}"
         touch {output.complete}
         """
 
@@ -667,6 +671,23 @@ rule combine_cutadapt_logs_and_summarize:
         cat <( printf "sample\traw_reads\tcutadapt_trimmed\n" ) <( cat {input.counts} ) > {output.combined_counts}
         rm {input.counts}
         """
+
+rule save_metadata:
+    """This rule copies the config.yaml file and the unique sample IDs file to the output folder."""
+    input:
+        config_file = "config.yaml",
+        sample_file = sample_IDs_file
+
+    output:
+        config_out = config["metadata_out_dir"] + "config.yaml",
+        sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+
+    shell:
+        """
+        cp {input.config_file} {output.config_out}
+        cp {input.sample_file} {output.sample_out}
+        """
+
 
 
 rule clean_all:
