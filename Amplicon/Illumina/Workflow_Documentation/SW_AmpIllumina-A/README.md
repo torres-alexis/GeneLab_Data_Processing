@@ -58,7 +58,9 @@ ___
 All files required for utilizing the GeneLab workflow for processing Illumina amplicon sequencing data are in the [workflow_code](workflow_code) directory. To get a copy of latest SW_AmpIllumina-A version on to your system, the code can be downloaded as a zip file from the release page then unzipped after downloading by running the following commands:
 
 ```bash
-wget https://github.com/nasa/GeneLab_Data_Processing/releases/download/SW_AmpIllumina-A_1.2.0/SW_AmpIllumina-A_1.2.0.zip
+## Change to NASA GitHub when ready 
+wget https://github.com/asaravia-butler/GeneLab_Data_Processing_TESTING/releases/download/SW_AmpIllumina-A_1.2.0/SW_AmpIllumina-A_1.2.0.zip
+#wget https://github.com/nasa/GeneLab_Data_Processing/releases/download/SW_AmpIllumina-A_1.2.0/SW_AmpIllumina-A_1.2.0.zip
 
 unzip SW_AmpIllumina-A_1.2.0.zip
 ```

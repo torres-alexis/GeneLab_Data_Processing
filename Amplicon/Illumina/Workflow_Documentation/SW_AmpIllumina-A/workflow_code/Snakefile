@@ -1,7 +1,7 @@
 ############################################################################################
 ## Snakefile for GeneLab's Illumina amplicon workflow                                     ##
 ## Developed by Michael D. Lee (Mike.Lee@nasa.gov)                                        ##
-## Version 1.1.0                                                                          ##
+## Version 1.2.0                                                                          ##
 ############################################################################################
 
 import os
@@ -685,7 +685,7 @@ def isa_archive_exists():
 
 if isa_archive_exists():
     rule save_metadata_with_isa:
-    """ this rule copies the metadata files used for Approach 1 / for OSD runs into output folder"""
+        """ this rule copies the metadata files used for Approach 1 / for OSD runs into output folder"""
         input:
             config_file = "config.yaml",
             sample_file = sample_IDs_file,
@@ -704,7 +704,7 @@ if isa_archive_exists():
             """
 else:
     rule save_metadata_without_isa:
-    """ this rule copies the metadata files used for Approach 1 / for runsheetPath runs  (all but ISA) into output folder"""
+        """ this rule copies the metadata files used for Approach 1 / for runsheetPath runs  (all but ISA) into output folder"""
         input:
             config_file = "config.yaml",
             sample_file = sample_IDs_file,
