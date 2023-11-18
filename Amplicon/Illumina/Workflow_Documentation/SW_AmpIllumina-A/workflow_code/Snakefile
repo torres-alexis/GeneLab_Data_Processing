@@ -686,6 +686,8 @@ rule save_metadata:
         config_file = "config.yaml",
         sample_file = sample_IDs_file,
         runsheet = config["runsheet"],
+
+    params:
         isa_archive = config["isa_archive"]
 
     output:
@@ -699,8 +701,8 @@ rule save_metadata:
         cp {input.config_file} {output.config_out}
         cp {input.sample_file} {output.sample_out}
         cp {input.runsheet} {output.runsheet_out}
-        if [ -n "{input.isa_archive}" ]; then
-            cp {input.isa_archive} {output.isa_archive_out}
+        if [ -n "{params.isa_archive}" ]; then
+            cp {params.isa_archive} {output.isa_archive_out}
         fi
         """
 
