@@ -11,6 +11,9 @@
 ##### These need to match what is specific to our system and our data #####
 ###########################################################################
 
+## Path to ISA archive, only needed for saving a copy as metadata:
+isa_archive:
+    ""
 ## Path to runsheet:
 runsheet:
     "runsheet.csv"
