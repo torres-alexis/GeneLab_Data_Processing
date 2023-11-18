@@ -87,7 +87,8 @@ if config["data_type"] == "PE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+                config["metadata_out_dir"] + "config.yaml"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -109,7 +110,8 @@ if config["data_type"] == "PE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+                config["metadata_out_dir"] + "config.yaml"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -375,7 +377,8 @@ if config["data_type"] == "SE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+                config["metadata_out_dir"] + "config.yaml"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
@@ -396,7 +399,8 @@ if config["data_type"] == "SE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file)
+                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
+                config["metadata_out_dir"] + "config.yaml"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh

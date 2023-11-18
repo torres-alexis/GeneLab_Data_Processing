@@ -468,7 +468,7 @@ def main():
     parser.add_argument('-d', '--outputDir',
                         metavar='dir',
                         default='./workflow_output/',  # Default value
-                        help='Specify the output directory for the workflow. This argument is only used if -o or -r is specified. Default: ./workflow/',
+                        help='Specify the output directory for the workflow. This argument is only used if -o or -r is specified. Default: ./workflow_output/',
                         type=str)
     
     parser.add_argument('-x', '--run',
