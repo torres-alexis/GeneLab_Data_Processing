@@ -272,7 +272,7 @@ png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
     height = height_in_pixels,
     res = dpi)
 par(mar = c(10.5, 4.1, 0.6 , 2.1))
-euc_dend %>% set("labels_cex", default_cex) %>% plot(ylab = "VST Euc. dist.") 
+euc_dend %>% set("labels_cex", max_cex) %>% plot(ylab = "VST Euc. dist.") 
 par(xpd=TRUE)
 legend("bottom", inset = c(0, -.34), legend = legend_groups, fill = legend_colors, bty = 'n', cex = legend_cex)
 dev.off()
@@ -386,7 +386,7 @@ ASV_physeq <- phyloseq(count_tab_phy, tax_tab_phy, sample_info_tab_phy)
 calculate_text_size <- function(num_samples, start_samples = 25, min_size = 3) {
   max_size = 12  # Maximum size for up to start_samples
   # Hardcoded slope value; adjust this as needed for the desired rate of decrease
-  slope = -0.12
+  slope = -0.14
 
   if (num_samples <= start_samples) {
     return(max_size)
