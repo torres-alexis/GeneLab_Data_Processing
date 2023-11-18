@@ -8,7 +8,7 @@ import shutil
 import pandas as pd
 #import pandera as pa
 import requests 
-
+import yaml
 ####################
 ## 1.  For OSD ARG #
 ####################
@@ -104,13 +104,15 @@ def convert_isa_to_runsheet(accession_number, isa_zip):
             print("An error occurred while converting ISA archive to runsheet.", file=sys.stderr)
             sys.exit(1)
 
-# Prompt the user to select a runsheet if more than 1 were created, else just return the single runsheet
+# Use target to select a runsheet if more than 1 were created, else just return the single runsheet
 def handle_runsheet_selection(runsheet_files, target=None):
+    selected_runsheet = None
+
     if len(runsheet_files) == 1:
         # Automatically use the single runsheet file
         selected_runsheet = runsheet_files[0]
         print(f"Using runsheet: {selected_runsheet}")
-        return selected_runsheet
+
     elif len(runsheet_files) > 1:
         if target:
             matching_runsheets = []
@@ -127,15 +129,27 @@ def handle_runsheet_selection(runsheet_files, target=None):
                 # One matching runsheet found
                 selected_runsheet = matching_runsheets[0]
                 print(f"Using runsheet: {selected_runsheet}")
-                return selected_runsheet
 
-            # Either no matching runsheets or multiple matching runsheets found
-            print("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
-            return None
+            else:
+                # Either no matching runsheets or multiple matching runsheets found
+                print("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
+                return None
         else:
             # If no target specified and multiple runsheets are available
             print("Multiple runsheets found but no genomic target specified. Cannot proceed. Use -t {16S, 18S, ITS} or --target {16S, 18S, ITS} to specify which assay/dataset to use.")
             return None
+
+    # Identify unselected runsheet files
+    unselected_runsheets = [file for file in runsheet_files if file != selected_runsheet]
+
+    # Remove unselected runsheet files
+    for file in unselected_runsheets:
+        try:
+            os.remove(file)
+        except Exception as e:
+            pass
+
+    return selected_runsheet
 
 
 
@@ -318,7 +332,7 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
     trimmed_reads_dir = os.path.join(output_dir, "Trimmed_Sequence_Data") + os.sep
     filtered_reads_dir = os.path.join(output_dir, "Filtered_Sequence_Data") + os.sep
     final_outputs_dir = os.path.join(output_dir, "Final_Outputs") + os.sep
-    plots_dir = os.path.join(final_outputs_dir, "Plots") + os.sep
+    plots_dir = final_outputs_dir + "Plots" + os.sep
 
     # Write to config.yaml
     with open('config.yaml', 'w') as file:
@@ -518,7 +532,7 @@ def main():
     elif args.runsheetPath:
         runsheet_file = args.runsheetPath
 
-    # Validate and load the runsheet if a file is specified
+    # Load the runsheet if a file is specified
     # Create unique-sample-IDs.txt based on filenames or 'Sample Name' if URLs
     # Download files if necessary
     if args.OSD or args.runsheetPath:
@@ -550,7 +564,19 @@ def main():
         print(f"Running Snakemake command: {snakemake_command}")
         subprocess.run(snakemake_command, shell=True, check=True)
     
+        # Remove sample ID file
+        with open('config.yaml', 'r') as file:
+            config_data = yaml.safe_load(file)
+            sample_info_file = config_data.get('sample_info_file', '')  # Default to empty string if not found
 
+        if sample_info_file and os.path.exists(sample_info_file):
+            os.remove(sample_info_file)
+        
+        # Remove only automatically created config files
+        if args.OSD:
+            os.remove(runsheet_file)  # Assuming runsheet_file is a variable holding the file name
+            os.remove(isa_zip)  # Assuming isa_zip is a variable holding the file name
+            os.remove("config.yaml")  # Ensure this is the correct file name
 
 
 
