@@ -1,3 +1,4 @@
+pdf(file = NULL)
 library(vegan)
 library(tidyverse)
 library(dendextend)
@@ -577,3 +578,6 @@ comparisons <- expand.grid(group1 = unique_groups, group2 = unique_groups)
 comparisons <- subset(comparisons, group1 != group2)
 
 apply(comparisons, 1, function(pair) plot_comparison(pair['group1'], pair['group2']))
+
+
+dev.off()
