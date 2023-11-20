@@ -44,7 +44,7 @@ The environment then needs to be activated by running the following command:
 conda activate genelab-utils
 ```
 
-Once the `genelab-utils` environment is active, use `pip` to instal the `dp-tools` package by running the following command:
+Once the `genelab-utils` environment is active, use `pip` to install the `dp-tools` package by running the following command:
 
 ```bash
 pip install git+https://github.com/torres-alexis/dp_tools.git@amplicon_updates
