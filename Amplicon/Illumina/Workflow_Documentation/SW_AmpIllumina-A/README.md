@@ -110,11 +110,10 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
 * `--OSD OSD-###` - specifies the OSD dataset to process through the SW_AmpIllumina workflow (replace ### with the OSD number)
    > *Used for Approach 1 only.*
 
-* `--target` - specifies the genomic target for the assay. Options: 16S, 18S, ITS. This is used to select the appropriate dataset from an OSD study when multiple options are available.
-   > *Used for Approach 1 only.*
-   
+* `--target` - specifies the genomic target for the assay. Options: 16S, 18S, ITS. This determines which reference database is used for taxonomic classification, and it is used to select the appropriate dataset from an OSD study when multiple options are available.
+
 * `--runsheetPath` - specifies the path to a local runsheet containing the metadata and raw reads location (as a link or local path), used for processing a non-OSD dataset through the SW_AmpIllumina workflow 
-   > *Used for Approach 2 only.*
+   > *Optionally used for Approach 2 only, the form can be used instead of providing a runsheet on the NMDC EDGE platform.*
 
 * `--run` - specifies the command used to execute the snakemake workflow; snakemake-specific parameters are defined below
 
@@ -122,26 +121,29 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
    > *This is an optional command that can be added outside the quotation marks in either approach to specify the output directory. If this option is not used, the output files will be printed to the current working directory, i.e. in the `SW_AmpIllumina-A_1.2.0` directory that was downloaded in [step 2](#2-download-the-workflow-template-files).*
 
 * `--trim-primers TRUE/FALSE` - specifies to trim primers (TRUE) or not (FALSE). Default: TRUE
+   > *Note: Primers should virtually always be trimmed from amplicon datasets. This option is here for cases where they have already been removed.*
 
-* `--min_trimmed_length` - specifies the minimum length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130
-   > *Note: For paired-end data, this option should be set to ensure there will be minimum of an 8-base overlap of forward and reverse reads.*
+* `--min_trimmed_length` - specifies the minimum length of trimmed reads during cutadapt filtering. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130
+   > *Note: For paired-end data, all filtering and trimming should leave a minimum of an 8-base overlap of forward and reverse reads.*
 
-* `--primers-linked TRUE/FALSE` - if set to TRUE, instructions cutadapt to treat the primers as linked. Default: TRUE
+* `--primers-linked TRUE/FALSE` - if set to TRUE, instructs cutadapt to treat the primers as linked. Default: TRUE
+   > *Note: See [cutadapt documentation here](https://cutadapt.readthedocs.io/en/stable/recipes.html#trimming-amplicon-primers-from-paired-end-reads) for more info.*
 
-* `--anchor-primers TRUE/FALSE` - indicates if primers should be anchored (TRUE) or not (FALSE). Default: TRUE
+* `--anchor-primers TRUE/FALSE` - indicates if primers should be anchored (TRUE) or not (FALSE) when provided to cutadapt. Default: TRUE
+   > *Note: See cutadapt documention here](https://cutadapt.readthedocs.io/en/stable/guide.html#anchored-5adapters) for more info.*
 
 * `--discard-untrimmed TRUE/FALSE` - if set to TRUE, instructs cutadapt to remove reads if the primers were not found in the expected location; if set to FALSE, these reads are kept. Default: TRUE
 
-* `--left-trunc` - specifies the length of the forwards reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
+* `--left-trunc` - dada2 parameter that specifies to truncate the forward reads to this length, bases beyond this length will be removed and reads shorter than this length are discarded. Default: 0 (no truncation)
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
-* `--right-trunc` - specifies the length of the reverse reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
+* `--right-trunc` - dada2 parameter that specifies to truncate the reverse reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
-* `--left-maxEE` - specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1 
+* `--left-maxEE` - dada2 parameter that specifies the maximum expected error (maxEE) allowed for each forward read, reads with a higher maxEE than provided will be discarded. Default: 1 
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
-* `--right-maxEE` - specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1 
+* `--right-maxEE` - dada2 parameter that specifies the maximum expected error (maxEE) allowed for each forward read, reads with a higher maxEE than provided will be discarded. Default: 1 
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
 * `--concatenate_reads_only TRUE/FALSE` - if set to TRUE, specifies to concatenate forward and reverse reads only with dada2 instead of merging paired reads. Default: FALSE
