@@ -327,7 +327,7 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    metadata_out_dir = os.path.join(output_dir, "Metadata") + os.sep
+    metadata_out_dir = os.path.join(output_dir, "Processing_Info") + os.sep
     fastqc_out_dir = os.path.join(output_dir, "FastQC_Outputs") + os.sep
     trimmed_reads_dir = os.path.join(output_dir, "Trimmed_Sequence_Data") + os.sep
     filtered_reads_dir = os.path.join(output_dir, "Filtered_Sequence_Data") + os.sep
