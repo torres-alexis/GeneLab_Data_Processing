@@ -132,10 +132,10 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
 
 * `--discard-untrimmed TRUE/FALSE` - if set to TRUE, instructs cutadapt to remove reads if the primers were not found in the expected location; if set to FALSE, these reads are kept. Default: TRUE
 
-* `--left-trunc` - specifies the legth of the forwards reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
+* `--left-trunc` - specifies the length of the forwards reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
-* `--right-trunc` - specifies the legth of the reverse reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
+* `--right-trunc` - specifies the length of the reverse reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
 
 * `--left-maxEE` - specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1 
@@ -143,6 +143,11 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
 
 * `--right-maxEE` - specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1 
    > *Note: See dada2 [filterAndTrim documentation](https://rdrr.io/bioc/dada2/man/filterAndTrim.html) for more info.*
+
+* `--concatenate_reads_only TRUE/FALSE` - if set to TRUE, specifies to concatenate forward and reverse reads only with dada2 instead of merging paired reads. Default: FALSE
+
+* `--output-prefix ""` - specifies the prefix to use on all output files to distinguish multiple primer sets, leave as an empty string if only one primer set is being processed (if used, be sure to include a connecting symbol, e.g. "ITS-"). Default: "" 
+
 
 **Parameter Definitions for `snakemake`**
 
