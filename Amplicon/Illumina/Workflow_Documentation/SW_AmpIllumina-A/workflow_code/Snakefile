@@ -1,7 +1,7 @@
 ############################################################################################
 ## Snakefile for GeneLab's Illumina amplicon workflow                                     ##
 ## Developed by Michael D. Lee (Mike.Lee@nasa.gov)                                        ##
-## Version 1.2.0                                                                          ##
+## Version 1.1.0                                                                          ##
 ############################################################################################
 
 import os
@@ -49,9 +49,9 @@ if len(set(sample_ID_list)) != len(sample_ID_list):
 ########################################
 
 if config["trim_primers"] == "TRUE":
-    needed_dirs = [config["metadata_out_dir"], config["fastqc_out_dir"], config["trimmed_reads_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
+    needed_dirs = [config["info_out_dir"], config["fastqc_out_dir"], config["trimmed_reads_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
 else:
-    needed_dirs = [config["metadata_out_dir"], config["fastqc_out_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
+    needed_dirs = [config["info_out_dir"], config["fastqc_out_dir"], config["filtered_reads_dir"], config["final_outputs_dir"], config["plots_dir"], "benchmarks"]
 
 for dir in needed_dirs:
     try:
@@ -87,12 +87,10 @@ if config["data_type"] == "PE":
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
                 config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml",
-                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
+                python scripts/copy_info.py 
                 """
 
     # if we are not trimming the primers
@@ -110,13 +108,11 @@ if config["data_type"] == "PE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml",
-                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
+                config["plots_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
+                python scripts/copy_info.py 
                 """
 
 
@@ -378,13 +374,11 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml",
-                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
+                config["plots_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
+                python scripts/copy_info.py 
                 """
 
     # if we are not trimming the primers
@@ -401,13 +395,11 @@ if config["data_type"] == "SE":
                 config["final_outputs_dir"] + config["output_prefix"] + "taxonomy-and-counts.tsv",
                 config["fastqc_out_dir"] + config["output_prefix"] + "raw_multiqc_report.zip",
                 config["fastqc_out_dir"] + config["output_prefix"] + "filtered_multiqc_report.zip",
-                config["plots_dir"] + "visualizations_complete.flag",
-                config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-                config["metadata_out_dir"] + "config.yaml",
-                config["metadata_out_dir"] + os.path.basename(config["runsheet"])
+                config["plots_dir"] + "visualizations_complete.flag"
             shell:
                 """
                 bash scripts/combine-benchmarks.sh
+                python scripts/copy_info.py 
                 """
 
 
@@ -642,10 +634,10 @@ rule r_visualizations:
     log:
         "R-visualizations.log"
     benchmark:
-        "benchmarks/run_R-benchmarks.tsv"
+        "benchmarks/r-visualizations-benchmarks.tsv"
     shell:
         """
-        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.plots_dir}"
+        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.plots_dir}" > {log} 2>&1
         touch {output.complete}
         """
 
@@ -679,46 +671,6 @@ rule combine_cutadapt_logs_and_summarize:
         cat <( printf "sample\traw_reads\tcutadapt_trimmed\n" ) <( cat {input.counts} ) > {output.combined_counts}
         rm {input.counts}
         """
-
-def isa_archive_exists():
-    return config["isa_archive"] and os.path.isfile(config["isa_archive"])
-
-if isa_archive_exists():
-    rule save_metadata_with_isa:
-        """ this rule copies the metadata files used for Approach 1 / for OSD runs into output folder"""
-        input:
-            config_file = "config.yaml",
-            sample_file = sample_IDs_file,
-            runsheet = config["runsheet"],
-        output:
-            config_out = config["metadata_out_dir"] + "config.yaml",
-            sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-            runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"]),
-            isa_archive_out = config["metadata_out_dir"] + os.path.basename(config["isa_archive"])
-        shell:
-            """
-            cp {input.config_file} {output.config_out}
-            cp {input.sample_file} {output.sample_out}
-            cp {input.runsheet} {output.runsheet_out}
-            cp {input.runsheet} {output.isa_archive_out}
-            """
-else:
-    rule save_metadata_without_isa:
-        """ this rule copies the metadata files used for Approach 1 / for runsheetPath runs  (all but ISA) into output folder"""
-        input:
-            config_file = "config.yaml",
-            sample_file = sample_IDs_file,
-            runsheet = config["runsheet"],
-        output:
-            config_out = config["metadata_out_dir"] + "config.yaml",
-            sample_out = config["metadata_out_dir"] + os.path.basename(sample_IDs_file),
-            runsheet_out = config["metadata_out_dir"] + os.path.basename(config["runsheet"])
-        shell:
-            """
-            cp {input.config_file} {output.config_out}
-            cp {input.sample_file} {output.sample_out}
-            cp {input.runsheet} {output.runsheet_out}
-            """
 
 
 rule clean_all:

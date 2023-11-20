@@ -104,9 +104,15 @@ def convert_isa_to_runsheet(accession_number, isa_zip):
             print("An error occurred while converting ISA archive to runsheet.", file=sys.stderr)
             sys.exit(1)
 
-# Use target to select a runsheet if more than 1 were created, else just return the single runsheet
-def handle_runsheet_selection(runsheet_files, target=None):
+
+def handle_runsheet_selection(runsheet_files, target=None, specified_runsheet=None):
     selected_runsheet = None
+
+    # Use the specified runsheet if provided
+    if specified_runsheet and specified_runsheet in runsheet_files:
+        selected_runsheet = specified_runsheet
+        print(f"Using specified runsheet: {selected_runsheet}")
+        return selected_runsheet
 
     if len(runsheet_files) == 1:
         # Automatically use the single runsheet file
@@ -120,7 +126,7 @@ def handle_runsheet_selection(runsheet_files, target=None):
                 try:
                     runsheet_df = pd.read_csv(runsheet)
                     target_region = runsheet_df['Parameter Value[Library Selection]'].unique()[0]
-                    if target_region == target:
+                    if target.lower() in target_region.lower():
                         matching_runsheets.append(runsheet)
                 except Exception as e:
                     print(f"Error reading {runsheet}: {e}")
@@ -130,78 +136,33 @@ def handle_runsheet_selection(runsheet_files, target=None):
                 selected_runsheet = matching_runsheets[0]
                 print(f"Using runsheet: {selected_runsheet}")
 
-            else:
-                # Either no matching runsheets or multiple matching runsheets found
-                print("This OSD dataset contains multiple assays for the indicated amplicon. This situation is not handled in the current workflow version. To process this dataset using the workflow, please use approach 2 and set up a manual runsheet containing the information from the metadata on OSDR, and point to the raw reads links for the specific assay you want to process.")
+            elif len(matching_runsheets) > 1:
+                # Multiple matching runsheets found
+                print("The study contains multiple assays with the same target. Please specify one of the following runsheet names as a parameter for the --specify-runsheet argument:")
+                for rs in matching_runsheets:
+                    print(rs)
                 return None
+
+            else:
+                # No matching runsheets found
+                print("No runsheet matches the specified genomic target. Please check the target or specify a runsheet using --specify-runsheet.")
+                return None
+
         else:
-            # If no target specified and multiple runsheets are available
+            # No target specified and multiple runsheets are available
             print("Multiple runsheets found but no genomic target specified. Cannot proceed. Use -t {16S, 18S, ITS} or --target {16S, 18S, ITS} to specify which assay/dataset to use.")
             return None
 
-    # Identify unselected runsheet files
-    unselected_runsheets = [file for file in runsheet_files if file != selected_runsheet]
-
-    # Remove unselected runsheet files
-    for file in unselected_runsheets:
-        try:
-            os.remove(file)
-        except Exception as e:
-            pass
+    # Remove unselected runsheet files if a runsheet was selected
+    if selected_runsheet:
+        unselected_runsheets = [file for file in runsheet_files if file != selected_runsheet]
+        for file in unselected_runsheets:
+            try:
+                os.remove(file)
+            except Exception as e:
+                pass
 
     return selected_runsheet
-
-
-
-
-
-        # Logic for prompting the user which runsheet to use
-        # Prompt the user to select a runsheet file
-        # print("Select a runsheet to use:")
-        # for idx, file in enumerate(runsheet_files, start=1):
-        #     print(f"[{idx}] {file}")
-
-        # # Wait for user input and validate it
-        # while True:
-        #     try:
-        #         selection = int(input("Enter the number of the runsheet: "))
-        #         if 1 <= selection <= len(runsheet_files):
-        #             selected_runsheet = runsheet_files[selection - 1]
-        #             print(f"Selected {selected_runsheet}.")
-        #             return selected_runsheet
-        #         else:
-        #             print("Invalid selection. Please enter a number from the list.")
-        #     except ValueError:
-        #         print("Invalid input. Please enter a number.")
-
-
-# Neutral functions
-
-# Verify that the runsheet follows the schema
-# def validate_runsheet_schema(csv_file):
-#     schema = pa.DataFrameSchema({
-#         "Sample Name": pa.Column(str),
-#         "paired_end": pa.Column(bool),
-#         "read1_path": pa.Column(str),
-#         "read2_path": pa.Column(str, nullable=True),  # Optional if paired_end is False
-#         "F_Primer": pa.Column(str),
-#         "R_Primer": pa.Column(str, nullable=True),  # Optional if paired_end is False
-#         "raw_R1_suffix": pa.Column(str),
-#         "raw_R2_suffix": pa.Column(str, nullable=True),  # Optional if paired_end is False
-#         "groups": pa.Column(str)
-#     })
-
-#     # Load CSV file into a pandas DataFrame
-#     df = pd.read_csv(csv_file)
-
-#     # Validate DataFrame against the schema
-#     try:
-#         validated_df = schema.validate(df)
-#         print(f"CSV file '{csv_file}' successfully validated.")
-#         return validated_df
-#     except pa.errors.SchemaError as e:
-#         print(f"Schema validation error: {e}", file=sys.stderr)
-#         return None
 
 def check_runsheet_read_paths(runsheet_df):
     # Check if a string is a URL / genelab URL
@@ -298,7 +259,23 @@ def reverse_complement(seq):
                   'D': 'H', 'H': 'D', 'N': 'N'}
     return ''.join(complement.get(base, base) for base in reversed(seq))
 
-def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir):
+def create_config_yaml(isa_zip,
+                       runsheet_file,
+                       runsheet_df,
+                       uses_urls,
+                       output_dir,
+                       min_trimmed_length,
+                       trim_primers,
+                       primers_linked,
+                       anchor_primers,
+                       discard_untrimmed,
+                       left_trunc,
+                       right_trunc,
+                       left_maxEE,
+                       right_maxEE,
+                       concatenate_reads_only,
+                       output_prefix):
+    
     # Extract necessary variables from runsheet_df
     data_type = "PE" if runsheet_df['paired_end'].eq(True).all() else "SE"
     raw_R1_suffix = runsheet_df['raw_R1_suffix'].unique()[0]
@@ -317,17 +294,16 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
 
     # Other default values
     output_dir = os.path.abspath(output_dir) + '/'
-    trim_primers = "TRUE"
-    primers_linked = "TRUE"
+    primer_anchor = "^" if anchor_primers else ""
 
-    f_linked_primer = f"^{f_primer}...{reverse_complement(r_primer)}"
-    r_linked_primer = f"^{r_primer}...{reverse_complement(f_primer)}"
+    f_linked_primer = f"{primer_anchor}{f_primer}...{reverse_complement(r_primer)}"
+    r_linked_primer = f"{primer_anchor}{r_primer}...{reverse_complement(f_primer)}"
 
     # Make output_dir if it doesn't exist 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    metadata_out_dir = os.path.join(output_dir, "Processing_Info") + os.sep
+    info_out_dir = os.path.join(output_dir, "Processing_Info") + os.sep
     fastqc_out_dir = os.path.join(output_dir, "FastQC_Outputs") + os.sep
     trimmed_reads_dir = os.path.join(output_dir, "Trimmed_Sequence_Data") + os.sep
     filtered_reads_dir = os.path.join(output_dir, "Filtered_Sequence_Data") + os.sep
@@ -374,8 +350,8 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
         file.write(f"trim_primers:\n    \"{trim_primers}\"\n\n")
 
         file.write("## primer sequences if we are trimming them (include anchoring symbols, e.g. '^', as needed, see: https://cutadapt.readthedocs.io/en/stable/guide.html#adapter-types)\n")
-        file.write(f"F_primer:\n    \"^{f_primer}\"\n")
-        file.write(f"R_primer:\n    \"^{r_primer}\"\n\n")
+        file.write(f"F_primer:\n    \"{primer_anchor}{f_primer}\"\n")
+        file.write(f"R_primer:\n    \"{primer_anchor}{r_primer}\"\n\n")
 
         # For linked primers
         file.write("## should cutadapt treat these as linked primers? (https://cutadapt.readthedocs.io/en/stable/recipes.html#trimming-amplicon-primers-from-paired-end-reads)\n")
@@ -387,7 +363,7 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
         file.write(f"R_linked_primer:\n    \"{r_linked_primer}\"\n\n")
 
         file.write("## discard untrimmed, sets the \"--discard-untrimmed\" option if TRUE\n")
-        file.write("discard_untrimmed:\n    \"TRUE\"\n\n")
+        file.write(f"discard_untrimmed:\n    \"{discard_untrimmed}\"\n\n")
 
         file.write("## target region (16S, 18S, or ITS is acceptable)\n")
         file.write("  # this determines which reference database is used for taxonomic classification\n")
@@ -402,13 +378,12 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
         file.write("  # note that 16S and 18S should have been separated already prior to running this workflow\n")
         file.write("  # this should likely be left as FALSE for any option other than \"18S\" above\n\n")
 
-        file.write("concatenate_reads_only:\n    \"FALSE\"\n\n")
-
-        file.write("## values to be passed to dada2's filterAndTrim() function:\n")
-        file.write("left_trunc:\n    0\n")
-        file.write("right_trunc:\n    0\n")
-        file.write("left_maxEE:\n    1\n")
-        file.write("right_maxEE:\n    1\n\n")
+        file.write(f"concatenate_reads_only:\n    \"{concatenate_reads_only}\"\n\n")
+        file.write(f"## values to be passed to dada2's filterAndTrim() function:\n")
+        file.write(f"left_trunc:\n    {left_trunc}\n")
+        file.write(f"right_trunc:\n    {right_trunc}\n")
+        file.write(f"left_maxEE:\n    {left_maxEE}\n")
+        file.write(f"right_maxEE:\n    {right_maxEE}\n\n")
 
         file.write("## minimum length threshold for cutadapt\n")
         file.write(f"min_cutadapt_len:\n    {min_trimmed_length}\n\n")
@@ -425,10 +400,10 @@ def create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, 
         file.write("filtered_R2_suffix:\n    \"_R2_filtered.fastq.gz\"\n\n")
 
         file.write("## output prefix (if needed to distinguish from multiple primer sets, leave as empty string if not, include connecting symbol if adding, e.g. \"ITS-\")\n")
-        file.write("output_prefix:\n    \"\"\n\n")
+        file.write(f"output_prefix:\n    \"{output_prefix}\"\n\n")
 
         file.write("## output directories (all relative to processing directory, they will be created if needed)\n")
-        file.write(f"metadata_out_dir:\n    \"{metadata_out_dir}\"\n")
+        file.write(f"info_out_dir:\n    \"{info_out_dir}\"\n")
         file.write(f"fastqc_out_dir:\n    \"{fastqc_out_dir}\"\n")
         file.write(f"trimmed_reads_dir:\n    \"{trimmed_reads_dir}\"\n")
         file.write(f"filtered_reads_dir:\n    \"{filtered_reads_dir}\"\n")
@@ -466,36 +441,100 @@ def main():
                         help='Set up the Snakemake workflow for a GeneLab OSD dataset and pull necessary read files and metadata. Acceptable formats: ###, OSD-###, GLDS-###',
                         type=str)
     
+    parser.add_argument('-t', '--target',
+                        choices=['16S', '18S', 'ITS'],
+                        help='Specify the genomic target for the assay. Options: 16S, 18S, ITS. This is used to select the appropriate dataset from an OSD study when multiple options are available.',
+                        type=str)
+    
     parser.add_argument('-r', '--runsheetPath',
                         metavar='/path/to/runsheet.csv',
                         help='Set up the Snakemake workflow using a specified runsheet file.',
                         type=str)
-    
-    parser.add_argument('-m', '--min_trimmed_length',
-                        metavar='length',
-                        default=130,  # Default value
-                        help='Minimum length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130',
-                        type=int)
-    
-    parser.add_argument('-t', '--target',
-                        metavar='target',
-                        choices=['16S', '18S', 'ITS'],
-                        help='Specify the genomic target for the assay. Options: 16S, 18S, ITS. This is used to select the appropriate dataset from an OSD study when multiple options are available.',
-                        type=str)
 
-    parser.add_argument('-d', '--outputDir',
-                        metavar='dir',
-                        default='./workflow_output/',  # Default value
-                        help='Specify the output directory for the workflow. This argument is only used if -o or -r is specified. Default: ./workflow_output/',
-                        type=str)
-    
     parser.add_argument('-x', '--run',
                         metavar='command',
                         nargs='?',
                         const="snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p",
                         type=str,
-                        help='Execute the Snakemake workflow. Optionally provide a custom Snakemake command. Default: "snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p"')
+                        help='Specifies the command used to execute the snakemake workflow; Default: "snakemake --use-conda --conda-prefix ${CONDA_PREFIX}/envs -j 2 -p"')
 
+    parser.add_argument('-d', '--outputDir',
+                        metavar='/path/to/outputDir/',
+                        default='./workflow_output/',  # Default value
+                        help='Specifies the output directory for the output files generated by the workflow. Default: ./workflow_output/',
+                        type=str)
+    
+    parser.add_argument('--specify-runsheet',
+                        help='Specifies the runsheet for an OSD dataset by name. Only used if there are multiple datasets with the same target in the study.',
+                        metavar='runsheet_name',
+                        type=str)
+    
+    parser.add_argument('--trim-primers',
+                        choices=['TRUE', 'FALSE'],
+                        default='TRUE',
+                        help='Specifies to trim primers (TRUE) or not (FALSE). Default: TRUE',
+                        type=str)
+
+    parser.add_argument('-m', '--min_trimmed_length',
+                        metavar='length',
+                        default=130,  # Default value
+                        help='Specifies the MINIMUM length of trimmed reads. For paired-end data: if one read gets filtered, both reads are discarded. Default: 130',
+                        type=int)
+    
+    parser.add_argument('--primers-linked',
+                        choices=['TRUE', 'FALSE'],
+                        default='TRUE',
+                        help='If set to TRUE, instructs cutadapt to treat the primers as linked. Default: TRUE',
+                        type=str)
+
+    parser.add_argument('--anchor-primers',
+                        choices=['TRUE', 'FALSE'],
+                        default='TRUE',
+                        help='Indicates if primers should be anchored (TRUE) or not (FALSE). Default: TRUE',
+                        type=str)
+
+    parser.add_argument('--discard-untrimmed',
+                        choices=['TRUE', 'FALSE'],
+                        default='TRUE',
+                        help='If set to TRUE, instructs cutadapt to remove reads if the primers were not found in the expected location; if FALSE, these reads are kept. Default: TRUE',
+                        type=str)
+
+    parser.add_argument('--left-trunc',
+                        default=0,
+                        help='Specifies the length of the forwards reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)',
+                        metavar='length',
+                        type=int)
+
+    parser.add_argument('--right-trunc',
+                        default=0,
+                        help='Specifies the length of the reverse reads, bases beyond this length will be truncated and reads shorter than this length are discarded. Default: 0 (no truncation)',
+                        metavar='length',
+                        type=int)
+
+    parser.add_argument('--left-maxEE',
+                        default=1,
+                        help='Specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1',
+                        metavar='max_error',
+                        type=int)
+
+    parser.add_argument('--right-maxEE',
+                        default=1,
+                        help='Specifies the maximum expected error (maxEE) allowed for each forward read, reads with higher than maxEE will be discarded. Default: 1',
+                        metavar='max_error',
+                        type=int)
+
+    parser.add_argument('--concatenate_reads_only',
+                        choices=['TRUE', 'FALSE'],
+                        default='FALSE',
+                        help='If set to TRUE, specifies to concatenate forward and reverse reads only with dada2 instead of merging paired reads. Default: FALSE',
+                        type=str)
+
+    parser.add_argument('--output-prefix',
+                        default='',
+                        help='Specifies the prefix to use on all output files to distinguish multiple primer sets, leave as an empty string if only one primer set is being processed. Default: ""',
+                        metavar='prefix',
+                        type=str)
+    
     # Check if no arguments were provided
     if len(sys.argv) == 1:
         parser.print_help()
@@ -519,7 +558,7 @@ def main():
         if isa_zip:
             runsheet_files = convert_isa_to_runsheet(accession_number, isa_zip)
             if runsheet_files:
-                runsheet_file = handle_runsheet_selection(runsheet_files, target)
+                runsheet_file = handle_runsheet_selection(runsheet_files, target, args.specify_runsheet)
                 if runsheet_file is None:
                     sys.exit()
             else:
@@ -549,7 +588,24 @@ def main():
                     sample_IDs_from_local(runsheet_df, output_file='unique-sample-IDs.txt')
 
                 # Create the config.yaml file
-                create_config_yaml(isa_zip, runsheet_file, runsheet_df, min_trimmed_length, uses_urls, output_dir)
+                create_config_yaml(isa_zip=isa_zip,  
+                                    runsheet_file=runsheet_file, 
+                                    runsheet_df=runsheet_df, 
+                                    uses_urls=uses_urls,
+                                    output_dir=output_dir,
+                                    min_trimmed_length=args.min_trimmed_length,
+                                    trim_primers=args.trim_primers,
+                                    primers_linked=args.primers_linked,
+                                    anchor_primers=args.anchor_primers,
+                                    discard_untrimmed=args.discard_untrimmed,
+                                    left_trunc=args.left_trunc,
+                                    right_trunc=args.right_trunc,
+                                    left_maxEE=args.left_maxEE,
+                                    right_maxEE=args.right_maxEE,
+                                    concatenate_reads_only=args.concatenate_reads_only,
+                                    output_prefix=args.output_prefix
+                )
+                
                 print("Snakemake workflow setup is complete.")
             else:
                 print("Failed to validate the runsheet file.", file=sys.stderr)
@@ -564,28 +620,28 @@ def main():
         print(f"Running Snakemake command: {snakemake_command}")
         subprocess.run(snakemake_command, shell=True, check=True)
     
-        # Remove sample ID file
-        with open('config.yaml', 'r') as file:
-            config_data = yaml.safe_load(file)
-            sample_info_file = config_data.get('sample_info_file', '')  # Default to empty string if not found
+        # # Remove sample ID file
+        # with open('config.yaml', 'r') as file:
+        #     config_data = yaml.safe_load(file)
+        #     sample_info_file = config_data.get('sample_info_file', '')  # Default to empty string if not found
 
-        if sample_info_file and os.path.exists(sample_info_file):
-            os.remove(sample_info_file)
+        # if sample_info_file and os.path.exists(sample_info_file):
+        #     os.remove(sample_info_file)
         
-        if isa_zip:
-            try:
-                os.remove(isa_zip)
-            except FileNotFoundError:
-                pass  # Ignore file not found error silently
-            except Exception:
-                pass 
-        # Remove all files if OSD run
-        if args.OSD:
-            os.remove(runsheet_file)  # Assuming runsheet_file is a variable holding the file name
-            os.remove("config.yaml")  # Ensure this is the correct file name
+        # if isa_zip:
+        #     try:
+        #         os.remove(isa_zip)
+        #     except FileNotFoundError:
+        #         pass  # Ignore file not found error silently
+        #     except Exception:
+        #         pass 
+        # # Remove all files if OSD run
+        # if args.OSD:
+        #     os.remove(runsheet_file)  # Assuming runsheet_file is a variable holding the file name
+        #     os.remove("config.yaml")  # Ensure this is the correct file name
 
-        if args.runsheetPath:
-            os.remove("config.yaml")  # Ensure this is the correct file name
+        # if args.runsheetPath:
+        #     os.remove("config.yaml")  # Ensure this is the correct file name
 
 
 
