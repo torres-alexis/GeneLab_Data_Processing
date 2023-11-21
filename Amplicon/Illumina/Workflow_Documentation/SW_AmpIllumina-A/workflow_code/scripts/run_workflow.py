@@ -294,7 +294,7 @@ def create_config_yaml(isa_zip,
 
     # Other default values
     output_dir = os.path.abspath(output_dir) + '/'
-    primer_anchor = "^" if anchor_primers else ""
+    primer_anchor = "^" if anchor_primers is True else ""
 
     f_linked_primer = f"{primer_anchor}{f_primer}...{reverse_complement(r_primer)}"
     r_linked_primer = f"{primer_anchor}{r_primer}...{reverse_complement(f_primer)}"
