@@ -113,7 +113,7 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
 * `--target` - specifies the genomic target for the assay. Options: 16S, 18S, ITS. This determines which reference database is used for taxonomic classification, and it is used to select the appropriate dataset from an OSD study when multiple options are available.
 
 * `--runsheetPath` - specifies the path to a local runsheet containing the metadata and raw reads location (as a link or local path), used for processing a non-OSD dataset through the SW_AmpIllumina workflow 
-   > *Optionally used for Approach 2 only, the form can be used instead of providing a runsheet on the NMDC EDGE platform.*
+   > *Optionally used for Approach 2 only, the form can be used instead of providing a runsheet on the NASA EDGE platform.*
 
 * `--run` - specifies the command used to execute the snakemake workflow; snakemake-specific parameters are defined below
 
@@ -130,7 +130,7 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
    > *Note: See [cutadapt documentation here](https://cutadapt.readthedocs.io/en/stable/recipes.html#trimming-amplicon-primers-from-paired-end-reads) for more info.*
 
 * `--anchor-primers TRUE/FALSE` - indicates if primers should be anchored (TRUE) or not (FALSE) when provided to cutadapt. Default: TRUE
-   > *Note: See cutadapt documention here](https://cutadapt.readthedocs.io/en/stable/guide.html#anchored-5adapters) for more info.*
+   > *Note: See [cutadapt documention here](https://cutadapt.readthedocs.io/en/stable/guide.html#anchored-5adapters) for more info.*
 
 * `--discard-untrimmed TRUE/FALSE` - if set to TRUE, instructs cutadapt to remove reads if the primers were not found in the expected location; if set to FALSE, these reads are kept. Default: TRUE
 
@@ -148,7 +148,10 @@ python ./scripts/run_workflow.py --runsheetPath </path/to/runsheet> --run "snake
 
 * `--concatenate_reads_only TRUE/FALSE` - if set to TRUE, specifies to concatenate forward and reverse reads only with dada2 instead of merging paired reads. Default: FALSE
 
-* `--output-prefix ""` - specifies the prefix to use on all output files to distinguish multiple primer sets, leave as an empty string if only one primer set is being processed (if used, be sure to include a connecting symbol, e.g. "ITS-"). Default: "" 
+* `--output-prefix ""` - specifies the prefix to use on all output files to distinguish multiple primer sets, leave as an empty string if only one primer set is being processed (if used, be sure to include a connecting symbol, e.g. "ITS-"). Default: ""
+
+* `--specify-runsheet` - specifies the runsheet to use when multiple runsheets are generated.
+   > *Optional argument used in Approach 1 for datasets that have multiple assays for the same amplicon target (e.g. [OSD-249](https://osdr.nasa.gov/bio/repo/data/studies/OSD-249)).*
 
 
 **Parameter Definitions for `snakemake`**
