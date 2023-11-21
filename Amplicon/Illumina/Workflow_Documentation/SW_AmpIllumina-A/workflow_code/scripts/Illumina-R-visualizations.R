@@ -30,9 +30,6 @@ taxonomy <- paste0(args[4])
 final_outputs_dir <- paste0(args[5])
 output_prefix <- paste0(args[6])
 
-if length(output_prefix) > 0 {
-  output_prefix <- paste0(output_prefix, "_")
-}
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
 # Runsheet read1 suffix column name
@@ -272,7 +269,7 @@ legend_colors <- unique(sample_info_tab$color)
 num_unique_groups <- length(legend_groups)
 legend_cex <- ifelse(num_unique_groups > 5, 1 / (num_unique_groups / 5), 1)
 
-png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
+png(file.path(dendrogram_out_dir, paste0(output_prefix, "dendrogram_by_group", ".png")),
     width = width_in_pixels,
     height = height_in_pixels,
     res = dpi)

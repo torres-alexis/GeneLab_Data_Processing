@@ -22,8 +22,8 @@ def main(config, sample_IDs_file):
         ("config.yaml", info_out_dir + "config.yaml"),
         (sample_IDs_file, info_out_dir + os.path.basename(sample_IDs_file)),
         (config["runsheet"], info_out_dir + os.path.basename(config["runsheet"])),
-        #("R-processing.log", info_out_dir + "R-processing.log"),
-        #("R-visualizations.log", info_out_dir + "R-visualizations.log"),
+        ("R-processing.log", info_out_dir + "R-processing.log"),
+        ("R-visualizations.log", info_out_dir + "R-visualizations.log"),
         ("all-benchmarks.tsv", os.path.join(info_out_dir, "all-benchmarks.tsv")),
         ("Snakefile", os.path.join(info_out_dir,"Snakefile"))
     ]

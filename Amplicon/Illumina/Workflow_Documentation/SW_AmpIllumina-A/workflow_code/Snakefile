@@ -631,13 +631,14 @@ rule r_visualizations:
         complete = config["plots_dir"] + "visualizations_complete.flag"
     params:
         plots_dir = config["plots_dir"],
+        output_prefix = config["output_prefix"]
     log:
         "R-visualizations.log"
     benchmark:
         "benchmarks/r-visualizations-benchmarks.tsv"
     shell:
         """
-        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.plots_dir}" > {log} 2>&1
+        Rscript scripts/Illumina-R-visualizations.R "{input.runsheet}" "{input.sample_info}" "{input.counts}" "{input.taxonomy}" "{params.plots_dir}" "{params.output_prefix}"  > {log} 2>&1
         touch {output.complete}
         """
 
