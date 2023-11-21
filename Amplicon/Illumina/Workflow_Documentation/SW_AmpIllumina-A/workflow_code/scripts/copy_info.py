@@ -24,7 +24,7 @@ def main(config, sample_IDs_file):
         (config["runsheet"], info_out_dir + os.path.basename(config["runsheet"])),
         #("R-processing.log", info_out_dir + "R-processing.log"),
         #("R-visualizations.log", info_out_dir + "R-visualizations.log"),
-        ("all-benchmarks.tsv", os.path.join(info_out_dir, "benchmarks", "all-benchmarks.tsv")),
+        ("all-benchmarks.tsv", os.path.join(info_out_dir, "all-benchmarks.tsv")),
         ("Snakefile", os.path.join(info_out_dir,"Snakefile"))
     ]
     # Optional ISA archive
