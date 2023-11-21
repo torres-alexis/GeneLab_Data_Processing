@@ -243,13 +243,29 @@ def handle_url_downloads(runsheet_df, output_file='unique-sample-IDs.txt'):
     if skipped_downloads_count > 0:
         print(f"{skipped_downloads_count} read file(s) were already present and were not downloaded.")
 
-def download_url_to_file(url, file_path):
-    response = requests.get(url, stream=True)
-    if response.status_code == 200:
-        with open(file_path, 'wb') as file:
-            shutil.copyfileobj(response.raw, file)
-    else:
-        print(f"Failed to download file from {url}")
+def download_url_to_file(url, file_path, max_retries=3, timeout_seconds=120):
+    retries = 0
+    success = False
+
+    while retries < max_retries and not success:
+        try:
+            response = requests.get(url, stream=True, timeout=timeout_seconds)
+            response.raise_for_status()  # Raises an HTTPError for bad status codes
+
+            with open(file_path, 'wb') as file:
+                shutil.copyfileobj(response.raw, file)
+            success = True
+
+        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            retries += 1
+            print(f"Attempt {retries}: Error occurred: {e}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"An unexpected error occurred: {e}")
+            break
+
+    if not success:
+        print("Failed to download the read files.")
 
 
 def reverse_complement(seq):
