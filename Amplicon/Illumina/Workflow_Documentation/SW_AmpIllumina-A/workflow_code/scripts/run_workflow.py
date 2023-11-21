@@ -294,7 +294,7 @@ def create_config_yaml(isa_zip,
 
     # Other default values
     output_dir = os.path.abspath(output_dir) + '/'
-    primer_anchor = "^" if anchor_primers else ""
+    primer_anchor = "^" if anchor_primers is True else ""
 
     f_linked_primer = f"{primer_anchor}{f_primer}...{reverse_complement(r_primer)}"
     r_linked_primer = f"{primer_anchor}{r_primer}...{reverse_complement(f_primer)}"
@@ -303,7 +303,7 @@ def create_config_yaml(isa_zip,
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    info_out_dir = os.path.join(output_dir, "Processing_Info") + os.sep
+    info_out_dir = os.path.join(output_dir, output_prefix + "Processing_Info") + os.sep
     fastqc_out_dir = os.path.join(output_dir, "FastQC_Outputs") + os.sep
     trimmed_reads_dir = os.path.join(output_dir, "Trimmed_Sequence_Data") + os.sep
     filtered_reads_dir = os.path.join(output_dir, "Filtered_Sequence_Data") + os.sep

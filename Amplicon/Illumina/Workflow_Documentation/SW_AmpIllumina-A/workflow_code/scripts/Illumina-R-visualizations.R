@@ -28,6 +28,7 @@ sample_info <- paste0(args[2])
 counts <- paste0(args[3])
 taxonomy <- paste0(args[4])
 final_outputs_dir <- paste0(args[5])
+output_prefix <- paste0(args[6])
 
 # Runsheet read1 path/filename column name
 read1_path_colname <- 'read1_path'
@@ -268,7 +269,7 @@ legend_colors <- unique(sample_info_tab$color)
 num_unique_groups <- length(legend_groups)
 legend_cex <- ifelse(num_unique_groups > 5, 1 / (num_unique_groups / 5), 1)
 
-png(file.path(dendrogram_out_dir, paste0("dendrogram_by_group", ".png")),
+png(file.path(dendrogram_out_dir, paste0(output_prefix, "dendrogram_by_group", ".png")),
     width = width_in_pixels,
     height = height_in_pixels,
     res = dpi)
@@ -324,7 +325,7 @@ ordination_plot_u <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
                      legend.title.align = 0.5) +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
-ggsave(filename=paste0(pcoa_out_dir, "PCoA_without_labels", ".png"), plot=ordination_plot_u, width = 11.1, height = 8.33, dpi = 300)
+ggsave(filename=paste0(pcoa_out_dir, output_prefix, "PCoA_without_labels", ".png"), plot=ordination_plot_u, width = 11.1, height = 8.33, dpi = 300)
 # Save labeled PCoA plot
 ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") + 
   geom_point(size = 1) + 
@@ -344,7 +345,7 @@ ordination_plot <- plot_ordination(vst_physeq, vst_pcoa, color = "groups") +
                      legend.title.align = 0.5) +
   annotate("text", x = Inf, y = -Inf, label = paste("R2:", toString(round(r2_value, 3))), hjust = 1.1, vjust = -2, size = 4)+
   annotate("text", x = Inf, y = -Inf, label = paste("Pr(>F)", toString(round(prf_value,4))), hjust = 1.1, vjust = -0.5, size = 4)+ ggtitle("PCoA")
-ggsave(filename=paste0(pcoa_out_dir, "PCoA_w_labels", ".png"), plot=ordination_plot, width = 11.1, height = 8.33, dpi = 300)
+ggsave(filename=paste0(pcoa_out_dir, output_prefix, "PCoA_w_labels", ".png"), plot=ordination_plot, width = 11.1, height = 8.33, dpi = 300)
 ########################
 
 #4. Alpha diversity
@@ -374,7 +375,7 @@ rareplot <- ggplot(p, aes(x = Sample, y = Species, group = Site, color = groups)
         panel.grid.minor = element_blank(),
         plot.margin = margin(t = 10, r = 20, b = 10, l = 10, unit = "pt")) +
   guides(color = guide_legend(title = "Groups"))
-ggsave(filename = paste0(rarefaction_out_dir, "rarefaction.png"), plot=rareplot, width = 8.33, height = 8.33, dpi = 300)
+ggsave(filename = paste0(rarefaction_out_dir, output_prefix, "rarefaction.png"), plot=rareplot, width = 8.33, height = 8.33, dpi = 300)
 
 # 4b. Richness and diversity estimates
 
@@ -419,7 +420,7 @@ richness_plot <- plot_richness(ASV_physeq, color = "groups", measures = c("Chao1
                                vjust = 0.5,  # Vertically center the text
                                hjust = 1)
   )
-ggsave(paste0(richness_out_dir, "richness_by_sample", ".png"), plot=richness_plot, width = 11.1, height = 8.33, dpi = 300)
+ggsave(paste0(richness_out_dir, output_prefix, "richness_by_sample", ".png"), plot=richness_plot, width = 11.1, height = 8.33, dpi = 300)
 
 richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", measures = c("Chao1", "Shannon")) +
   scale_color_manual(values = unique(sample_info_tab[[color_colname]][order(sample_info_tab[[groups_colname]])]),
@@ -436,13 +437,13 @@ richness_by_group <- plot_richness(ASV_physeq, x = "groups", color = "groups", m
     legend.title.align = 0.5,
     legend.title = element_blank()
   ) 
-ggsave(filename = paste0(richness_out_dir, "richness_by_group", ".png"), plot=richness_by_group, width = 11.1, height = 8.33, dpi = 300)
+ggsave(filename = paste0(richness_out_dir, output_prefix, "richness_by_group", ".png"), plot=richness_by_group, width = 11.1, height = 8.33, dpi = 300)
 
 # Extract legend from unlabeled pca plot, also save it as its own plot
 legend <- g_legend(ordination_plot)
 grid.newpage()
 grid.draw(legend)
-legend_filename <- paste0(final_outputs_dir, "color_legend.png")
+legend_filename <- paste0(final_outputs_dir, output_prefix, "color_legend.png")
 increment <- ifelse(length(unique(sample_info_tab$groups)) > 9, ceiling((length(unique(sample_info_tab$groups)) - 9) / 3), 0)
 legend_height <- 3 + increment
 ggsave(legend_filename, plot = legend, device = "png", width = 11.1, height = legend_height, dpi = 300)
@@ -484,7 +485,7 @@ pushViewport(viewport(layout.pos.row = 2))
 grid.draw(legend)
 upViewport(0)
 grid_image <- grid.grab()
-ggsave(filename = paste0(taxonomy_out_dir, "relative_phyla", ".png"), grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
+ggsave(filename = paste0(taxonomy_out_dir, output_prefix, "relative_phyla", ".png"), grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
 
 relative_classes <- plot_bar(proportions_physeq, x = "short_groups", fill = "class") + 
   theme_bw() + theme(text = element_text(size = 9)) + labs(x = "Groups")
@@ -496,7 +497,7 @@ pushViewport(viewport(layout.pos.row = 2))
 grid.draw(legend)
 upViewport(0)
 grid_image <- grid.grab()
-ggsave(filename = paste0(taxonomy_out_dir, "relative_classes", ".png"), plot=grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
+ggsave(filename = paste0(taxonomy_out_dir, output_prefix, "relative_classes", ".png"), plot=grid_image, width = height_in_inches, height = taxonomy_plots_height, dpi = 500)
 
 
 # 6 Statistically testing for differences
@@ -528,7 +529,7 @@ deseq_modeled <- tryCatch({
 
 # save final differential abundance counts, individual group comparison results
 
-write.table(counts(deseq_modeled, normalized=TRUE), file = paste0(de_out_dir, "normalized_counts.tsv"), sep="\t", row.names=TRUE, quote=FALSE)
+write.table(counts(deseq_modeled, normalized=TRUE), file = paste0(de_out_dir, output_prefix, "normalized_counts.tsv"), sep="\t", row.names=TRUE, quote=FALSE)
 # make the volcanoplot
 plot_comparison <- function(group1, group2) {
   
@@ -559,7 +560,7 @@ plot_comparison <- function(group1, group2) {
     head(10)
   
   volcano_plot <- p + geom_text_repel(data=top_points, aes(label=row.names(top_points)), size=3)
-  ggsave(filename=paste0(volcano_out_dir,"volcano_",
+  ggsave(filename=paste0(volcano_out_dir, output_prefix, "volcano_",
                          gsub(" ", "_", group1),
                          "_vs_",
                          gsub(" ", "_", group2), ".png"),
@@ -567,7 +568,7 @@ plot_comparison <- function(group1, group2) {
          width = 11.1, height = 8.33, dpi = 300)
   
   write.csv(deseq_res, file = paste0(abundance_out_dir,
-                        gsub(" ", "_", group1),
+                        output_prefix, gsub(" ", "_", group1),
                         "_vs_",
                         gsub(" ", "_", group2), ".csv"))
 }
