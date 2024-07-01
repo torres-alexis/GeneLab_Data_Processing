@@ -103,7 +103,7 @@ process GENERATE_MD5SUMS {
   input:
     path(data_dir)
     path(runsheet)
-    path("dp_tools__NF_RCP")
+    path(dp_tools__NF_RCP)
 
   output:
     path("*md5sum*")
@@ -113,7 +113,7 @@ process GENERATE_MD5SUMS {
     """
     generate_md5sum_files.py  --root-path ${ data_dir } \\
                               --runsheet-path ${ runsheet } \\
-                              --plug-in-dir "dp_tools__NF_RCP"
+                              --plug-in-dir ${ dp_tools__NF_RCP }
     """
 }
 
@@ -173,7 +173,8 @@ def get_runsheet_paths(LinkedHashMap row) {
                      "drosophila_melanogaster":"FLY",
                      "caenorhabditis_elegans":"WORM",
                      "brachypodium_distachyon":"BRADI",
-                     "arabidopsis_thaliana":"ARABIDOPSIS"]
+                     "arabidopsis_thaliana":"ARABIDOPSIS",
+                     "bacillus_subtilis":"BACSU"]
 
     def PRIMARY_KEYS = ["mus_musculus":"ENSEMBL",
                         "danio_rerio":"ENSEMBL",
@@ -182,7 +183,8 @@ def get_runsheet_paths(LinkedHashMap row) {
                         "drosophila_melanogaster":"ENSEMBL",
                         "caenorhabditis_elegans":"ENSEMBL",
                         "brachypodium_distachyon":"ENSEMBL",
-                        "arabidopsis_thaliana":"TAIR"]
+                        "arabidopsis_thaliana":"TAIR",
+                        "bacillus_subtilis":"ENSEMBL"]
 
     def meta = [:]
     meta.id                         = row["Sample Name"]
