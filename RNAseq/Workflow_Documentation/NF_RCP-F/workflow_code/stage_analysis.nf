@@ -29,9 +29,9 @@ workflow staging{
     stageLocal
   main:
     sample_limit = params.limitSamplesTo ? params.limitSamplesTo : -1 // -1 in take means no limit
+          
     if (!params.runsheetPath) {
-      ch_osd_accession = Channel.from( params.osdAccession )
-    if (!params.runsheetPath) {
+    ch_osd_accession = Channel.from( params.osdAccession )
     RUNSHEET_FROM_GLDS(
       ch_osd_accession,
       ch_glds_accession,
