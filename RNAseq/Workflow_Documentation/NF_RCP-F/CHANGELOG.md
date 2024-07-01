@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
 ### Changed
 
+- Workflow now uses params.osdAccession in addition to gldsAccession (for UPDATE_ISA_TABLE)
 - Updated software aside from ERCC notebook, dp_tools, Singularity. 
   - FastQC 0.11.9 -> 0.12.1
   - MultiQC 1.12 -> 1.22.3

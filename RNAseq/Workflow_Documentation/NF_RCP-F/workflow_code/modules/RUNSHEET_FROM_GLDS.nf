@@ -6,22 +6,22 @@ process RUNSHEET_FROM_GLDS {
     mode: params.publish_dir_mode
 
   input:
-    // TEMP: RESTORE ONCE OSD SUPPORT ADDED val(osdAccession)
+    val(osdAccession)
     val(gldsAccession)
     path(dp_tools_plugin)
 
   output:
-    path("${ gldsAccession }_*_v?_runsheet.csv"), emit: runsheet
+    path("${ osdAccession }_*_v?_runsheet.csv"), emit: runsheet
     path("*.zip"), emit: isaArchive
 
   script:
     def injects = params.biomart_attribute ? "--inject biomart_attribute='${ params.biomart_attribute }'" : ''
     """
 
-    dpt-get-isa-archive --accession ${ gldsAccession }
+    dpt-get-isa-archive --accession ${ osdAccession }
     ls ${dp_tools_plugin}
 
-    dpt-isa-to-runsheet --accession ${ gldsAccession } \
+    dpt-isa-to-runsheet --accession ${ osdAccession } \
       --plugin-dir ${dp_tools_plugin} \
       --isa-archive *.zip ${ injects }
     """

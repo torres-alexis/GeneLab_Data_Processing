@@ -126,7 +126,7 @@ process UPDATE_ISA_TABLES {
   input:
     path(data_dir)
     path(runsheet)
-    path("dp_tools__NF_RCP")
+    path(dp_tools__NF_RCP)
 
   output:
     path("updated_curation_tables") // directory containing extended ISA tables
@@ -135,7 +135,10 @@ process UPDATE_ISA_TABLES {
     """
     update_curation_table.py  --root-path ${ data_dir } \\
                               --runsheet-path ${ runsheet } \\
-                              --plug-in-dir "dp_tools__NF_RCP"
+                              --plug-in-dir ${ dp_tools__NF_RCP }
+
+    # Update assay table with gldsAccession
+    sed -i 's/${ params.osdAccession }/${ params.gldsAccession }/g' updated_curation_tables/a*.txt
     """
 }
 
