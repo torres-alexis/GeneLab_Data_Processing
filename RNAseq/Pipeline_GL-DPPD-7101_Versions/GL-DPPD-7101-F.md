@@ -105,25 +105,25 @@ The DESeq2 Normalization and DGE step, [step 9](#9-normalize-read-counts-perform
 
 |Program|Version|Relevant Links|
 |:------|:------:|:-------------|
-|FastQC|0.11.9|[https://www.bioinformatics.babraham.ac.uk/projects/fastqc/](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)|
-|MultiQC|1.12|[https://multiqc.info/](https://multiqc.info/)|
-|Cutadapt|3.7|[https://cutadapt.readthedocs.io/en/stable/](https://cutadapt.readthedocs.io/en/stable/)|
-|TrimGalore!|0.6.7|[https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)|
-|STAR|2.7.10a|[https://github.com/alexdobin/STAR](https://github.com/alexdobin/STAR)|
-|RSEM|1.3.1|[https://github.com/deweylab/RSEM](https://github.com/deweylab/RSEM)|
-|Samtools|1.15|[http://www.htslib.org/](http://www.htslib.org/)|
+|FastQC|0.12.1|[https://www.bioinformatics.babraham.ac.uk/projects/fastqc/](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)|
+|MultiQC|1.22.3|[https://multiqc.info/](https://multiqc.info/)|
+|Cutadapt|4.9|[https://cutadapt.readthedocs.io/en/stable/](https://cutadapt.readthedocs.io/en/stable/)|
+|TrimGalore!|0.6.10|[https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)|
+|STAR|2.7.11b|[https://github.com/alexdobin/STAR](https://github.com/alexdobin/STAR)|
+|RSEM|1.3.3|[https://github.com/deweylab/RSEM](https://github.com/deweylab/RSEM)|
+|Samtools|1.20|[http://www.htslib.org/](http://www.htslib.org/)|
 |gtfToGenePred|377|[http://hgdownload.cse.ucsc.edu/admin/exe/](http://hgdownload.cse.ucsc.edu/admin/exe/)|
 |genePredToBed|377|[http://hgdownload.cse.ucsc.edu/admin/exe/](http://hgdownload.cse.ucsc.edu/admin/exe/)|
-|infer_experiment|4.0.0|[http://rseqc.sourceforge.net/#infer-experiment-py](http://rseqc.sourceforge.net/#infer-experiment-py)|
-|geneBody_coverage|4.0.0|[http://rseqc.sourceforge.net/#genebody-coverage-py](http://rseqc.sourceforge.net/#genebody-coverage-py)|
-|inner_distance|4.0.0|[http://rseqc.sourceforge.net/#inner-distance-py](http://rseqc.sourceforge.net/#inner-distance-py)|
-|read_distribution|4.0.0|[http://rseqc.sourceforge.net/#read-distribution-py](http://rseqc.sourceforge.net/#read-distribution-py)|
-|R|4.1.3|[https://www.r-project.org/](https://www.r-project.org/)|
-|Bioconductor|3.14.0|[https://bioconductor.org](https://bioconductor.org)|
-|DESeq2|1.34|[https://bioconductor.org/packages/release/bioc/html/DESeq2.html](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)|
-|tximport|1.27.1|[https://github.com/mikelove/tximport](https://github.com/mikelove/tximport)|
-|tidyverse|1.3.1|[https://www.tidyverse.org](https://www.tidyverse.org)|
-|stringr|1.4.1|[https://github.com/tidyverse/stringr](https://github.com/tidyverse/stringr)|
+|infer_experiment|5.0.3|[http://rseqc.sourceforge.net/#infer-experiment-py](http://rseqc.sourceforge.net/#infer-experiment-py)|
+|geneBody_coverage|5.0.3|[http://rseqc.sourceforge.net/#genebody-coverage-py](http://rseqc.sourceforge.net/#genebody-coverage-py)|
+|inner_distance|5.0.3|[http://rseqc.sourceforge.net/#inner-distance-py](http://rseqc.sourceforge.net/#inner-distance-py)|
+|read_distribution|5.0.3|[http://rseqc.sourceforge.net/#read-distribution-py](http://rseqc.sourceforge.net/#read-distribution-py)|
+|R|4.4.0|[https://www.r-project.org/](https://www.r-project.org/)|
+|Bioconductor|3.19|[https://bioconductor.org](https://bioconductor.org)|
+|DESeq2|1.44.0|[https://bioconductor.org/packages/release/bioc/html/DESeq2.html](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)|
+|tximport|1.32.0|[https://github.com/mikelove/tximport](https://github.com/mikelove/tximport)|
+|tidyverse|2.0.0|[https://www.tidyverse.org](https://www.tidyverse.org)|
+|stringr|1.5.1|[https://github.com/tidyverse/stringr](https://github.com/tidyverse/stringr)|
 |dp_tools|1.18*, 1.3.4*|[https://github.com/J-81/dp_tools](https://github.com/J-81/dp_tools)|
 |pandas|1.5.0|[https://github.com/pandas-dev/pandas](https://github.com/pandas-dev/pandas)|
 |seaborn|0.12.0|[https://seaborn.pydata.org/](https://seaborn.pydata.org/)|
