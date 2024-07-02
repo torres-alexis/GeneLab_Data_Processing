@@ -16,6 +16,7 @@ params:
     DEBUG_MODE_ADD_DUMMY_COUNTS: FALSE
     work_dir: "." # NON_DPPD: should be set to launch directory 
     SUMMARY_FILE_PATH: "summary.txt"
+    cpus: 1
 ---
 
 ## Substeps {.tabset}
