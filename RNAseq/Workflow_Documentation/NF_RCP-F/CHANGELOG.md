@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated asssay table prefixes now use the GLDS number instead of the OSD number.
 ### Changed
 
+- Removed / Commented out ERCC-normalization DGE steps
 - Added parallel processing to DGE
 - Added support for bacillus subtilis
 - New parameter osdAccession is now required for processing OSD datasets

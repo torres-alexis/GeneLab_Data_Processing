@@ -278,8 +278,8 @@ process VV_DESEQ2_ANALYSIS {
     path("VV_INPUT/03-RSEM_Counts/*") // unzipped multiqc report
     path("VV_INPUT/04-DESeq2_NormCounts/*") // norm counts files
     path("VV_INPUT/05-DESeq2_DGE/*") // dge files
-    path("VV_INPUT/04-DESeq2_NormCounts/*") // ERCC norm counts files
-    path("VV_INPUT/05-DESeq2_DGE/ERCC_NormDGE/*") // ERCC dge files
+    // path("VV_INPUT/04-DESeq2_NormCounts/*") // ERCC norm counts files
+    // path("VV_INPUT/05-DESeq2_DGE/ERCC_NormDGE/*") // ERCC dge files
     path(dp_tools__NF_RCP)
 
   output:
@@ -297,9 +297,9 @@ process VV_DESEQ2_ANALYSIS {
     if ${ !params.skipVV } ; then
       dpt validation run ${dp_tools__NF_RCP} . Metadata/*_runsheet.csv \\
                           --data-asset-key-sets  \\
-                            'RSEM Output,DGE Output${ meta.has_ercc ? ",ERCC DGE Output" : ''}' \\
+                            'RSEM Output,DGE Output' \\
                           --run-components \\
-                            'DGE Metadata${ meta.has_ercc ? ",DGE Metadata ERCC" : '' },DGE Output${ meta.has_ercc ? ",DGE Output ERCC" : '' }' \\
+                            'DGE Metadata,DGE Output' \\
                           --max-flag-code ${ params.max_flag_code } \\
                           --output VV_log.tsv
     fi
@@ -309,6 +309,10 @@ process VV_DESEQ2_ANALYSIS {
     find . -empty -type d -delete
     """
 }
+                          // --data-asset-key-sets  \\
+                          //   'RSEM Output,DGE Output${ meta.has_ercc ? ",ERCC DGE Output" : ''}' \\
+                          // --run-components \\
+                          //   'DGE Metadata,DGE Output${ meta.has_ercc ? ",DGE Output ERCC" : '' }' \\
 
 process VV_CONCAT_FILTER {
   publishDir "${ params.outputDir }/${ params.gldsAccession }/VV_Logs",
