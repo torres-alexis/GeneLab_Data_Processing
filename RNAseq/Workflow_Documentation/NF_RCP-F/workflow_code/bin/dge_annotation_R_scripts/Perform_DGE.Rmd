@@ -268,18 +268,15 @@ dim(dds_1)
 ```
 
 ```{r ERCC-groupB-normalized-dge-analysis, include = (params$normalization == "ERCC-groupB"), eval = (params$normalization == "ERCC-groupB")}
-# Use parallel processing if more than one CPU is specified
-if (params$cpus > 1) {
-    BiocParallel::register(BiocParallel::MulticoreParam(workers = params$cpus))
-}
+
 
 # ERCC-based size factor estimation with error handling
 dds_1 <- tryCatch(
     expr = {
-        DESeq2::estimateSizeFactors(dds_1, controlGenes = ercc_rows_gpB, parallel = (params$cpus > 1))
+        DESeq2::estimateSizeFactors(dds_1, controlGenes = ercc_rows_gpB)
     },
     error = function(e) {
-        DESeq2::estimateSizeFactors(dds_1, type = "poscounts", controlGenes = ercc_rows_gpB, parallel = (params$cpus > 1))
+        DESeq2::estimateSizeFactors(dds_1, type = "poscounts", controlGenes = ercc_rows_gpB)
     }
 )
 
@@ -287,8 +284,8 @@ dds_1 <- tryCatch(
 dds_1 <- dds_1[-c(ercc_rows),]
 
 # Estimate dispersions and perform Wald test using parallel processing
-dds_1 <- DESeq2::estimateDispersions(dds_1, parallel = (params$cpus > 1))
-dds_1 <- DESeq2::nbinomWaldTest(dds_1, parallel = (params$cpus > 1))
+dds_1 <- DESeq2::estimateDispersions(dds_1)
+dds_1 <- DESeq2::nbinomWaldTest(dds_1,)
 ```
 
 ```{r default-normalized-dge-analysis, include = (params$normalization == "default"), eval = (params$normalization == "default")}
@@ -296,7 +293,7 @@ dds_1 <- DESeq2::nbinomWaldTest(dds_1, parallel = (params$cpus > 1))
 if (length(grep("ERCC-", rownames(dds))) != 0) {
     dds <- dds[-c(grep("ERCC-", rownames(dds))), ]
 }
-dds_1 <- DESeq(dds)
+dds_1 <- DESeq(dds, parallel = (params$cpus > 1))
 ```
 
 ```{r output-normalized-counts-related-files}
@@ -330,8 +327,8 @@ output_table_1 <- tibble::rownames_to_column(normCounts, var = params$primary_ke
 ##### Generate F statistic p-value (similar to ANOVA p-value) using DESeq2 likelihood ratio test (LRT) design #####
 
 print(sprintf("DEBUG: %s: Generating Likelihood Ratio Test Based Statistics", Sys.time()))
-dds_1_lrt <- DESeq(dds_1, test = "LRT", reduced = ~ 1)
-res_1_lrt <- results(dds_1_lrt)
+dds_1_lrt <- DESeq(dds_1, test = "LRT", reduced = ~ 1, parallel = (params$cpus > 1))
+res_1_lrt <- results(dds_1_lrt, parallel = (params$cpus > 1))
 ## Add F statistic p-value (similar to ANOVA p-value) column to the (non-ERCC) normalized counts table
 output_table_1$LRT.p.value <- res_1_lrt@listData$padj
 ```
@@ -339,7 +336,7 @@ output_table_1$LRT.p.value <- res_1_lrt@listData$padj
 ```{r wald-test-iteration}
 ## Iterate through Wald Tests to generate pairwise comparisons of all groups
 for (i in 1:dim(contrasts)[2]){
-    res_1 <- results(dds_1, contrast=c("condition",contrasts[1,i],contrasts[2,i]))
+    res_1 <- results(dds_1, contrast=c("condition",contrasts[1,i],contrasts[2,i]), parallel = (params$cpus > 1))
     res_1 <- as.data.frame(res_1@listData)[,c(2,4,5,6)]
     colnames(res_1)<-c(paste0("Log2fc_",colnames(contrasts)[i]),paste0("Stat_",colnames(contrasts)[i]),paste0("P.value_",colnames(contrasts)[i]),paste0("Adj.p.value_",colnames(contrasts)[i]))
     output_table_1<-cbind(output_table_1,res_1)
