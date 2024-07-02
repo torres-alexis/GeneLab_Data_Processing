@@ -2,6 +2,9 @@
  * Different Gene Expression Analysis Processes
  */
 process DGE_BY_DESEQ2 {
+  // Default CPU and memory settings
+  cpus 4
+  memory '4 GB'
 
   input:
     path("runsheet.csv")
@@ -9,7 +12,6 @@ process DGE_BY_DESEQ2 {
     val(meta)
     path(annotation_file)
     path("dge_annotation_R_scripts.zip")
-    val(cpus)
 
   output:
     tuple path("norm_counts_output/Normalized_Counts_GLbulkRNAseq.csv"),
@@ -50,7 +52,7 @@ process DGE_BY_DESEQ2 {
         --annotation_file_path ${annotation_file} \\
         --extended_table_output_prefix "dge_output/"\\
         --extended_table_output_suffix "_GLbulkRNAseq.csv" \\
-        --cpus ${cpus}  # Pass the cpus argument to the R script
+        --cpus ${task.cpus}
 
     if ${ meta.has_ercc ? 'true' : 'false'}
     then
@@ -65,7 +67,7 @@ process DGE_BY_DESEQ2 {
             --annotation_file_path ${annotation_file} \\
             --extended_table_output_prefix "dge_output_ercc/"\\
             --extended_table_output_suffix "_ERCCnorm_GLbulkRNAseq.csv" \\
-            --cpus ${cpus}  # Pass the cpus argument to the R script
+            --cpus ${task.cpus}
     fi
     # bump
     """
