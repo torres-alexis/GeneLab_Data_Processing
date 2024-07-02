@@ -51,6 +51,10 @@ parser <- add_option(parser, c("--extended_table_output_prefix"),
 parser <- add_option(parser, c("--extended_table_output_suffix"),
     help = "Visualization table output suffix",
 )
+parser <- add_option(parser, c("--cpus"),
+                        type = "integer",
+                        default = 1,
+                        help = "Number of CPUs to use for parallel processing")
 
 args <- parse_args(parser)
 
@@ -71,7 +75,8 @@ if (!args$skip_perform_dge) {
             dge_output_prefix = args$dge_output_prefix,
             normalized_counts_output_prefix = args$normalized_counts_output_prefix,
             DEBUG_MODE_LIMIT_GENES = args$DEBUG_MODE_LIMIT_GENES,
-            DEBUG_MODE_ADD_DUMMY_COUNTS = args$DEBUG_MODE_ADD_DUMMY_COUNTS
+            DEBUG_MODE_ADD_DUMMY_COUNTS = args$DEBUG_MODE_ADD_DUMMY_COUNTS,
+            cpus = args$cpus
         )
     )
     cli_alert_success("Done running Perform_DGE.Rmd")

@@ -263,14 +263,27 @@ dim(dds_1)
 ```
 
 ```{r ERCC-groupB-normalized-dge-analysis, include = (params$normalization == "ERCC-groupB"), eval = (params$normalization == "ERCC-groupB")}
+# Use parallel processing if more than one CPU is specified
+if (params$cpus > 1) {
+    BiocParallel::register(BiocParallel::MulticoreParam(workers = params$cpus))
+}
+
+# ERCC-based size factor estimation with error handling
 dds_1 <- tryCatch(
-            expr = { estimateSizeFactors(dds_1, controlGenes=ercc_rows_gpB) },
-            error = function(e) { estimateSizeFactors(dds_1, type="poscounts", controlGenes=ercc_rows_gpB)}
+    expr = {
+        DESeq2::estimateSizeFactors(dds_1, controlGenes = ercc_rows_gpB, parallel = (params$cpus > 1))
+    },
+    error = function(e) {
+        DESeq2::estimateSizeFactors(dds_1, type = "poscounts", controlGenes = ercc_rows_gpB, parallel = (params$cpus > 1))
+    }
 )
 
-dds_1 <- dds_1[-c(ercc_rows),] # remove ERCCs from counts table after normalization
-dds_1 <- estimateDispersions(dds_1)
-dds_1 <- nbinomWaldTest(dds_1)
+# Remove ERCCs from the counts table after normalization
+dds_1 <- dds_1[-c(ercc_rows),]
+
+# Estimate dispersions and perform Wald test using parallel processing
+dds_1 <- DESeq2::estimateDispersions(dds_1, parallel = (params$cpus > 1))
+dds_1 <- DESeq2::nbinomWaldTest(dds_1, parallel = (params$cpus > 1))
 ```
 
 ```{r default-normalized-dge-analysis, include = (params$normalization == "default"), eval = (params$normalization == "default")}

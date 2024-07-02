@@ -5,14 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.4/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-01
+## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.5/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-02
 
 ### Fixed
-  
+- Output folder is no longer the OSD number.
+- Updated asssay table prefixes now use the GLDS number instead of the OSD number.
 ### Changed
 
+- Added parallel processing to DGE
 - Added support for bacillus subtilis
-- Workflow now uses osdAccession in addition to gldsAccession
+- New parameter osdAccession is now required for processing OSD datasets
 - Updated software aside from ERCC notebook, dp_tools, Singularity. 
   - FastQC 0.11.9 -> 0.12.1
   - MultiQC 1.12 -> 1.22.3
@@ -22,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - RSEM 1.3.1 -> 1.3.3
   - Samtools 1.15 -> 1.20
   - MultiQC 1.12 -> 1.22.3
-  - gtfToGenePred,genePredToBed 377 = 377
   - infer_experiment,geneBody_coverage,inner_distance,read_distribution (rseqc) 4.0.0 -> 5.0.3
   - R 4.1.3 -> 4.4.0
   - Bioconductor 3.14.0 -> 3.19
