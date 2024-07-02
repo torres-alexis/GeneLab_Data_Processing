@@ -37,6 +37,10 @@ options(timeout=600)
 library(tximport)
 library(DESeq2)
 library(stringr)
+library(BiocParallel)
+if (args$cpus > 1) {
+    register(MulticoreParam(args$cpus))
+}
 
 params
 SUMMARY_FILE_PATH <- params$SUMMARY_FILE_PATH

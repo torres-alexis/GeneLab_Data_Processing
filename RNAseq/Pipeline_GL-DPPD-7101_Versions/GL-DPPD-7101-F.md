@@ -120,6 +120,7 @@ The DESeq2 Normalization and DGE step, [step 9](#9-normalize-read-counts-perform
 |read_distribution|5.0.3|[http://rseqc.sourceforge.net/#read-distribution-py](http://rseqc.sourceforge.net/#read-distribution-py)|
 |R|4.4.0|[https://www.r-project.org/](https://www.r-project.org/)|
 |Bioconductor|3.19|[https://bioconductor.org](https://bioconductor.org)|
+|BiocParallel|1.38.0|[https://bioconductor.org/packages/release/bioc/html/BiocParallel.html](https://bioconductor.org/packages/release/bioc/html/BiocParallel.html)|
 |DESeq2|1.44.0|[https://bioconductor.org/packages/release/bioc/html/DESeq2.html](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)|
 |tximport|1.32.0|[https://github.com/mikelove/tximport](https://github.com/mikelove/tximport)|
 |tidyverse|2.0.0|[https://www.tidyverse.org](https://www.tidyverse.org)|
