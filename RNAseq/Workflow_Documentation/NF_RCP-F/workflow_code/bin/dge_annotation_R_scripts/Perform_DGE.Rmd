@@ -214,11 +214,11 @@ remove <- colnames(dds[,colSums(counts(ercc_dds_gpB)) == NON_DETECTION_THRESHOLD
 
 study_sub <- subset(study,!rownames(study) %in% remove) # new study object with non-ERCC-gpB samples removed
 
-## New group object with with non-ERCC-gpB samples removed
-if (dim(study_sub) >= 2){
-    group_sub<-apply(study_sub,1,paste,collapse = " & ") # concatenate multiple factors into one condition per sample
-} else{
-    group_sub<-study_sub[,1]
+# New group object with non-ERCC-gpB samples removed
+if (ncol(study_sub) >= 2) {
+  group_sub <- apply(study_sub, 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+} else {
+  group_sub <- study_sub[, 1]
 }
 group_names <- paste0("(",group_sub,")",sep = "") # human readable group names
 group_sub <- sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", group_sub))) # group naming compatible with R models, this maintains the default behaviour of make.names with the exception that 'X' is never prepended to group names
