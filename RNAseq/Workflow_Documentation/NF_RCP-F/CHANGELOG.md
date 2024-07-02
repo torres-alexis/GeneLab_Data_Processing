@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.5/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-02
 
+### Added
+
+- STAR alignment now outputs unmapped and partially mapped (discordant) reads into separate FASTQ files (Unmapped.out.mate1/2). The reads are also still present in the output BAMs. 
+
 ### Fixed
-- Output folder is no longer the OSD number.
+
+- Output folder is now the gldsAccession and not the OSD number.
 - Updated asssay table prefixes now use the GLDS number instead of the OSD number.
+- Assay table updates now immediately adds new processed data columns instead of checking existing columns first. (via dp_tools) 
+
 ### Changed
 
 - Removed / Commented out ERCC-normalization DGE steps

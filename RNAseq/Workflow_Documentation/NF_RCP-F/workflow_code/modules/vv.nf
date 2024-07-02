@@ -119,6 +119,7 @@ process VV_STAR_ALIGNMENTS {
   label 'VV'
 
   input:
+    val(meta)
     path("VV_INPUT/Metadata/*")
     path("VV_INPUT/02-STAR_Alignment/*") // direct STAR alignment output
     path("VV_INPUT/02-STAR_Alignment/*") // STAR alignment counts tables
@@ -142,7 +143,7 @@ process VV_STAR_ALIGNMENTS {
     if ${ !params.skipVV } ; then
       dpt validation run ${dp_tools__NF_RCP} . Metadata/*_runsheet.csv \\
                           --data-asset-key-sets  \\
-                            'STAR alignments' \\
+                          ${ meta.paired_end ? "'STAR alignments for paired end data'" : "'STAR alignments for single end data'"} \\
                           --run-components \\
                             'STAR Alignments,STAR Alignments By Sample' \\
                           --max-flag-code ${ params.max_flag_code } \\
