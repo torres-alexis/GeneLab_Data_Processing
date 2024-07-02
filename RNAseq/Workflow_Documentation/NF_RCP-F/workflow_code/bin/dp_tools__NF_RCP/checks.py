@@ -1030,7 +1030,7 @@ def utils_common_constraints_on_dataframe(
         col_constraints = col_constraints.copy()
 
         # limit to only columns of interest
-        query_df = df[col_set]
+        query_df = df[list(col_set)]
         for (colname, colseries) in query_df.iteritems():
             # check non null constraint
             if col_constraints.pop("nonNull", False) and nonNull(colseries) == False:
@@ -1211,13 +1211,13 @@ def check_dge_table_log2fc_within_reason(
         )
         df_dge_filtered = df_dge.loc[
             abs_percent_differences > THRESHOLD_PERCENT_MEANS_DIFFERENCE
-        ]
+        ].copy()
 
-        df_dge_filtered["positive_sign_expected"] = (
+        df_dge_filtered.loc[:, "positive_sign_expected"] = (
             df_dge[group1_mean_col] - df_dge[group2_mean_col] > 0
         )
 
-        df_dge_filtered["matches_expected_sign"] = (
+        df_dge_filtered.loc[:, "matches_expected_sign"] = (
             (df_dge[query_column] > 0) & df_dge_filtered["positive_sign_expected"]
         ) | ((df_dge[query_column] < 0) & ~df_dge_filtered["positive_sign_expected"])
 

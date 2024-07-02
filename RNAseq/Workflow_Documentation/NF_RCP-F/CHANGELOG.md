@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolved deprecated syntax issues and related warnings in VV-related code.
 - Output folder is now the gldsAccession and not the OSD number.
 - Updated asssay table prefixes now use the GLDS number instead of the OSD number.
 - Assay table updates now immediately adds new processed data columns instead of checking existing columns first. (via dp_tools) 
