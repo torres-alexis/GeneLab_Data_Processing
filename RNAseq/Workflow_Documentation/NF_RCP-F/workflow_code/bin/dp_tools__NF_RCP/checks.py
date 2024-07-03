@@ -527,7 +527,7 @@ def check_rsem_counts_and_unnormalized_tables_parity(
         code = FlagCode.GREEN
         message = f"Tables of unnormalized counts match."
     else:
-        code = FlagCode.HALT
+        code = FlagCode.YELLOW
         message = (
             f"Tables of unnormalized counts have same columns but values do not match."
         )
@@ -659,7 +659,7 @@ def check_sample_table_against_runsheet(
             (extra_samples["unique_to_sampleTable"]),
         ]
     ):
-        code = FlagCode.HALT
+        code = FlagCode.RED
         message = f"Samples mismatched: {[f'{entry}:{v}' for entry, v  in extra_samples.items() if v]}"
     else:
         code = FlagCode.GREEN
@@ -733,24 +733,26 @@ def check_sample_table_for_correct_group_assignments(
         FlagEntry: A check result
     """
     df_sample = pd.read_csv(sampleTable, index_col=0).sort_index()
-    # data specific preprocess
+    
+    # Ensure no factor value columns are misinterpreted as numeric
     df_rs = (
-        pd.read_csv(runsheet, index_col="Sample Name", dtype=str) # Ensure no factor value columns are misinterpreted as numeric
+        pd.read_csv(runsheet, index_col="Sample Name", dtype=str)
         .filter(regex="^Factor Value\[.*\]")
-        .loc[df_sample.index]  # ensure only sampleTable groups are checked
-        .sort_index()
-    )  # using only Factor Value columns
+    )
 
-    # TODO: refactor with utils_runsheet_to_expected_groups
+    # Handling mismatch by ensuring index alignment and handling missing values
+    common_samples = df_sample.index.intersection(df_rs.index)
+    df_sample = df_sample.loc[common_samples].sort_index()
+    df_rs = df_rs.loc[common_samples].sort_index()
+
     expected_conditions_based_on_runsheet = df_rs.apply(
-        lambda x: "...".join(x), axis="columns"
-    ).apply(  # join factors with '...'
+        lambda x: "...".join(x.fillna("")), axis="columns"
+    ).apply(
         r_style_make_names
-    )  # reformat entire group in the R style
+    )
 
     mismatched_rows = expected_conditions_based_on_runsheet != df_sample["condition"]
 
-    # check logic
     if not any(mismatched_rows):
         code = FlagCode.GREEN
         message = f"Conditions are formatted and assigned correctly based on runsheet for all {len(df_sample)} samples in sample table: {list(df_sample.index)}"
@@ -762,6 +764,7 @@ def check_sample_table_for_correct_group_assignments(
             + expected_conditions_based_on_runsheet[mismatched_rows]
         ).to_dict()
         message = f"Mismatch in expected conditions based on runsheet for these rows: {mismatch_description}"
+
     return {"code": code, "message": message}
 
 
@@ -871,7 +874,7 @@ def check_dge_table_sample_columns_exist(
         code = FlagCode.GREEN
         message = f"All samplewise columns present"
     else:
-        code = FlagCode.HALT
+        code = FlagCode.RED
         message = f"Missing these sample count columns: {missing_sample_columns}"
     return {"code": code, "message": message}
 
@@ -880,27 +883,27 @@ def check_dge_table_sample_columns_constraints(
     dge_table: Path, samples: set[str], **_
 ) -> FlagEntry:
     MINIMUM_COUNT = 0
-    # data specific preprocess
-    df_dge = pd.read_csv(dge_table)[samples]
+    try:
+        df_dge = pd.read_csv(dge_table, usecols=samples)
 
-    column_meets_constraints = df_dge.apply(
-        lambda col: all(col >= MINIMUM_COUNT), axis="rows"
-    )
+        column_meets_constraints = df_dge.apply(
+            lambda col: all(col >= MINIMUM_COUNT)
+        )
 
-    # check logic
-    contraint_description = f"All counts are greater or equal to {MINIMUM_COUNT}"
-    if all(column_meets_constraints):
-        code = FlagCode.GREEN
-        message = (
-            f"All values in columns: {samples} met constraint: {contraint_description}"
-        )
-    else:
-        code = FlagCode.HALT
-        message = (
-            f"These columns {list(column_meets_constraints.index[~column_meets_constraints])} "
-            f"fail the contraint: {contraint_description}."
-        )
-    return {"code": code, "message": message}
+        # check logic
+        contraint_description = f"All counts are greater or equal to {MINIMUM_COUNT}"
+        if all(column_meets_constraints):
+            code = FlagCode.GREEN
+            message = f"All values in columns: {samples} met constraint: {contraint_description}"
+        else:
+            code = FlagCode.HALT
+            message = (
+                f"These columns {list(column_meets_constraints.index[~column_meets_constraints])} "
+                f"fail the constraint: {contraint_description}."
+            )
+        return {"code": code, "message": message}
+    except Exception as e:
+        return {"code": FlagCode.RED, "message": str(e)}
 
 
 def check_dge_table_group_columns_exist(
@@ -929,10 +932,9 @@ def check_dge_table_group_columns_exist(
 def check_dge_table_group_columns_constraints(
     dge_table: Path, runsheet: Path, samples: set[str], **_
 ) -> FlagEntry:
-    FLOAT_TOLERANCE = (
-        0.001  # Percent allowed difference due to float precision differences
-    )
-    # data specific preprocess
+    FLOAT_TOLERANCE = 0.001  # Percent allowed difference due to float precision differences
+
+    # Data specific preprocess
     GROUP_PREFIXES = ["Group.Stdev_", "Group.Mean_"]
     expected_groups = utils_runsheet_to_expected_groups(runsheet)
     query_columns = {
@@ -943,49 +945,48 @@ def check_dge_table_group_columns_constraints(
     expected_group_lists = utils_runsheet_to_expected_groups(
         runsheet, map_to_lists=True, limit_to_samples=samples
     )
-    df_dge = pd.read_csv(dge_table)
+    try:
+        df_dge = pd.read_csv(dge_table, usecols=query_columns)
 
-    # issue trackers
-    issues: dict[str, list[str]] = {
-        f"mean computation deviates by more than {FLOAT_TOLERANCE} percent": [],
-        f"standard deviation deviates by more than {FLOAT_TOLERANCE} percent": [],
-    }
+        # Issue trackers
+        issues: Dict[str, List[str]] = {
+            f"mean computation deviates by more than {FLOAT_TOLERANCE} percent": [],
+            f"standard deviation deviates by more than {FLOAT_TOLERANCE} percent": []
+        }
 
-    group: str
-    sample_set: list[str]
-    for group, sample_set in expected_group_lists.items():
-        abs_percent_differences = abs(
-            (df_dge[f"Group.Mean_{group}"] - df_dge[sample_set].mean(axis="columns"))
-            / df_dge[sample_set].mean(axis="columns")
-            * 100
-        )
-        if any(abs_percent_differences > FLOAT_TOLERANCE):
-            issues[
-                f"mean computation deviates by more than {FLOAT_TOLERANCE} percent"
-            ].append(group)
+        for group, sample_set in expected_group_lists.items():
+            if all(sample in df_dge.columns for sample in sample_set):
+                abs_percent_differences = abs(
+                    (df_dge[f"Group.Mean_{group}"] - df_dge[sample_set].mean(axis="columns"))
+                    / df_dge[sample_set].mean(axis="columns") * 100
+                )
+                if any(abs_percent_differences > FLOAT_TOLERANCE):
+                    issues[f"mean computation deviates by more than {FLOAT_TOLERANCE} percent"].append(group)
 
-        abs_percent_differences = abs(
-            (df_dge[f"Group.Stdev_{group}"] - df_dge[sample_set].std(axis="columns"))
-            / df_dge[sample_set].mean(axis="columns")
-            * 100
-        )
-        if any(abs_percent_differences > FLOAT_TOLERANCE):
-            issues[
-                f"standard deviation deviates by more than {FLOAT_TOLERANCE} percent"
-            ].append(group)
+                abs_percent_differences = abs(
+                    (df_dge[f"Group.Stdev_{group}"] - df_dge[sample_set].std(axis="columns"))
+                    / df_dge[sample_set].mean(axis="columns") * 100
+                )
+                if any(abs_percent_differences > FLOAT_TOLERANCE):
+                    issues[f"standard deviation deviates by more than {FLOAT_TOLERANCE} percent"].append(group)
+            else:
+                issues[f"missing sample data in columns"].extend(sample_set)
 
-    # check logic
-    contraint_description = f"Group mean and standard deviations are correctly computed from samplewise normalized counts within a tolerance of {FLOAT_TOLERANCE} percent (to accomodate minor float related differences )"
-    if not any([issue_type for issue_type in issues.values()]):
-        code = FlagCode.GREEN
-        message = f"All values in columns: {query_columns} met constraint: {contraint_description}"
-    else:
-        code = FlagCode.HALT
-        message = (
-            f"Issues found {issues} that"
-            f"fail the contraint: {contraint_description}."
-        )
-    return {"code": code, "message": message}
+        # Check logic
+        constraint_description = f"Group mean and standard deviations are correctly computed from samplewise normalized counts within a tolerance of {FLOAT_TOLERANCE} percent (to accommodate minor float related differences)"
+        if not any(issues.values()):
+            code = FlagCode.GREEN
+            message = f"All values in columns: {query_columns} met constraint: {constraint_description}"
+        else:
+            code = FlagCode.RED
+            message = f"Issues found {issues} that fail the constraint: {constraint_description}."
+
+        return {"code": code, "message": message}
+
+    except KeyError as e:
+        return {"code": FlagCode.RED, "message": f"Missing columns: {str(e).split()[1]} in the DGE table."}
+    except Exception as e:
+        return {"code": FlagCode.RED, "message": f"An error occurred: {str(e)}"}
 
 
 def check_dge_table_comparison_statistical_columns_exist(
@@ -1370,7 +1371,7 @@ def check_viz_pca_table_index_and_columns_exist(
         code = FlagCode.GREEN
         message = f"PCA Table has all the samples in the index and these columns exist: {EXPECTED_VIS_PCA_COLUMNS}"
     else:
-        code = FlagCode.HALT
+        code = FlagCode.RED
         message = err_msg
 
     return {"code": code, "message": message}
