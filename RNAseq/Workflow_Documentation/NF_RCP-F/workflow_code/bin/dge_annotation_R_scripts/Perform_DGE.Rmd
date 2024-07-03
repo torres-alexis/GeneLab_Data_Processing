@@ -194,6 +194,15 @@ if (!is.null(tech_reps)) {
   )
   # Update the sample table after collapsing replicates
   sampleTable <- colData(dds)
+  # Update group after collapsing replicates
+  if (ncol(study) >= 2) {
+    group <- apply(study[rownames(sampleTable), ], 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+  } else {
+    group <- study[rownames(sampleTable), 1]  # If only one column, use it directly
+  }
+  group_names <- paste0("(", group, ")", sep = "") # human readable group names
+  group <- sub("^BLOCKER_", "", make.names(paste0("BLOCKER_", group))) # group naming compatible with R models
+  names(group) <- group_names
 }
 
 summary(dds)
@@ -382,7 +391,7 @@ output_table_1$All.stdev <- rowSds(as.matrix(normCounts), na.rm = TRUE, dims = 1
 ```
 
 ```{r}
-## Generate and add group mean and stdev columns to the (non-ER\CC) normalized counts table
+## Generate and add group mean and stdev columns to the (non-ERCC) normalized counts table
 print(sprintf("DEBUG: %s: Computing group mean and stdev", Sys.time()))
 tcounts <- as.data.frame(t(normCounts))
 tcounts$group <- names(group) # Used final table group name formatting (e.g. '( Space Flight & Blue Light )' )
