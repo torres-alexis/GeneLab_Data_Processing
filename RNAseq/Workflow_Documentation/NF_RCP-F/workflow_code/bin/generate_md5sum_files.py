@@ -46,8 +46,8 @@ def main(root_dir: Path, runsheet_path: Path, plug_in_dir: Path):
     else:
         key_sets.append("is single end full")
 
-    if has_ERCC:
-        key_sets.append("has ercc")
+    # if has_ERCC:
+    #     key_sets.append("has ercc")
 
     ds = load_data(
         key_sets=key_sets,
