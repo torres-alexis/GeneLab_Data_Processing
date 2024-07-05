@@ -96,18 +96,12 @@ write.csv(df2, row.names = FALSE, paste0(params$annotated_output_prefix, "differ
 ## print session info ##
 session_info_output <- capture.output(sessionInfo())
 
-## Get Bioconductor version
-if ("BiocManager" %in% rownames(installed.packages())) {
-    bioc_version <- BiocManager::version()
-} else {
-    bioc_version <- "NA"
-}
-
-## Log same info into versions.txt file
+#Log same info into versions.txt file
 version_output_fn <- "versions.txt"
-cat(paste(session_info_output, 
-          "\nBioC_version_associated_with_R_version: ", bioc_version, 
-          sep = "\n"),
+cat(session_info_output,
+    "BioC_version_associated_with_R_version",
+    toString(BiocManager::version()),
     file = version_output_fn,
-    append = TRUE)
+    append = TRUE,
+    sep = "\n")
 ```

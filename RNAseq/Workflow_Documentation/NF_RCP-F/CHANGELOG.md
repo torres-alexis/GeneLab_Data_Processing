@@ -30,11 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cutadapt 3.7 -> 4.9
   - TrimGalore! 0.6.7 -> 0.6.10
   - STAR 2.7.10a -> 2.7.11b
-  - RSEM 1.3.1 -> 1.3.3
+  - RSEM 1.3.1 -> 1.3.1
   - Samtools 1.15 -> 1.20
   - MultiQC 1.12 -> 1.22.3
-  - infer_experiment,geneBody_coverage,inner_distance,read_distribution (rseqc) 4.0.0 -> 5.0.3
-  - R 4.1.3 -> 4.4.0
+  - infer_experiment,geneBody_coverage,inner_distance,read_distribution (rseqc) 4.0.0 -> 5.0.2
+  - R 4.1.3 -> 4.4.1
   - Bioconductor 3.14.0 -> 3.19
   - DESeq2 1.34 -> 1.44.0
   - tximport 1.27.1 -> 1.32.0
