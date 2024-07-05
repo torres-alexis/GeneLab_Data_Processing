@@ -139,6 +139,8 @@ process UPDATE_ISA_TABLES {
 
     # Update assay table with gldsAccession
     sed -i 's/${ params.osdAccession }/${ params.gldsAccession }/g' updated_curation_tables/a*.txt
+    # Replace ", " with "," in the updated assay table
+    sed -i 's;, ;,;g' updated_curation_tables/a*.txt
     """
 }
 
