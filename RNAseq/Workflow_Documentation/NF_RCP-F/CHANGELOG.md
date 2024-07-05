@@ -10,20 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - STAR alignment now outputs unmapped and partially mapped (discordant) reads into separate FASTQ files (Unmapped.out.mate1/2). The reads are also still present in the output BAMs. 
+- Added '--technicalReplicates "/path/to/techReps.csv" for collapsing technical replicates with DESeq2::collapseReplicates
+- Added organism support for bacillus subtilis
+- Parameter osdAccession is now required for processing OSD datasets
 
 ### Fixed
 
-- Resolved deprecated syntax issues and related warnings in VV-related code.
-- Output folder is now the gldsAccession and not the OSD number.
-- Updated asssay table prefixes now use the GLDS number instead of the OSD number.
-- Assay table updates now immediately adds new processed data columns instead of checking existing columns first. (via dp_tools) 
+- Resolved deprecated syntax issues and related warnings in VV-related code
+- Output folder is now the gldsAccession and not the OSD number
+- Updated asssay table prefixes now use the GLDS number instead of the OSD number
+- Assay table updates no longer break if processed data columns are present in input assay table (via dp_tools 1.35) 
 
 ### Changed
 
 - Removed / Commented out ERCC-normalization DGE steps
-- Added parallel processing to DGE
-- Added support for bacillus subtilis
-- New parameter osdAccession is now required for processing OSD datasets
 - Updated software aside from ERCC notebook, dp_tools, Singularity. 
   - FastQC 0.11.9 -> 0.12.1
   - MultiQC 1.12 -> 1.22.3
