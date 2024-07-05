@@ -22,6 +22,7 @@ PUBLISH_TABLE_ORDER = [
     "Bioconductor",
     "DESeq2",
     "tximport",
+    "dp_tools"
     # "tidyverse",
     # "STRINGdb",
     # "PANTHER.db",
@@ -41,6 +42,16 @@ MANUALLY_DEFINED = [
         "Relevant Links": "https://anaconda.org/bioconda/ucsc-genepredtobed",
     },
 ]
+
+def _parse_dp_tools_block(text):
+    """Parses a dp_tools version output"""
+    for line in text.splitlines():
+        if line.startswith("dp_tools"):  # Adjust if the identifier differs
+            return {
+                "Program": "dp_tools",
+                "Version": line.split(":")[1].strip(),
+                "Relevant Links": "https://github.com/J-81/dp_tools",
+            }
 
 def _parse_samtools_block(text) -> dict:
     """Parses an Samtools version output"""
@@ -278,6 +289,8 @@ def main(software_versions_path: Path):
             results.append(_parse_samtools_block(text_block))
         elif "Nextflow Version:" in text_block:
             results.append(_parse_Nextflow_block(text_block))
+        elif "dp_tools:" in text_block:
+            results.append(_parse_dp_tools_block(text_block))
         elif "R version" in text_block:
             results.extend(_parse_R_block(text_block))
         elif "Quality-/Adapter-/RRBS-/Speciality-Trimming" in text_block:

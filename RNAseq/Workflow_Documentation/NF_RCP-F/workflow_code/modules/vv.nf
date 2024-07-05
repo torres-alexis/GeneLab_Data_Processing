@@ -326,10 +326,14 @@ process VV_CONCAT_FILTER {
 
   output:
     tuple path("VV_log_final_GLbulkRNAseq.tsv"), path("VV_log_final_only_issues_GLbulkRNAseq.tsv")
+    path("versions.yaml"), emit: versions
 
   script:
     """
     concat_logs.py
     filter_to_only_issues.py
+
+    # Export dp_tools version
+    echo "dp_tools: \$(python -c 'import dp_tools; print(dp_tools.__version__)')" > versions.yaml
     """
 }
