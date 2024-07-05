@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.5/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-02
+## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.5/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-05
 
 ### Added
 
@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- dp_tools version is now included in software table
 - Resolved deprecated syntax issues and related warnings in VV-related code
 - Output folder is now the gldsAccession and not the OSD number
 - Updated asssay table prefixes now use the GLDS number instead of the OSD number
-- Assay table updates no longer break if processed data columns are present in input assay table (via dp_tools 1.35) 
+- [Post-Processing] Assay table updates no longer break if processed data columns are present in input assay table (via dp_tools 1.35) 
 
 ### Changed
 
