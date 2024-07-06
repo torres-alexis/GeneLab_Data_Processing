@@ -19,7 +19,7 @@ include { GENERATE_METASHEET;
           STAGE_RAW_READS;
           get_runsheet_paths } from'./modules/genelab.nf'
 include { RUNSHEET_FROM_GLDS } from './modules/RUNSHEET_FROM_GLDS.nf'
-
+include { RUNSHEET_FROM_ISA } from './modules/RUNSHEET_FROM_ISA.nf'
 /**************************************************
 * ACTUAL WORKFLOW  ********************************
 **************************************************/
@@ -29,18 +29,33 @@ workflow staging{
     stageLocal
   main:
     sample_limit = params.limitSamplesTo ? params.limitSamplesTo : -1 // -1 in take means no limit
-          
-    if (!params.runsheetPath) {
-    ch_osd_accession = Channel.from( params.osdAccession )
-    RUNSHEET_FROM_GLDS(
-      ch_osd_accession,
-      ch_glds_accession,
-      "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-       )
-    RUNSHEET_FROM_GLDS.out.runsheet | set{ ch_runsheet }
-    GENERATE_METASHEET( RUNSHEET_FROM_GLDS.out.isaArchive, RUNSHEET_FROM_GLDS.out.runsheet )
-    } else {
-      ch_runsheet = channel.fromPath(params.runsheetPath)
+
+    if (!params.runsheetPath && !params.isaArchivePath) {
+      ch_osd_accession = Channel.from( params.osdAccession )
+      RUNSHEET_FROM_GLDS(
+        ch_osd_accession,
+        ch_glds_accession,
+        "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+      )
+      RUNSHEET_FROM_GLDS.out.runsheet | set{ ch_runsheet }
+      RUNSHEET_FROM_GLDS.out.isaArchive | set{ ch_isaArchive }
+      GENERATE_METASHEET( RUNSHEET_FROM_GLDS.out.isaArchive, RUNSHEET_FROM_GLDS.out.runsheet )
+    } else if (!params.runsheetPath && params.isaArchivePath) {
+        ch_osd_accession = Channel.from( params.osdAccession )
+        ch_isaArchive = Channel.from( params.isaArchivePath )
+        RUNSHEET_FROM_ISA(
+          ch_osd_accession,
+          ch_glds_accession,
+          ch_isaArchive,
+          "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+        RUNSHEET_FROM_ISA.out.runsheet | set{ ch_runsheet }
+        GENERATE_METASHEET( ch_isaArchive, RUNSHEET_FROM_ISA.out.runsheet )
+    } else if ( params.runsheetPath && !params.isaArchivePath ) {
+        ch_runsheet = channel.fromPath( params.runsheetPath )
+    } else if ( params.runsheetPath && params.isaArchivePath ) {
+        System.err.println("Error: User supplied both runsheetPath and isaArchivePath.  Only one or neither is allowed to be supplied!") // Print error message to System.err
+        System.exit(1) // Exit with error code 1
     }
 
     ch_runsheet | splitCsv(header: true)
@@ -91,7 +106,7 @@ workflow staging{
 
     emit:
       raw_reads = stageLocal ? STAGE_RAW_READS.out : null
-      isa = params.runsheetPath ? null : RUNSHEET_FROM_GLDS.out.isaArchive
+      isa = params.isaArchivePath ? null : ch_isaArchive
       runsheet = ch_runsheet
       metasheet = params.runsheetPath ? null : GENERATE_METASHEET.out.metasheet
 }
