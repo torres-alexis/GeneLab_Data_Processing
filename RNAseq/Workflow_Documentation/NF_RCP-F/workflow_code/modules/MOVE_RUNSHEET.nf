@@ -1,7 +1,6 @@
 process MOVE_RUNSHEET {
     tag "${ gldsAccession }"
     publishDir "${params.outputDir}/${params.gldsAccession}/Metadata",
-        pattern: "*.csv",
         mode: params.publish_dir_mode
 
     input:

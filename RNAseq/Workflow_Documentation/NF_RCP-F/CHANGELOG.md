@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added '--isaArchivePath "/path/to/*-ISA.zip*"
 - STAR alignment now outputs unmapped and partially mapped (discordant) reads into separate FASTQ files (Unmapped.out.mate1/2). The reads are also still present in the output BAMs. 
 - Added '--technicalReplicates "/path/to/techReps.csv" for collapsing technical replicates with DESeq2::collapseReplicates
 - Added organism support for bacillus subtilis
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed issue where runsheet would not be copied to gldsAccession/Metadata/ by adding MOVE_RUNSHEET
 - Fixed issue where inner_distance.py plot could be cut off if read length was over 150
 - dp_tools version is now included in software table
 - Resolved deprecated syntax issues and related warnings in VV-related code
