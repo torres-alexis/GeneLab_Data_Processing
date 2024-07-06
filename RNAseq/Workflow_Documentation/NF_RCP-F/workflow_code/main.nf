@@ -188,7 +188,7 @@ workflow {
     TRIMGALORE.out.reads | combine( BUILD_STAR.out.build ) | ALIGN_STAR
 
 
-    STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt ) 
+    STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt, max_read_length_ch ) 
     STRANDEDNESS.out.strandedness | map { it.text.split(":")[0] } | set { strandedness_ch }
 
     BUILD_RSEM( 

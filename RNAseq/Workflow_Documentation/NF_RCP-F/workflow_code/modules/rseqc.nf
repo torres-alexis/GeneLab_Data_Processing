@@ -101,7 +101,7 @@ process INNER_DISTANCE {
 
   input:
     tuple val(meta), path(bam_file), path(bai_file), path(bed_file) // bam file sorted by coordinate
-
+    val(max_read_length_ch)
   output:
     path("${ meta.id }.inner_distance_freq.txt"), emit: log_only
     path("${ meta.id }.inner_distance*"), emit: all_output
@@ -114,7 +114,7 @@ process INNER_DISTANCE {
   script:
     def log_fname = "${ meta.id }.inner_distance_freq.txt" 
     """    
-    inner_distance.py -r ${ bed_file } -i ${ bam_file } -k ${ params.quality.rseqc_sample_count } -l -150 -u 350 -o ${ meta.id } 
+    inner_distance.py -r ${ bed_file } -i ${ bam_file } -k ${ params.quality.rseqc_sample_count } -l -${ max_read_length_ch } -u 350 -o ${ meta.id } 
 
     # VERSIONS
     echo "RSeQC inner_distance version below:\n" > versions.txt 
