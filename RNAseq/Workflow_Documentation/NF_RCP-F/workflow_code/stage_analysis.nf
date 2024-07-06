@@ -20,6 +20,7 @@ include { GENERATE_METASHEET;
           get_runsheet_paths } from'./modules/genelab.nf'
 include { RUNSHEET_FROM_GLDS } from './modules/RUNSHEET_FROM_GLDS.nf'
 include { RUNSHEET_FROM_ISA } from './modules/RUNSHEET_FROM_ISA.nf'
+include { MOVE_RUNSHEET } from './modules/MOVE_RUNSHEET.nf'
 /**************************************************
 * ACTUAL WORKFLOW  ********************************
 **************************************************/
@@ -53,6 +54,7 @@ workflow staging{
         GENERATE_METASHEET( ch_isaArchive, RUNSHEET_FROM_ISA.out.runsheet )
     } else if ( params.runsheetPath && !params.isaArchivePath ) {
         ch_runsheet = channel.fromPath( params.runsheetPath )
+        MOVE_RUNSHEET( ch_runsheet )
     } else if ( params.runsheetPath && params.isaArchivePath ) {
         System.err.println("Error: User supplied both runsheetPath and isaArchivePath.  Only one or neither is allowed to be supplied!") // Print error message to System.err
         System.exit(1) // Exit with error code 1
@@ -106,7 +108,7 @@ workflow staging{
 
     emit:
       raw_reads = stageLocal ? STAGE_RAW_READS.out : null
-      isa = params.isaArchivePath ? null : ch_isaArchive
+      isa = params.runsheetPath ? null : ch_isaArchive
       runsheet = ch_runsheet
       metasheet = params.runsheetPath ? null : GENERATE_METASHEET.out.metasheet
 }
