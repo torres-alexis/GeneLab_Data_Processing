@@ -15,6 +15,7 @@ process RUNSHEET_FROM_GLDS {
     path("*.zip"), emit: isaArchive
 
   script:
+    def injects = params.biomart_attribute ? "--inject biomart_attribute='${ params.biomart_attribute }'" : ''
     """
 
     dpt-get-isa-archive --accession ${ osdAccession }
