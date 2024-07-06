@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed issue where inner_distance.py plot could be cut off if read length was over 150
 - dp_tools version is now included in software table
 - Resolved deprecated syntax issues and related warnings in VV-related code
 - Output folder is now the gldsAccession and not the OSD number
