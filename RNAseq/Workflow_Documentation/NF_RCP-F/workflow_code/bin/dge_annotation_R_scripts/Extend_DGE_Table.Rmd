@@ -97,15 +97,15 @@ write.csv(df,
           )
 ```
 
-```{r verson-reporting}
+```{r version-reporting}
 ## print session info ##
-print("Session Info below: ")
-sessionInfo()
-## Log same info into versions.txt file
+session_info_output <- capture.output(sessionInfo())
+
+#Log same info into versions.txt file
 version_output_fn <- "versions.txt"
-cat(capture.output(sessionInfo()),
+cat(session_info_output,
     "BioC_version_associated_with_R_version",
-    toString(tools:::.BioC_version_associated_with_R_version()),
+    toString(BiocManager::version()),
     file = version_output_fn,
     append = TRUE,
     sep = "\n")

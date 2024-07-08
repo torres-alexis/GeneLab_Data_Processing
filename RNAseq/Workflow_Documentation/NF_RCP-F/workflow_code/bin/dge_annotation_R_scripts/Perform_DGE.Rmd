@@ -79,10 +79,10 @@ rownames(study) <- compare_csv[,1]
 
 ```{r study_df-to-group_df}
 ##### Format groups and indicate the group that each sample belongs to #####
-if (dim(study) >= 2){
-    group<-apply(study,1,paste,collapse = " & ") # concatenate multiple factors into one condition per sample
-} else{
-    group<-study[,1]
+if (ncol(study) >= 2){
+    group <- apply(study, 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+} else {
+    group <- study[, 1]  # If only one column, use it directly
 }
 group_names <- paste0("(",group,")",sep = "") # human readable group names
 group <- sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", group))) # group naming compatible with R models, this maintains the default behaviour of make.names with the exception that 'X' is never prepended to group namesnames(group) <- group_names
@@ -214,11 +214,11 @@ remove <- colnames(dds[,colSums(counts(ercc_dds_gpB)) == NON_DETECTION_THRESHOLD
 
 study_sub <- subset(study,!rownames(study) %in% remove) # new study object with non-ERCC-gpB samples removed
 
-## New group object with with non-ERCC-gpB samples removed
-if (dim(study_sub) >= 2){
-    group_sub<-apply(study_sub,1,paste,collapse = " & ") # concatenate multiple factors into one condition per sample
-} else{
-    group_sub<-study_sub[,1]
+# New group object with non-ERCC-gpB samples removed
+if (ncol(study_sub) >= 2) {
+  group_sub <- apply(study_sub, 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+} else {
+  group_sub <- study_sub[, 1]
 }
 group_names <- paste0("(",group_sub,")",sep = "") # human readable group names
 group_sub <- sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", group_sub))) # group naming compatible with R models, this maintains the default behaviour of make.names with the exception that 'X' is never prepended to group names
@@ -394,13 +394,13 @@ writeLines(output, conn)
 
 ```{r version-reporting}
 ## print session info ##
-print("Session Info below: ")
-sessionInfo()
-## Log same info into versions.txt file
+session_info_output <- capture.output(sessionInfo())
+
+#Log same info into versions.txt file
 version_output_fn <- "versions.txt"
-cat(capture.output(sessionInfo()),
+cat(session_info_output,
     "BioC_version_associated_with_R_version",
-    toString(tools:::.BioC_version_associated_with_R_version()),
+    toString(BiocManager::version()),
     file = version_output_fn,
     append = TRUE,
     sep = "\n")
