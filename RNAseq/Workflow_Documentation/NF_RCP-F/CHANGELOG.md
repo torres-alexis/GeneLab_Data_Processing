@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.5](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.5/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-07-08
 
+### Added
+
+- Added organism support for bacillus subtilis 
+
 ### Fixed
 
 ### Changed
