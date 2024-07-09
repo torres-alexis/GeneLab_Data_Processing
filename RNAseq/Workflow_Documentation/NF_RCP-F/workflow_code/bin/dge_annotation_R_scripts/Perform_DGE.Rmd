@@ -17,6 +17,7 @@ params:
     work_dir: "." # NON_DPPD: should be set to launch directory 
     SUMMARY_FILE_PATH: "summary.txt"
     cpus: 1
+    technical_replicates_path: NULL
 ---
 
 ## Substeps {.tabset}
@@ -33,7 +34,7 @@ library(knitr)
 # useful for slower connections where the default of 60 seconds might be exceeded
 options(timeout=600)
 
-# Import libraries (tximport, DESeq2, stringr)
+# Import libraries (tximport, DESeq2, tidyverse)
 library(tximport)
 library(DESeq2)
 library(stringr)
@@ -41,6 +42,12 @@ library(BiocParallel)
 if (args$cpus > 1) {
     register(MulticoreParam(args$cpus))
 }
+if (!is.null(params$technical_replicates_path) && file.exists(params$technical_replicates_path)) {
+  tech_reps <- read.csv(params$technical_replicates_path, header = FALSE, col.names = c("SampleWithReps", "CollapsedSampleName"))
+} else {
+  tech_reps <- NULL
+}
+
 params
 SUMMARY_FILE_PATH <- params$SUMMARY_FILE_PATH
 yaml::write_yaml(params, "last_params.yml")
@@ -167,7 +174,39 @@ dds <- DESeq2::DESeqDataSetFromTximport(
         colData = sampleTable,
         design = ~condition
     )
+
+# Check for technical replicates and collapse them if necessary
+if (!is.null(tech_reps)) {
+  # Get sample ids from the runsheet
+  sample_ids <- unique(compare_csv$sample_id)
+  
+  # Check if all sample_ids are in the first column of tech_reps 
+  missing_samples <- sample_ids[!sample_ids %in% tech_reps$SampleWithReps]
+  if (length(missing_samples) > 0) {
+    stop(paste("The following sample identifiers from the runsheet are not present in the technical replicates file:", paste(missing_samples, collapse=", ")))
+  }
+
+  # Collapse technical replicates using DESeq2::collapseReplicates; Sums counts
+  dds <- DESeq2::collapseReplicates(
+    object = dds,
+    groupby = tech_reps$CollapsedSampleName,
+    run = tech_reps$SampleWithReps
+  )
+  # Update the sample table after collapsing replicates
+  sampleTable <- colData(dds)
+  # Update group after collapsing replicates
+  if (ncol(study) >= 2) {
+    group <- apply(study[rownames(sampleTable), ], 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+  } else {
+    group <- study[rownames(sampleTable), 1]  # If only one column, use it directly
+  }
+  group_names <- paste0("(", group, ")", sep = "") # human readable group names
+  group <- sub("^BLOCKER_", "", make.names(paste0("BLOCKER_", group))) # group naming compatible with R models
+  names(group) <- group_names
+}
+
 summary(dds)
+
 ```
 
 ```{r ercc-based-normalization, include = (params$normalization == "ERCC-groupB"), eval = (params$normalization == "ERCC-groupB")}
@@ -352,7 +391,7 @@ output_table_1$All.stdev <- rowSds(as.matrix(normCounts), na.rm = TRUE, dims = 1
 ```
 
 ```{r}
-## Generate and add group mean and stdev columns to the (non-ER\CC) normalized counts table
+## Generate and add group mean and stdev columns to the (non-ERCC) normalized counts table
 print(sprintf("DEBUG: %s: Computing group mean and stdev", Sys.time()))
 tcounts <- as.data.frame(t(normCounts))
 tcounts$group <- names(group) # Used final table group name formatting (e.g. '( Space Flight & Blue Light )' )

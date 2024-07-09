@@ -257,7 +257,9 @@ nextflow run NF_RCP-F_1.0.5/main.nf \
 
 * `--referenceStorePath` - specifies the directory to store the Ensembl fasta and gtf files (Default: within the directory structure created by default in the launch directory)  
 
-* `--derivedStorePath` - specifies the directory to store the tool-specific indices created during processing (Default: within the directory structure created by default in the launch directory)    
+* `--derivedStorePath` - specifies the directory to store the tool-specific indices created during processing (Default: within the directory structure created by default in the launch directory)  
+
+* `--technicalReplicates` - Specifies a two-column CSV file where the first column contains the input sample names and the second column contains the names to which the samples should be collapsed. This is an additional file required for processing datasets with technical replicates. 
 
 <br>
 

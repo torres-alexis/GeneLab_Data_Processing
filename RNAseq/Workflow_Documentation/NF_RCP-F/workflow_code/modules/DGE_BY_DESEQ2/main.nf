@@ -45,6 +45,7 @@ process DGE_BY_DESEQ2 {
         --runsheet_path runsheet.csv \\
         ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
         --input_gene_results_dir "Rsem_gene_counts" \\
+        ${params.technicalReplicates ? "--technical_replicates_path ${params.technicalReplicates}" : ''} \\
         --primary_keytype ${ meta.primary_keytype } \\
         --normalization 'default' \\
         --normalized_counts_output_prefix "norm_counts_output/" \\
@@ -59,6 +60,7 @@ process DGE_BY_DESEQ2 {
     // then
     //     Rscript --vanilla dge_annotation_R_scripts/dge_annotation_workflow.R \\
     //         --runsheet_path runsheet.csv \\
+    //         ${params.technicalReplicates ? "--technical_replicates_path ${params.technicalReplicates}" : ''} \\
     //         ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
     //         --input_gene_results_dir "Rsem_gene_counts" \\
     //         --primary_keytype ${ meta.primary_keytype } \\

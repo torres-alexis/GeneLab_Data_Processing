@@ -33,6 +33,10 @@ Jonathan Galazka (GeneLab Project Scientist)
 - Added the 'osdAccession' parameter used for processing OSDR datasets, fixing runsheet generation issues
 
 - Added the 'isaArchivePath' parameter as another input option to process OSDR datasets
+
+- DGE R script now uses parallel processing where possible using BiocParallel and DESeq parameters
+
+- ERCCnorm steps were removed from the pipeline documentation. ERCC-normalized data are still available upon request.
   
 ---
 
@@ -1013,6 +1017,7 @@ dpt-isa-to-runsheet --accession OSD-### \
 - `--config-type` – Instructs the script to extract the metadata required for `bulkRNAseq` processing from the ISA archive
 - `--config-version` – Specifies the `dp-tools` configuration version to use, a value of `Latest` will specify the most recent version
 - `--isa-archive` – Specifies the *ISA.zip file for the respective OSD study, downloaded in the `dpt-get-isa-archive` command
+- `--technical_replicates_path` - Specifies a two-column CSV file where the first column contains the input sample names and the second column contains the names to which the samples should be collapsed.
 
 
 **Input Data:**
@@ -1047,10 +1052,22 @@ library(DESeq2)
 library(stringr)
 library(BiocParallel)
 
-### Set paralel processing settings based on cpus parameter
+
+### Set paralel processing settings based on cpus parameter ###
+
 if (cpus > 1) {
     register(MulticoreParam(cpus))
 }
+
+
+### Load technical replicates mapping file if provided ###
+
+if (!is.null(technical_replicates_path) && file.exists(technical_replicates_path)) {
+  tech_reps <- read.csv(technical_replicates_path, header = FALSE, col.names = c("SampleWithReps", "CollapsedSampleName"))
+} else {
+  tech_reps <- NULL
+}
+
 
 ### Define which organism is used in the study - this should be consistent with the name in the "name" column of the GL-DPPD-7110_annotations.csv file, which matches the abbreviations used in the Panther database for each organism ###
 
@@ -1172,6 +1189,36 @@ rownames(sampleTable) <- colnames(txi.rsem$counts)
 ### Make DESeqDataSet object ###
 
 dds <- DESeqDataSetFromTximport(txi.rsem, sampleTable, ~condition)
+
+
+### Check for technical replicates and collapse them if necessary ###
+
+if (!is.null(tech_reps)) {
+  # Get sample ids from the runsheet
+  sample_ids <- unique(compare_csv$sample_id)  
+  # Check if all sample_ids are in the first column of tech_reps 
+  missing_samples <- sample_ids[!sample_ids %in% tech_reps$SampleWithReps]
+  if (length(missing_samples) > 0) {
+    stop(paste("The following sample identifiers from the runsheet are not present in the technical replicates file:", paste(missing_samples, collapse=", ")))
+  }
+  # Collapse technical replicates using DESeq2::collapseReplicates; Sums counts
+  dds <- DESeq2::collapseReplicates(
+    object = dds,
+    groupby = tech_reps$CollapsedSampleName,
+    run = tech_reps$SampleWithReps
+  )
+  # Update the sample table after collapsing replicates
+  sampleTable <- colData(dds)
+  # Update group after collapsing replicates
+  if (ncol(study) >= 2) {
+    group <- apply(study[rownames(sampleTable), ], 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+  } else {
+    group <- study[rownames(sampleTable), 1]  # If only one column, use it directly
+  }
+  group_names <- paste0("(", group, ")", sep = "") # human readable group names
+  group <- sub("^BLOCKER_", "", make.names(paste0("BLOCKER_", group))) # group naming compatible with R models
+  names(group) <- group_names
+}
 summary(dds)
 
 
