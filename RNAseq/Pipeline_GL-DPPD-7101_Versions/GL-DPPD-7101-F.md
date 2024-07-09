@@ -109,6 +109,7 @@ Jonathan Galazka (GeneLab Project Scientist)
 |read_distribution|5.0.2|[http://rseqc.sourceforge.net/#read-distribution-py](http://rseqc.sourceforge.net/#read-distribution-py)|
 |R|4.4.0|[https://www.r-project.org/](https://www.r-project.org/)|
 |Bioconductor|3.19|[https://bioconductor.org](https://bioconductor.org)|
+|BiocParallel|1.38.0|[https://bioconductor.org/packages/release/bioc/html/BiocParallel.html](https://bioconductor.org/packages/release/bioc/html/BiocParallel.html)|
 |DESeq2|1.44.0|[https://bioconductor.org/packages/release/bioc/html/DESeq2.html](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)|
 |tximport|1.32.0|[https://github.com/mikelove/tximport](https://github.com/mikelove/tximport)|
 |tidyverse|2.0.0|[https://www.tidyverse.org](https://www.tidyverse.org)|
@@ -1032,21 +1033,24 @@ dpt-isa-to-runsheet --accession OSD-### \
 ### Install R packages if not already installed ###
 
 
-install.packages("tidyverse")
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(version = "3.14")
 BiocManager::install("tximport")
 BiocManager::install("DESeq2")
-
+BiocManager::install("BiocParallel")
 
 ### Import libraries (tximport, DESeq2, tidyverse, stringr) ###
 
 library(tximport)
 library(DESeq2)
-library(tidyverse)
 library(stringr)
+library(BiocParallel)
 
+### Set paralel processing settings based on cpus parameter
+if (cpus > 1) {
+    register(MulticoreParam(cpus))
+}
 
 ### Define which organism is used in the study - this should be consistent with the name in the "name" column of the GL-DPPD-7110_annotations.csv file, which matches the abbreviations used in the Panther database for each organism ###
 
@@ -1314,7 +1318,7 @@ dds_2 <- nbinomWaldTest(dds_2)
 
 ### Run DESeq analysis without considering ERCC genes ###
 
-dds_1 <- DESeq(dds_1)
+dds_1 <- DESeq(dds, parallel = (cpus > 1))
 
 
 ### Generate F statistic p-value (similar to ANOVA p-value) using DESeq2 likelihood ratio test (LRT) design ###
@@ -1326,8 +1330,8 @@ res_2_lrt <- results(dds_2_lrt)
 
 ## For non-ERCC normalized data
 
-dds_1_lrt <- DESeq(dds_1, test = "LRT", reduced = ~ 1)
-res_1_lrt <- results(dds_1_lrt)
+dds_1_lrt <- DESeq(dds_1, test = "LRT", reduced = ~ 1, parallel = (cpus > 1))
+res_1_lrt <- results(dds_1_lrt, parallel = (cpus > 1))
 
 ```
 
@@ -1365,7 +1369,7 @@ output_table_1 <- normCounts
 ### Iterate through Wald Tests to generate pairwise comparisons of all groups ###
 
 for (i in 1:dim(contrasts)[2]){
-	res_1 <- results(dds_1, contrast=c("condition",contrasts[1,i],contrasts[2,i]))
+	res_1 <- results(dds_1, contrast=c("condition",contrasts[1,i],contrasts[2,i]), parallel = (cpus > 1))
 	res_1 <- as.data.frame(res_1@listData)[,c(2,4,5,6)]
 	colnames(res_1) <- c(paste0("Log2fc_", colnames(contrasts)[i]), paste0("Stat_",colnames(contrasts)[i]), paste0("P.value_",colnames(contrasts)[i]), paste0("Adj.p.value_",colnames(contrasts)[i]))
 	output_table_1 <- cbind(output_table_1,res_1)
