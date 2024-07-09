@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added organism support for bacillus subtilis 
+- Added the osdAccession parameter, which is required for processing using the OSDR API and optional for workflows utilizing a runsheet.
 
 ### Fixed
 
+- Fixed assay table updates: 
 ### Changed
+
 
 - Updated software aside from ERCC notebook, Singularity.
   - Nextflow 23.10.1 -> 24.04.2 

@@ -48,10 +48,10 @@ if (params.help) {
   println("┇ RNASeq Consensus Pipeline: $workflow.manifest.version  ┇")
   println("┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅")
   println("Usage example 1: Processing GLDS datasets using genome fasta and gtf from Ensembl")
-  println("   > nextflow run ./main.nf --gldsAccession GLDS-194")
+  println("   > nextflow run ./main.nf --osdAccession OSD-194 --gldsAccession GLDS-194")
   println()
   println("Usage example 2: Processing GLDS datasets using local genome fasta and gtf")
-  println("   Note: ensemblVersion and ref_source are used here to label subdirectories for derived reference files.")
+  println("   > nextflow run ./main.nf --osdAccession OSD-194 --gldsAccession GLDS-194 --ensemblVersion 96 --ref_source <reference_label>  --ref_fasta </path/to/fasta> --ref_gtf </path/to/gtf>")
   println("   > nextflow run ./main.nf --gldsAccession GLDS-194 --ensemblVersion 96 --ref_source <reference_label>  --ref_fasta </path/to/fasta> --ref_gtf </path/to/gtf>")
   println()
   println("Usage example 3: Processing Other datasets")
@@ -60,8 +60,10 @@ if (params.help) {
   println()
   println("arguments:")
   println("  --help                show this help message and exit")
+  println("  --osdAccession OSD-000")
+  println("                        the OSD study ID to process through the RNASeq Concensus Pipeline.")
   println("  --gldsAccession GLDS-000")
-  println("                        the GLDS accession id to process through the RNASeq Concensus Pipeline.")
+  println("                        the GLDS accession number to process through the RNASeq Concensus Pipeline.")
   println("  --runsheetPath        Use a local runsheet instead one automatically generated from a GLDS ISA archive.")
   println("  --ensemblVersion n    Specifies the ensembl Version to use for the reference genome. The default version is ")
   println("  --skipVV              Skip automated V&V. Default: false")
@@ -89,6 +91,8 @@ println "Storing any newly generated derived reference files here: ${params.deri
 * CHECK REQUIRED PARAMS AND LOAD  *****************
 **************************************************/
 // Get all params sourced data into channels
+// Set up channel containing osd accession number
+if ( params.osdAccession ) {ch_osd_accession = Channel.from( params.osdAccession )}
 // Set up channel containing glds accession number
 if ( params.gldsAccession ) {ch_glds_accession = Channel.from( params.gldsAccession )} else { exit 1, "Missing Required Parameter: gldsAccession. Example for setting on CLI: --gldsAccession GLDS-194"}
 

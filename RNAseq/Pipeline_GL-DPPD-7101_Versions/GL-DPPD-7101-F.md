@@ -26,24 +26,11 @@ Updated [Ensembl Reference Files](../../GeneLab_Reference_Annotations/Pipeline_G
 - Plants: Ensembl plants release 54
 - Bacteria: Ensembl bacteria release 54
 
-The DESeq2 Normalization and DGE step, [step 9](#9-normalize-read-counts-perform-differential-gene-expression-analysis-and-add-gene-annotations-in-r), was modified as follows:
+- Updated software versions (see changelog)
 
-- A separate sub-step, [step 9a](#9a-create-sample-runsheet), was added to use the [dp_tools](https://github.com/J-81/dp_tools) program to create a runsheet containing all the metadata needed for running DESeq2, including ERCC spike-in status and sample grouping. This runsheet is imported in the DESeq2 script in place of parsing the ISA.zip file associated with the GLDS dataset. 
+- Added organism support for bacillus subtilis 
 
-- GeneLab now creates a custom reference annotation table as detailed in the [GeneLab_Reference_Annotations](../../GeneLab_Reference_Annotations) directory. The GeneLab Reference Annotation tables for each model organism created with [version GL-DPPD-7110](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110) is now imported in the DESeq2 script to add gene annotations in [step 9f](#9f-prepare-genelab-dge-tables-with-annotations-on-datasets-with-ercc-spike-in) and [step 9i](#9i-prepare-genelab-dge-tables-with-annotations-on-datasets-without-ercc-spike-in). 
-
-- Added the `ERCCnorm_SampleTable.csv` output file in [step 9g](#9g-export-genelab-dge-tables-with-annotations-for-datasets-with-ercc-spike-in) to indicate the samples used in the DESeq2 Normalization and DGE step for datasets with ERCC spike-in.
-  > Note: In most cases, the ERCCnorm_SampleTable.csv and SampleTable.csv files are the same. They will only differ when, for the ERCC-based analysis, samples are removed due to a lack of detectable Group B ERCC spike-in genes.
-
-- Fixed edge case where `contrasts.csv` and `ERCCnorm_contrasts.csv` table header and rows could become out of sync with each other in [step 9c](#9c-configure-metadata-sample-grouping-and-group-comparisons) and [step 9e](#9e-perform-dge-on-datasets-with-ercc-spike-in) by generating rows from header rather than generating both separately.
-
-- Updated R version from 4.1.2 to 4.1.3.
-
-- Fixed edge case where certain scripts would crash if sample names were prefixes of other sample names. This had affected [step 4c](#4c-tablulate-star-counts-in-r), [step 8c](#8c-calculate-total-number-of-genes-expressed-per-sample-in-r), and [step 9d](#9d-import-rsem-genecounts).
-
-- Fixed rare edge case where groupwise mean and standard deviations could become misassociated to incorrect groups. This had affected [step 9f](#9f-prepare-genelab-dge-tables-with-annotations-on-datasets-with-ercc-spike-in) and [step 9i](#9i-prepare-genelab-dge-tables-with-annotations-on-datasets-without-ercc-spike-in).
-
-- [Step 2a](#2a-trimfilter-raw-data) adapter type argument removed in favor of using the built in TrimGalore! adapter [autodetection](https://github.com/FelixKrueger/TrimGalore/blob/0.6.7/Docs/Trim_Galore_User_Guide.md#adapter-auto-detection).
+- Added the 'osdAccession' parameter used for processing OSDR datasets, fixing runsheet generation issues
   
 ---
 
@@ -1007,11 +994,11 @@ sessionInfo()
 ### Download the *ISA.zip file from the GeneLab Repository ###
 
 dpt-get-isa-archive \
- --accession GLDS-###
+ --accession OSD-###
 
 ### Parse the metadata from the *ISA.zip file to create a sample runsheet ###
 
-dpt-isa-to-runsheet --accession GLDS-### \
+dpt-isa-to-runsheet --accession OSD-### \
  --config-type bulkRNASeq \
  --config-version Latest \
  --isa-archive *ISA.zip
@@ -1019,21 +1006,21 @@ dpt-isa-to-runsheet --accession GLDS-### \
 
 **Parameter Definitions:**
 
-- `--accession GLDS-###` – GLDS accession ID (replace ### with the GLDS number being processed), used to retrieve the urls for the ISA archive and raw reads hosted on the GeneLab Repository
+- `--accession OSD-###` – OSD study ID (replace ### with the OSD number being processed), used to retrieve the urls for the ISA archive and raw reads hosted on the GeneLab Repository
 - `--config-type` – Instructs the script to extract the metadata required for `bulkRNAseq` processing from the ISA archive
 - `--config-version` – Specifies the `dp-tools` configuration version to use, a value of `Latest` will specify the most recent version
-- `--isa-archive` – Specifies the *ISA.zip file for the respective GLDS dataset, downloaded in the `dpt-get-isa-archive` command
+- `--isa-archive` – Specifies the *ISA.zip file for the respective OSD study, downloaded in the `dpt-get-isa-archive` command
 
 
 **Input Data:**
 
-- No input data required but the GLDS accession ID needs to be indicated, which is used to download the respective ISA archive 
+- No input data required but the OSD study ID needs to be indicated, which is used to download the respective ISA archive 
 
 **Output Data:**
 
-- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, used to define sample groups - the *ISA.zip file is located in the [GLDS repository](https://genelab-data.ndc.nasa.gov/genelab/projects) under 'Study Files' -> 'metadata')
+- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD study and associated dataset, used to define sample groups - the *ISA.zip file is located in the [OSDR repository](https://osdr.nasa.gov/bio/repo/data/studies) under 'Files' -> 'OSD-###'-> 'Study Metadata Files')
 
-- **{GLDS-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv** (table containing metadata required for processing, version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
+- **{OSD-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv** (table containing metadata required for processing, version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
 
 <br>
 
@@ -2413,7 +2400,7 @@ ERCCcounts.to_csv('ERCC_analysis/ERCCcounts_GLbulkRNAseq.csv')
 
 **Input Data:**
 
-- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, output from [Step 9a](#9a-create-sample-runsheet))
+- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD study and associated dataset, output from [Step 9a](#9a-create-sample-runsheet))
 - RSEM_Unnormalized_Counts.csv (RSEM raw counts table, output from [Step 9](#ERCCspikeOut))
 
 **Output Data:**
