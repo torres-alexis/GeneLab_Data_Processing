@@ -76,12 +76,12 @@ Jonathan Galazka (GeneLab Project Scientist)
     - [9b. Environment Set Up](#9b-environment-set-up)
     - [9c. Configure Metadata, Sample Grouping, and Group Comparisons](#9c-configure-metadata-sample-grouping-and-group-comparisons)
     - [9d. Import RSEM GeneCounts](#9d-import-rsem-genecounts)
-    - [9e. Perform DGE on Datasets With ERCC Spike-In](#9e-perform-dge-on-datasets-with-ercc-spike-in)
-    - [9f. Prepare GeneLab DGE Tables with Annotations on Datasets With ERCC Spike-In](#9f-prepare-genelab-dge-tables-with-annotations-on-datasets-with-ercc-spike-in)
-    - [9g. Export GeneLab DGE Tables with Annotations for Datasets With ERCC Spike-In](#9g-export-genelab-dge-tables-with-annotations-for-datasets-with-ercc-spike-in)
-    - [9h. Perform DGE on Datasets Without ERCC Spike-In](#9h-perform-dge-on-datasets-without-ercc-spike-in)
-    - [9i. Prepare GeneLab DGE Tables with Annotations on Datasets Without ERCC Spike-In](#9i-prepare-genelab-dge-tables-with-annotations-on-datasets-without-ercc-spike-in)
-    - [9j. Export GeneLab DGE Tables with Annotations for Datasets Without ERCC Spike-In](#9j-export-genelab-dge-tables-with-annotations-for-datasets-without-ercc-spike-in)
+    <!-- - [9e. Perform DGE on Datasets With ERCC Spike-In](#9e-perform-dge-on-datasets-with-ercc-spike-in) -->
+    <!-- - [9f. Prepare GeneLab DGE Tables with Annotations on Datasets With ERCC Spike-In](#9f-prepare-genelab-dge-tables-with-annotations-on-datasets-with-ercc-spike-in)
+    - [9g. Export GeneLab DGE Tables with Annotations for Datasets With ERCC Spike-In](#9g-export-genelab-dge-tables-with-annotations-for-datasets-with-ercc-spike-in) -->
+    - [9e. Perform DGE](#9e-perform-dge)
+    - [9f. Prepare GeneLab DGE Tables with Annotations](#9f-prepare-genelab-dge-tables-with-annotations)
+    - [9g. Export GeneLab DGE Tables with Annotations](#9g-export-genelab-dge-tables-with-annotations)
 
   - [**10. Evaluate ERCC Spike-In Data**](#10-evaluate-ercc-spike-in-data)
     - [10a. Evaluate ERCC Count Data in Python](#10a-evaluate-ercc-count-data-in-python)
@@ -1063,8 +1063,6 @@ runsheet_path="/path/to/directory/containing/runsheet.csv/file" ## This is the r
 work_dir="/path/to/working/directory/where/script/is/executed/from" 
 counts_dir="/path/to/directory/containing/RSEM/counts/files"
 norm_output="/path/to/normalized/counts/output/directory"
-DGE_output="/path/to/DGE/output/directory"
-DGE_output_ERCC="/path/to/ERCC-normalized/DGE/output/directory" ## Only needed for datasets with ERCC spike-in
 
 
 ### Pull in the GeneLab annotation table (GL-DPPD-7110_annotations.csv) file ###
@@ -1162,498 +1160,7 @@ txi.rsem$length[txi.rsem$length == 0] <- 1
 
 ```
 
-<br>
-
-### 9e. Perform DGE on Datasets With ERCC Spike-In
-> Note: For datasets that do not contain ERCC spike-in, skip to [Step 9h](#9h-perform-dge-on-datasets-without-ercc-spike-in)
-
-```R
-### Create data frame defining which group each sample belongs to ###
-
-sampleTable <- data.frame(condition=factor(group))
-rownames(sampleTable) <- colnames(txi.rsem$counts)
-
-
-### Make DESeqDataSet object ###
-
-dds <- DESeqDataSetFromTximport(txi.rsem, sampleTable, ~condition)
-summary(dds)
-
-
-############################################################
-######### Create ERCC unfiltered raw counts table ##########
-############################################################
-## Note: These data are used internally at GeneLab for QC ##
-############################################################
-
-
-### Make a DESeqDataSet object using only unfiltered ERCC genes ###
-
-ercc_rows_all <- grep("ERCC-",rownames(dds))
-ercc_dds_all <- dds[ercc_rows_all,]
-
-### Print ERCC unfiltered raw counts table ###
-
-ERCC_rawCounts_all = as.data.frame(counts(ercc_dds_all))
-write.csv(ERCC_rawCounts_all,file='ERCC_rawCounts_unfiltered_GLbulkRNAseq.csv')
-
-
-#############################################################################
-### Prepare data to be normalized with and without considering ERCC genes ###
-#############################################################################
-
-### Filter out genes with counts of less than 10 in all samples ###
-
-keepGenes <- rowSums(counts(dds)) > 10
-dds <- dds[keepGenes,]
-summary(dds)
-dim(dds)
-
-
-### Make a DESeqDataSet object using only filtered ERCC genes, which will be used to generate ERCC counts table ###
-
-ercc_rows <- grep("ERCC-",rownames(dds))
-ercc_dds <- dds[ercc_rows,]
-
-
-### Print ERCC filtered raw counts table ###
-## Note: These data are used internally at GeneLab for QC
-
-ERCC_rawCounts = as.data.frame(counts(ercc_dds))
-write.csv(ERCC_rawCounts,file='ERCC_rawCounts_filtered_GLbulkRNAseq.csv')
-
-
-### Create a list of rows containing ERCC group B genes to use for ERCC-normalization ###
-## Note: ERCC group B genes should be the same concentration in all samples
-
-ercc_rows_gpB <- grep("ERCC-00096|ERCC-00171|ERCC-00009|ERCC-00042|ERCC-00060|ERCC-00035|ERCC-00025|ERCC-00051|ERCC-00053|ERCC-00148|ERCC-00126|ERCC-00034|ERCC-00150|ERCC-00067|ERCC-00031|ERCC-00109|ERCC-00073|ERCC-00158|ERCC-00104|ERCC-00142|ERCC-00138|ERCC-00117|ERCC-00075",rownames(dds))
-ercc_dds_gpB <- dds[ercc_rows_gpB,]
-summary(ercc_dds_gpB)
-dim(ercc_dds_gpB)
-
-
-### Identify and list samples that do not contain any counts for ERCC genes and specifically group B ERCC genes ###
-## Note: All samples should contain ERCC spike-in and thus ERCC counts, if some samples do not contain ERCC counts, those samples should be removed and not used for downstream ERCC-associated analysis
-
-cat("Samples that do not have detectable ERCC spike-ins: ", colnames(ercc_dds[,colSums(counts(ercc_dds))==0]), sep="\n")
-
-cat("Samples that do not have detectable ERCC group B spike-ins: ", colnames(dds[,colSums(counts(ercc_dds_gpB))==0]), sep="\n")
-
-
-### Create a new study object WITHOUT the samples that don't have detectable ERCC group B spike-ins ###
-
-remove <- colnames(dds[,colSums(counts(ercc_dds_gpB))==0])
-study_sub <- subset(study,!rownames(study) %in% remove) # new study object with non-ERCC-gpB samples removed
-
-
-### Create a new group object WITHOUT the samples that don't have detectable ERCC group B spike-ins ###
-
-if (ncol(study_sub) >= 2) {
-  group_sub <- apply(study_sub, 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
-} else {
-  group_sub <- study_sub[, 1]
-}
-group_names <- paste0("(",group_sub,")",sep = "") # human readable group names
-group_sub <- sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", group_sub))) # group naming compatible with R models, this maintains the default behaviour of make.names with the exception that 'X' is never prepended to group names
-names(group_sub) <- group_names
-rm(group_names)
-
-
-### Create new contrasts object that only contains the groups in the subset group object ###
-
-contrasts_sub.names <- combn(levels(factor(names(group_sub))),2) # generate matrix of pairwise group combinations for comparison
-contrasts_sub <- apply(contrasts_sub.names, MARGIN=2, function(col) sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", stringr::str_sub(col, 2, -2))))) # limited make.names call for each group (also removes leading parentheses)
-contrasts_sub.names <- c(paste(contrasts_sub.names[1,],contrasts_sub.names[2,],sep = "v"),paste(contrasts_sub.names[2,],contrasts_sub.names[1,],sep = "v")) # format combinations for output table files names
-contrasts_sub <- cbind(contrasts_sub,contrasts_sub[c(2,1),])
-colnames(contrasts_sub) <- contrasts_sub.names
-rm(contrasts_sub.names)
-
-### If all samples contain ERCC spike-in (i.e. there are no samples to remove), reassign group_sub, study_sub and contrasts_sub back to the original variable contents ###
-
-if (length(remove) == 0) {
-  group_sub <- group
-  study_sub <- study
-  contrasts_sub <- contrasts
-}
-
-
-########################################################################################################
-### Prepare DESeqDataSet objects to be used for DGE analysis with and without considering ERCC genes ###
-########################################################################################################
-
-### Generate a DESeqDataSet object using only non-ERCC genes ###
-## dds_1 will be used to generate data without considering ERCC genes
-
-dds_1 <- dds[-c(ercc_rows),] ## remove ERCCs from full counts table
-
-
-### Generate a DESeqDataSet object using only samples that contain ERCC group B genes ###
-## dds_2 will be used to generate data with considering ERCC genes
-
-dds_2 <- dds[,colSums(counts(ercc_dds_gpB)) > 0] ## samples that do not contain ERCC group B counts are removed
-sampleTable_sub <- data.frame(condition=factor(group_sub)) ## create a new sampleTable only with samples that contain ERCC group B counts
-rownames(sampleTable_sub) <- rownames(study_sub)
-dds_2$condition <- sampleTable_sub$condition ## reassign the dds_2 condition to the subset condition containing only samples with ERCC group B counts
-summary(dds_2)
-dim(dds_2)
-
-
-#######################################################################
-### Perform DESeq2 analysis with and without considering ERCC genes ###
-#######################################################################
-
-### Run DESeq analysis with ERCC-normalization by replacing size factor object with ERCC size factors for rescaling ###
-## Try first to use the default type="median", but if there is an error (usually due to zeros in genes), use type="poscounts"
-## From DESeq2 manual: "The "poscounts" estimator deals with a gene with some zeros, by calculating a modified geometric mean by taking the n-th root of the product of the non-zero counts."
-
-dds_2 <- tryCatch(
-      expr = { estimateSizeFactors(dds_2, controlGenes=ercc_rows_gpB) },
-      error = function(e) { estimateSizeFactors(dds_2, type="poscounts", controlGenes=ercc_rows_gpB)}
-)
-
-dds_2 <- dds_2[-c(ercc_rows),] # remove ERCCs from counts table after normalization
-dds_2 <- estimateDispersions(dds_2)
-dds_2 <- nbinomWaldTest(dds_2)
-
-
-### Run DESeq analysis without considering ERCC genes ###
-
-dds_1 <- DESeq(dds, parallel = (cpus > 1))
-
-
-### Generate F statistic p-value (similar to ANOVA p-value) using DESeq2 likelihood ratio test (LRT) design ###
-
-## For ERCC-normalized data
-
-dds_2_lrt <- DESeq(dds_2, test = "LRT", reduced = ~ 1)
-res_2_lrt <- results(dds_2_lrt)
-
-## For non-ERCC normalized data
-
-dds_1_lrt <- DESeq(dds_1, test = "LRT", reduced = ~ 1, parallel = (cpus > 1))
-res_1_lrt <- results(dds_1_lrt, parallel = (cpus > 1))
-
-```
-
-<br>
-
-### 9f. Prepare GeneLab DGE Tables with Annotations on Datasets With ERCC Spike-In
-> Note: For datasets that do not contain ERCC spike-in, skip to [Step 9h](#9h-perform-dge-on-datasets-without-ercc-spike-in)
-
-```R
-### Create two data frames, one containing (non-ERCC) normalized counts and the other containing ERCC-normalized counts ###
-
-normCounts <- as.data.frame(counts(dds_1, normalized=TRUE))
-ERCCnormCounts <- as.data.frame(counts(dds_2, normalized=TRUE))
-
-
-### Add 1 to all (non-ERCC) normalized counts and to all ERCC-normalized counts to avoid issues with downstream calculations ###
-normCounts <- normCounts +1
-ERCCnormCounts <- ERCCnormCounts +1
-
-
-########################################################
-### Prepare DGE table without considering ERCC genes ###
-########################################################
-
-### Start the DGE output table with the (non-ERCC) normalized counts for all samples ###
-## reduced output table 1 will be used to generate human-readable DGE table
-
-reduced_output_table_1 <- normCounts
-
-## output tables 1 will be used to generate computer-readable DGE table, which is used to create GeneLab visualization plots
-
-output_table_1 <- normCounts
-
-
-### Iterate through Wald Tests to generate pairwise comparisons of all groups ###
-
-for (i in 1:dim(contrasts)[2]){
-	res_1 <- results(dds_1, contrast=c("condition",contrasts[1,i],contrasts[2,i]), parallel = (cpus > 1))
-	res_1 <- as.data.frame(res_1@listData)[,c(2,4,5,6)]
-	colnames(res_1) <- c(paste0("Log2fc_", colnames(contrasts)[i]), paste0("Stat_",colnames(contrasts)[i]), paste0("P.value_",colnames(contrasts)[i]), paste0("Adj.p.value_",colnames(contrasts)[i]))
-	output_table_1 <- cbind(output_table_1,res_1)
-	reduced_output_table_1 <- cbind(reduced_output_table_1,res_1)
-	rm(res_1)
-}
-
-
-### Generate and add all sample mean column to the (non-ERCC) DGE table ###
-
-output_table_1$All.mean <- rowMeans(normCounts, na.rm = TRUE, dims = 1)
-reduced_output_table_1$All.mean <- rowMeans(normCounts, na.rm = TRUE, dims = 1)
-
-
-### Generate and add all sample stdev column to the (non-ERCC) DGE table ###
-
-output_table_1$All.stdev <- rowSds(as.matrix(normCounts), na.rm = TRUE, dims = 1)
-reduced_output_table_1$All.stdev <- rowSds(as.matrix(normCounts), na.rm = TRUE, dims = 1)
-
-
-### Add F statistic p-value (similar to ANOVA p-value) column to the (non-ERCC) DGE table ###
-
-output_table_1$LRT.p.value <- res_1_lrt@listData$padj
-reduced_output_table_1$LRT.p.value <- res_1_lrt@listData$padj
-
-
-### Generate and add group mean and stdev columns to the (non-ERCC) DGE table ###
-
-tcounts <- as.data.frame(t(normCounts))
-tcounts$group <- names(group) # Used final table group name formatting (e.g. '( Space Flight & Blue Light )' )
-
-group_means <- as.data.frame(t(aggregate(. ~ group,data = tcounts,mean))) # Compute group name group-wise means
-colnames(group_means) <- paste0("Group.Mean_", group_means['group',]) # assign group name as column names
-
-group_stdev <- as.data.frame(t(aggregate(. ~ group,data = tcounts,sd))) # Compute group name group-wise standard deviation
-colnames(group_stdev) <- paste0("Group.Stdev_", group_stdev['group',]) # assign group name as column names
-
-group_means <- group_means[-c(1),] # Drop group name row from data rows (now present as column names)
-group_stdev <- group_stdev[-c(1),] # Drop group name row from data rows (now present as column names)
-output_table_1 <- cbind(output_table_1,group_means, group_stdev) # Column bind the group-wise data
-reduced_output_table_1 <- cbind(reduced_output_table_1,group_means, group_stdev) # Column bind the group-wise data
-
-rm(group_stdev,group_means,tcounts)
-
-
-### Add columns needed to generate GeneLab visualization plots to the (non-ERCC) DGE table ###
-
-## Add column to indicate the sign (positive/negative) of log2fc for each pairwise comparison ##
-
-updown_table <- sign(output_table_1[,grep("Log2fc_",colnames(output_table_1))])
-colnames(updown_table) <- gsub("Log2fc","Updown",grep("Log2fc_",colnames(output_table_1),value = TRUE))
-output_table_1 <- cbind(output_table_1,updown_table)
-rm(updown_table)
-
-
-## Add column to indicate contrast significance with p <= 0.1 ##
-
-sig.1_table <- output_table_1[,grep("P.value_",colnames(output_table_1))]<=.1
-colnames(sig.1_table) <- gsub("P.value","Sig.1",grep("P.value_",colnames(output_table_1),value = TRUE))
-output_table_1 <- cbind(output_table_1,sig.1_table)
-rm(sig.1_table)
-
-
-## Add column to indicate contrast significance with p <= 0.05 ##
-
-sig.05_table <- output_table_1[,grep("P.value_",colnames(output_table_1))]<=.05
-colnames(sig.05_table) <- gsub("P.value","Sig.05",grep("P.value_",colnames(output_table_1),value = TRUE))
-output_table_1 <- cbind(output_table_1,sig.05_table)
-rm(sig.05_table)
-
-
-## Add columns for the volcano plot with p-value and adjusted p-value ##
-
-log_pval_table <- log2(output_table_1[,grep("P.value_",colnames(output_table_1))])
-colnames(log_pval_table) <- paste0("Log2_",colnames(log_pval_table))
-output_table_1 <- cbind(output_table_1,log_pval_table)
-rm(log_pval_table)
-log_adj_pval_table <- log2(output_table_1[,grep("Adj.p.value_",colnames(output_table_1))])
-colnames(log_adj_pval_table) <- paste0("Log2_",colnames(log_adj_pval_table))
-output_table_1 <- cbind(output_table_1,log_adj_pval_table)
-rm(log_adj_pval_table)
-
-
-## Prepare PCA table for GeneLab visualization plots ##
-
-exp_raw <- log2(normCounts)
-PCA_raw <- prcomp(t(exp_raw), scale = FALSE)
-
-
-### Read in GeneLab annotation table for the organism of interest ###
-
-annot <- read.table(annotations_link, sep = "\t", header = TRUE, quote = "", comment.char = "", row.names = 1)
-
-
-### Combine annotations table and the (non-ERCC) DGE table ###
-
-output_table_1 <- merge(annot, output_table_1, by='row.names', all.y=TRUE)
-output_table_1 <- output_table_1 %>% 
-  rename(
-    ENSEMBL = Row.names ## Change ENSEMBL to TAIR for plant studies ##
-  )
-
-
-reduced_output_table_1 <- merge(annot, reduced_output_table_1, by='row.names', all.y=TRUE)
-reduced_output_table_1 <- reduced_output_table_1 %>% 
-  rename(
-    ENSEMBL = Row.names ## Change ENSEMBL to TAIR for plant studies ##
-  )
-
-
-#####################################################
-### Prepare DGE table with considering ERCC genes ###
-#####################################################
-
-### Start the DGE output table with the ERCC-normalized counts for all samples ###
-## reduced output table 2 will be used to generate human-readable DGE table
-
-reduced_output_table_2 <- ERCCnormCounts
-
-## output table 2 will be used to generate computer-readable DGE table, which is used to create GeneLab visualization plots
-
-output_table_2 <- ERCCnormCounts
-
-
-### Iterate through Wald Tests to generate pairwise comparisons of all groups ###
-
-for (i in 1:dim(contrasts_sub)[2]){
-  res_2 <- results(dds_2, contrast=c("condition",contrasts_sub[1,i],contrasts_sub[2,i]))
-  res_2 <- as.data.frame(res_2@listData)[,c(2,4,5,6)]
-  colnames(res_2)<-c(paste0("Log2fc_",colnames(contrasts_sub)[i]), paste0("Stat_",colnames(contrasts_sub)[i]), paste0("P.value_",colnames(contrasts_sub)[i]), paste0("Adj.p.value_",colnames(contrasts_sub)[i]))
-  output_table_2<-cbind(output_table_2,res_2)
-  reduced_output_table_2 <- cbind(reduced_output_table_2,res_2)
-  rm(res_2)
-}
-
-
-### Generate and add all sample mean column to the ERCC-normalized DGE table ###
-
-output_table_2$All.mean <- rowMeans(ERCCnormCounts, na.rm = TRUE, dims = 1)
-reduced_output_table_2$All.mean <- rowMeans(ERCCnormCounts, na.rm = TRUE, dims = 1)
-
-
-### Generate and add all sample stdev column to the ERCC-normalized DGE table ###
-
-output_table_2$All.stdev <- rowSds(as.matrix(ERCCnormCounts), na.rm = TRUE, dims = 1)
-reduced_output_table_2$All.stdev <- rowSds(as.matrix(ERCCnormCounts), na.rm = TRUE, dims = 1)
-
-
-### Add F statistic p-value (similar to ANOVA p-value) column to the ERCC-normalized DGE table ###
-
-output_table_2$LRT.p.value <- res_2_lrt@listData$padj
-reduced_output_table_2$LRT.p.value <- res_2_lrt@listData$padj
-
-
-### Generate and add group mean and stdev columns to the ERCC-normalized DGE table ###
-
-tcounts <- as.data.frame(t(ERCCnormCounts))
-tcounts$group_sub <- names(group_sub) # Used final table group name formatting (e.g. '( Space Flight & Blue Light )' )
-
-group_means <- as.data.frame(t(aggregate(. ~ group_sub,data = tcounts,mean))) # Compute group name group-wise means
-colnames(group_means) <- paste0("Group.Mean_", group_means['group_sub',]) # assign group name as column names
-
-group_stdev <- as.data.frame(t(aggregate(. ~ group_sub,data = tcounts,sd))) # Compute group name group-wise standard deviation
-colnames(group_stdev) <- paste0("Group.Stdev_", group_stdev['group_sub',]) # assign group name as column names
-
-group_means <- group_means[-c(1),] # Drop group name row from data rows (now present as column names)
-group_stdev <- group_stdev[-c(1),] # Drop group name row from data rows (now present as column names)
-output_table_2 <- cbind(output_table_2,group_means, group_stdev) # Column bind the group-wise data
-reduced_output_table_2 <- cbind(reduced_output_table_2,group_means, group_stdev) # Column bind the group-wise data
-
-rm(group_stdev,group_means,tcounts)
-
-
-### Add columns needed to generate GeneLab visualization plots to the ERCC-normalized DGE table ###
-
-## Add column to indicate the sign (positive/negative) of log2fc for each pairwise comparison ##
-
-updown_table <- sign(output_table_2[,grep("Log2fc_",colnames(output_table_2))])
-colnames(updown_table) <- gsub("Log2fc","Updown",grep("Log2fc_",colnames(output_table_2),value = TRUE))
-output_table_2 <- cbind(output_table_2,updown_table)
-rm(updown_table)
-
-
-## Add column to indicate contrast significance with p <= 0.1 ##
-
-sig.1_table <- output_table_2[,grep("P.value_",colnames(output_table_2))]<=.1
-colnames(sig.1_table) <- gsub("P.value","Sig.1",grep("P.value_",colnames(output_table_2),value = TRUE))
-output_table_2 <- cbind(output_table_2,sig.1_table)
-rm(sig.1_table)
-
-
-## Add column to indicate contrast significance with p <= 0.05 ##
-
-sig.05_table <- output_table_2[,grep("P.value_",colnames(output_table_2))]<=.05
-colnames(sig.05_table) <- gsub("P.value","Sig.05",grep("P.value_",colnames(output_table_2),value = TRUE))
-output_table_2 <- cbind(output_table_2,sig.05_table)
-rm(sig.05_table)
-
-
-## Add columns for the volcano plot with p-value and adjusted p-value ##
-
-log_pval_table <- log2(output_table_2[,grep("P.value_",colnames(output_table_2))])
-colnames(log_pval_table) <- paste0("Log2_",colnames(log_pval_table))
-output_table_2 <- cbind(output_table_2,log_pval_table)
-rm(log_pval_table)
-log_adj_pval_table <- log2(output_table_2[,grep("Adj.p.value_",colnames(output_table_2))])
-colnames(log_adj_pval_table) <- paste0("Log2_",colnames(log_adj_pval_table))
-output_table_2 <- cbind(output_table_2,log_adj_pval_table)
-rm(log_adj_pval_table)
-
-
-## Prepare PCA table for GeneLab visualization plots ##
-
-exp_raw_ERCCnorm <- log2(ERCCnormCounts)
-PCA_raw_ERCCnorm <- prcomp(t(exp_raw_ERCCnorm), scale = FALSE)
-
-
-### Combine annotations table and the ERCC-normalized DGE table ###
-
-output_table_2 <- merge(annot, output_table_2, by='row.names', all.y=TRUE)
-output_table_2 <- output_table_2 %>% 
-  rename(
-    ENSEMBL = Row.names ## Change ENSEMBL to TAIR for plant studies ##
-  )
-
-
-reduced_output_table_2 <- merge(annot, reduced_output_table_2, by='row.names', all.y=TRUE)
-reduced_output_table_2 <- reduced_output_table_2 %>% 
-  rename(
-    ENSEMBL = Row.names ## Change ENSEMBL to TAIR for plant studies ##
-  )
-
-```
-
-<br>
-
-### 9g. Export GeneLab DGE Tables with Annotations for Datasets With ERCC Spike-In
-> Note: For datasets that do not contain ERCC spike-in, skip to [Step 9h](#9h-perform-dge-on-datasets-without-ercc-spike-in)
-
-```R
-### Export unnormalized, (non-ERCC) normalized, and ERCC-normalized counts tables ###
-
-normCounts_exp <- as.data.frame(counts(dds_1, normalized=TRUE))
-ERCCnormCounts_exp <- as.data.frame(counts(dds_2, normalized=TRUE))
-
-write.csv(txi.rsem$counts,file.path(norm_output, "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"))
-write.csv(normCounts_exp,file.path(norm_output, "Normalized_Counts_GLbulkRNAseq.csv"))
-write.csv(ERCCnormCounts_exp,file.path(norm_output, "ERCC_Normalized_Counts_GLbulkRNAseq.csv"))
-
-
-### Export sample grouping and contrasts tables for (non-ERCC) normalized and ERCC-normalized data ###
-
-write.csv(sampleTable,file.path(DGE_output, "SampleTable_GLbulkRNAseq.csv"))
-write.csv(sampleTable_sub,file.path(DGE_output_ERCC, "ERCCnorm_SampleTable_GLbulkRNAseq.csv"))
-
-write.csv(contrasts,file.path(DGE_output, "contrasts_GLbulkRNAseq.csv"))
-write.csv(contrasts_sub,file.path(DGE_output_ERCC, "ERCCnorm_contrasts_GLbulkRNAseq.csv"))
-
-
-### Export human-readable (non-ERCC) normalized and ERCC-normalized DGE tables ###
-
-write.csv(reduced_output_table_1,file.path(DGE_output, "differential_expression_GLbulkRNAseq.csv"), row.names = FALSE)
-write.csv(reduced_output_table_2,file.path(DGE_output_ERCC, "ERCCnorm_differential_expression_GLbulkRNAseq.csv"), row.names = FALSE)
-
-
-### Export computer-readable DGE and PCA tables used for GeneLab visualization ###
-
-write.csv(output_table_1,file.path(DGE_output, "visualization_output_table_GLbulkRNAseq.csv"), row.names = FALSE)
-write.csv(output_table_2,file.path(DGE_output_ERCC, "visualization_output_table_ERCCnorm_GLbulkRNAseq.csv"), row.names = FALSE)
-
-write.csv(PCA_raw$x,file.path(DGE_output, "visualization_PCA_table_GLbulkRNAseq.csv"), row.names = TRUE)
-write.csv(PCA_raw_ERCCnorm$x,file.path(DGE_output_ERCC, "visualization_PCA_table_ERCCnorm_GLbulkRNAseq.csv"), row.names = TRUE)
-
-
-### print session info ###
-
-print("Session Info below: ")
-sessionInfo()
-
-```
-
-<br>
-
-### 9h. Perform DGE on Datasets Without ERCC Spike-In
+### 9e. Perform DGE
 
 ```R
 ### Create data frame defining which group each sample belongs to ###
@@ -1676,9 +1183,16 @@ summary(dds_1)
 dim(dds_1)
 
 
+### Remove ERCC genes if any are present
+
+if (length(grep("ERCC-", rownames(dds))) != 0) {
+    dds <- dds[-c(grep("ERCC-", rownames(dds))), ]
+}
+
+
 ### Run DESeq analysis ###
 
-dds_1 <- DESeq(dds_1)
+dds_1 <- DESeq(dds, parallel = (params$cpus > 1))
 
 
 ### Generate F statistic p-value (similar to ANOVA p-value) using DESeq2 likelihood ratio test (LRT) design ###
@@ -1690,7 +1204,7 @@ res_1_lrt <- results(dds_1_lrt)
 
 <br>
 
-### 9i. Prepare GeneLab DGE Tables with Annotations on Datasets Without ERCC Spike-In
+### 9f. Prepare GeneLab DGE Tables with Annotations
 
 ```R
 ### Create a data frame containing normalized counts ###
@@ -1829,7 +1343,7 @@ reduced_output_table_1 <- reduced_output_table_1 %>%
 
 <br>
 
-### 9j. Export GeneLab DGE Tables with Annotations for Datasets Without ERCC Spike-In
+### 9g. Export GeneLab DGE Tables with Annotations
 
 ```R
 ### Export unnormalized and normalized counts tables ###
@@ -1873,10 +1387,8 @@ sessionInfo()
 - [GL-DPPD-7110_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110/GL-DPPD-7110_annotations.csv) (csv file containing link to GeneLab annotations) 
 - *genes.results (RSEM counts per gene, output from [Step 8a](#8a-count-aligned-reads-with-rsem))
 
-<a id=ERCCspikeOut></a>
-**Output Data for Datasets with ERCC Spike-In:**
 
-Output data without considering ERCC spike-in genes:
+**Output data:**
 
 - **RSEM_Unnormalized_Counts_GLbulkRNAseq.csv** (table containing raw RSEM gene counts for each sample)
 - **Normalized_Counts_GLbulkRNAseq.csv** (table containing normalized gene counts for each sample)
@@ -1886,28 +1398,17 @@ Output data without considering ERCC spike-in genes:
 - **differential_expression_GLbulkRNAseq.csv** (table containing normalized counts for each sample, group statistics, DESeq2 DGE results for each pairwise comparison, and gene annotations) 
 - **contrasts_GLbulkRNAseq.csv** (table containing all pairwise comparisons)
 
-Output data with considering ERCC spike-in genes:
-*Note: ERCC-normalized data are only available upon request. GeneLab encourages users to use the normalized and DGE data without considering ERCC spike-in genes.*
+Output data with considering ERCC spike-in genes:  
+*Note: ERCC genes are removed from the counts table before normalization and DGE. ERCC-normalized data are only available upon request. GeneLab encourages users to use the normalized and DGE data without considering ERCC spike-in genes.*
 
-- ERCC_rawCounts_unfiltered_GLbulkRNAseq.csv (table containing raw ERCC unfiltered counts)
-- ERCC_rawCounts_filtered_GLbulkRNAseq.csv (ERCC counts table after removing ERCC genes with low counts)
+- ERCCnorm_rawCounts_unfiltered_GLbulkRNAseq.csv (table containing raw ERCC unfiltered counts)
+- ERCCnorm_rawCounts_filtered_GLbulkRNAseq.csv (ERCC counts table after removing ERCC genes with low counts)
 - ERCC_Normalized_Counts_GLbulkRNAseq.csv (table containing ERCC-normalized gene counts for each sample)
 - ERCCnorm_SampleTable_GLbulkRNAseq.csv (table containing samples with detectable ERCC group B genes and their respective groups)
 - visualization_output_table_ERCCnorm_GLbulkRNAseq.csv (file used to generate GeneLab DGE visualizations for ERCC-normalized data)
 - visualization_PCA_table_ERCCnorm_GLbulkRNAseq.csv (file used to generate GeneLab PCA plots for ERCC-normalized data)
 - ERCCnorm_differential_expression_GLbulkRNAseq.csv (table containing ERCC-normalized counts for each sample, group statistics, DESeq2 DGE results for each pairwise comparison, and gene annotations)
 - ERCCnorm_contrasts_GLbulkRNAseq.csv (table containing all pairwise comparisons for samples containing ERCC spike-in)
-
-
-**Output Data for Datasets without ERCC Spike-In:**
-
-- **RSEM_Unnormalized_Counts_GLbulkRNAseq.csv** (table containing raw RSEM gene counts for each sample)
-- **Normalized_Counts_GLbulkRNAseq.csv** (table containing normalized gene counts for each sample)
-- **SampleTable_GLbulkRNAseq.csv** (table containing samples and their respective groups)
-- visualization_output_table_GLbulkRNAseq.csv (file used to generate GeneLab DGE visualizations)
-- visualization_PCA_table_GLbulkRNAseq.csv (file used to generate GeneLab PCA plots)
-- **differential_expression_GLbulkRNAseq.csv** (table containing normalized counts for each sample, group statistics, DESeq2 DGE results for each pairwise comparison, and gene annotations) 
-- **contrasts_GLbulkRNAseq.csv** (table containing all pairwise comparisons)
 
 > Note: RNAseq processed data interactive tables and plots are found in the [GLDS visualization portal](https://visualization.genelab.nasa.gov/data/studies).
 

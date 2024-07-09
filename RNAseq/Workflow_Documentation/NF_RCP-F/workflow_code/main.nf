@@ -289,8 +289,8 @@ workflow {
                         COUNT_MULTIQC.out.unzipped_report,
                         DGE_BY_DESEQ2.out.norm_counts,
                         DGE_BY_DESEQ2.out.dge,
-                        DGE_BY_DESEQ2.out.norm_counts_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
-                        DGE_BY_DESEQ2.out.dge_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                        // DGE_BY_DESEQ2.out.norm_counts_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                        // DGE_BY_DESEQ2.out.dge_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
                         "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
                   )
 

@@ -53,21 +53,23 @@ process DGE_BY_DESEQ2 {
         --extended_table_output_prefix "dge_output/"\\
         --extended_table_output_suffix "_GLbulkRNAseq.csv" \\
         --cpus ${task.cpus}
-    if ${ meta.has_ercc ? 'true' : 'false'}
-    then
-        Rscript --vanilla dge_annotation_R_scripts/dge_annotation_workflow.R \\
-            --runsheet_path runsheet.csv \\
-            ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
-            --input_gene_results_dir "Rsem_gene_counts" \\
-            --primary_keytype ${ meta.primary_keytype } \\
-            --normalization 'ERCC-groupB' \\
-            --normalized_counts_output_prefix "norm_counts_output/ERCC_" \\
-            --dge_output_prefix "dge_output_ercc/ERCCnorm_" \\
-            --annotation_file_path ${annotation_file} \\
-            --extended_table_output_prefix "dge_output_ercc/"\\
-            --extended_table_output_suffix "_ERCCnorm_GLbulkRNAseq.csv" \\
-            --cpus ${task.cpus}
-    fi
     # bump
     """
+    // if ${ meta.has_ercc ? 'true' : 'false'}
+    // then
+    //     Rscript --vanilla dge_annotation_R_scripts/dge_annotation_workflow.R \\
+    //         --runsheet_path runsheet.csv \\
+    //         ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
+    //         --input_gene_results_dir "Rsem_gene_counts" \\
+    //         --primary_keytype ${ meta.primary_keytype } \\
+    //         --normalization 'ERCC-groupB' \\
+    //         --normalized_counts_output_prefix "norm_counts_output/ERCC_" \\
+    //         --dge_output_prefix "dge_output_ercc/ERCCnorm_" \\
+    //         --annotation_file_path ${annotation_file} \\
+    //         --extended_table_output_prefix "dge_output_ercc/"\\
+    //         --extended_table_output_suffix "_ERCCnorm_GLbulkRNAseq.csv" \\
+    //         --cpus ${task.cpus}
+    // fi
+    // # bump
+    // """
 }

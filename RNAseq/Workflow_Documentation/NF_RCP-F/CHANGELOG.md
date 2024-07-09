@@ -20,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-
 - Updated software aside from ERCC notebook, Singularity.
   - Nextflow 23.10.1 -> 24.04.2 
   - FastQC 0.11.9 -> 0.12.1
@@ -39,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - tximport 1.27.1 -> 1.32.0
   - tidyverse 1.3.1 -> 2.0.0
   - stringr 1.4.1 -> 1.5.1
+  - Removed / Commented out ERCC-normalization DGE steps
 
 ## [1.0.4](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_RCP-F_1.0.4/RNAseq/Workflow_Documentation/NF_RCP-F) - 2024-02-08
 
