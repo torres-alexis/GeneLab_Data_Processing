@@ -58,8 +58,10 @@ document](../../Pipeline_GL-DPPD-7101_Versions/GL-DPPD-7101-F.md):
 3. [Fetch Singularity Images](#3-fetch-singularity-images)  
 4. [Run the Workflow](#4-run-the-workflow)  
    4a. [Approach 1: Run the workflow on a GeneLab RNAseq dataset with automatic retrieval of Ensembl reference fasta and gtf files](#4a-approach-1-run-the-workflow-on-a-genelab-rnaseq-dataset-with-automatic-retrieval-of-ensembl-reference-fasta-and-gtf-files)  
-   4b. [Approach 2: Run the workflow on a GeneLab RNAseq dataset using local Ensembl reference fasta and gtf files](#4b-approach-2-run-the-workflow-on-a-genelab-rnaseq-dataset-using-local-reference-fasta-and-gtf-files)  
-   4c. [Approach 3: Run the workflow on a non-GLDS dataset using a user-created runsheet](#4c-approach-3-run-the-workflow-on-a-non-glds-dataset-using-a-user-created-runsheet)  
+   4b. [Approach 2: Run the workflow on a GeneLab RNAseq dataset using local Ensembl reference fasta and gtf files](#4b-approach-2-run-the-workflow-on-a-genelab-rnaseq-dataset-using-local-ensembl-reference-fasta-and-gtf-files)  
+   4c. [Approach 3: Run the workflow on a GeneLab RNAseq dataset using an ISA Archive](#4c-approach-3-run-the-workflow-on-a-genelab-rnaseq-dataset-using-an-isa-archive)  
+   4d. [Approach 4: Run the workflow on a non-OSD dataset using a user-created runsheet](#4d-approach-4-run-the-workflow-on-a-non-osd-dataset-using-a-user-created-runsheet)     
+
 5. [Additional Output Files](#5-additional-output-files)  
 
 <br>
@@ -101,9 +103,9 @@ All files required for utilizing the NF_RCP-F GeneLab workflow for processing RN
 copy of latest NF_RCP-F version on to your system, the code can be downloaded as a zip file from the release page then unzipped after downloading by running the following commands: 
 
 ```bash
-wget https://github.com/nasa/GeneLab_Data_Processing/releases/download/NF_RCP-F_1.0.4/NF_RCP-F_1.0.4.zip
+wget https://github.com/nasa/GeneLab_Data_Processing/releases/download/NF_RCP-F_1.0.5/NF_RCP-F_1.0.5.zip
 
-unzip NF_RCP-F_1.0.4.zip
+unzip NF_RCP-F_1.0.5.zip
 ```
 
 <br>
@@ -115,10 +117,10 @@ unzip NF_RCP-F_1.0.4.zip
 Although Nextflow can fetch Singularity images from a url, doing so may cause issues as detailed [here](https://github.com/nextflow-io/nextflow/issues/1210).
 
 To avoid this issue, run the following command to fetch the Singularity images prior to running the NF_RCP-F workflow:
-> Note: This command should be run in the location containing the `NF_RCP-F_1.0.4` directory that was downloaded in [step 2](#2-download-the-workflow-files) above. Depending on your network speed, fetching the images will take ~20 minutes.  
+> Note: This command should be run in the location containing the `NF_RCP-F_1.0.5` directory that was downloaded in [step 2](#2-download-the-workflow-files) above. Depending on your network speed, fetching the images will take ~20 minutes.  
 
 ```bash
-bash NF_RCP-F_1.0.4/bin/prepull_singularity.sh NF_RCP-F_1.0.4/config/software/by_docker_image.config
+bash NF_RCP-F_1.0.5/bin/prepull_singularity.sh NF_RCP-F_1.0.5/config/software/by_docker_image.config
 ```
 
 
@@ -134,7 +136,7 @@ export NXF_SINGULARITY_CACHEDIR=$(pwd)/singularity
 
 ### 4. Run the Workflow
 
-While in the location containing the `NF_RCP-F_1.0.4` directory that was downloaded in [step 2](#2-download-the-workflow-files), you are now able to run the workflow. Below are three examples of how to run the NF_RCP-F workflow:
+While in the location containing the `NF_RCP-F_1.0.5` directory that was downloaded in [step 2](#2-download-the-workflow-files), you are now able to run the workflow. Below are three examples of how to run the NF_RCP-F workflow:
 > Note: Nextflow commands use both single hyphen arguments (e.g. -help) that denote general nextflow arguments and double hyphen arguments (e.g. --ensemblVersion) that denote workflow specific parameters.  Take care to use the proper number of hyphens for each argument.
 
 <br>
@@ -142,7 +144,7 @@ While in the location containing the `NF_RCP-F_1.0.4` directory that was downloa
 #### 4a. Approach 1: Run the workflow on a GeneLab RNAseq dataset with automatic retrieval of Ensembl reference fasta and gtf files
 
 ```bash
-nextflow run NF_RCP-F_1.0.4/main.nf \ 
+nextflow run NF_RCP-F_1.0.5/main.nf \ 
    -profile singularity \
    --osdAccession OSD-194 \
    --gldsAccession OSD-194 
@@ -150,12 +152,12 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 <br>
 
-#### 4b. Approach 2: Run the workflow on a GeneLab RNAseq dataset using local reference fasta and gtf files
+#### 4b. Approach 2: Run the workflow on a GeneLab RNAseq dataset using local Ensembl reference fasta and gtf files 
 
 > Note: The `--ref_source` and `--ensemblVersion` parameters should match the reference source and version number of the local reference fasta and gtf files used
 
 ```bash
-nextflow run NF_RCP-F_1.0.4/main.nf \ 
+nextflow run NF_RCP-F_1.0.5/main.nf \ 
    -profile singularity \
    --osdAccession OSD-194 \
    --gldsAccession OSD-194 \
@@ -167,12 +169,26 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 <br>
 
-#### 4c. Approach 3: Run the workflow on a non-OSD dataset using a user-created runsheet
+#### 4c. Approach 3: Run the workflow on a GeneLab RNAseq dataset using an ISA Archive
+
+> Note: Specifications for the ISA Tab Archive format can be found [here](https://isa-specs.readthedocs.io/en/latest/isatab.html).
+
+```bash
+nextflow run NF_RCP-F_1.0.5/main.nf \ 
+   -profile singularity \
+   --gldsAccession OSD-194 \
+   --osdAccession OSD-194 \
+   --isaArchivePath </path/to/isaArchive> 
+```
+
+<br>
+
+#### 4d. Approach 4: Run the workflow on a non-OSD dataset using a user-created runsheet
 
 > Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
 
 ```bash
-nextflow run NF_RCP-F_1.0.4/main.nf \ 
+nextflow run NF_RCP-F_1.0.5/main.nf \ 
    -profile singularity \
    --gldsAccession output_directory \
    --runsheetPath </path/to/runsheet> 
@@ -182,14 +198,14 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 **Required Parameters For All Approaches:**
 
-* `NF_RCP-F_1.0.4/main.nf` - Instructs Nextflow to run the NF_RCP-F workflow 
+* `NF_RCP-F_1.0.5/main.nf` - Instructs Nextflow to run the NF_RCP-F workflow 
 
 * `-profile` - Specifies the configuration profile(s) to load, `singularity` instructs Nextflow to setup and use singularity for all software called in the workflow
 
 * `--gldsAccession GLDS-###` – specifies the OSD dataset to process through the RCP workflow (replace ### with the GLDS number)
   > Note: The primary output directory will be titled "GLDS-###"
 
-* `--gldsAccession output_directory` – specifies the output directory name to use when processing a non-OSD dataset, as indicated in [Approach 3 above](#4c-approach-3-run-the-workflow-on-a-non-glds-dataset-using-a-user-created-runsheet)
+* `--gldsAccession output_directory` – specifies the output directory name to use when processing a non-OSD dataset, as indicated in [Approach 3 above](#4c-approach-3-run-the-workflow-on-a-non-osd-dataset-using-a-user-created-runsheet)
 
 <br>
 
@@ -200,6 +216,8 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 <br>
 
 **Additional Required Parameters For [Approach 2](#4b-approach-2-run-the-workflow-on-a-genelab-rnaseq-dataset-using-local-ensembl-reference-fasta-and-gtf-files):**
+
+* `--osdAccession` – specifies the OSD study ID associated with the dataset to process through the RCP workflow (replace ### with the OSD number)  
 
 * `--ensemblVersion` - specifies the Ensembl version to use for the reference genome (Ensembl release `107` is used in this example) 
 
@@ -213,6 +231,20 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 <br>
 
+**Additional Required Parameters For [Approach 3](#4c-approach-3-run-the-workflow-on-a-genelab-rnaseq-dataset-using-an-isa-archive):**
+
+* `--isaArchivePath` - specifies the path to an ISA archive (Default: --osdAccession is used to pull the ISA archive associated with the GeneLab RNAseq Dataset)
+
+<br>
+
+**Additional Required Parameters For [Approach 4](#4d-approach-4-run-the-workflow-on-a-non-osd-dataset-using-a-user-created-runsheet):**
+
+* `--runsheetPath` - specifies the path to a local runsheet (Default: a runsheet is automatically generated using the metadata on the GeneLab Repository for the OSD dataset being processed)
+
+<br>
+
+
+
 **Optional Parameters:**
 
 * `--skipVV` - skip the automated V&V processes (Default: the automated V&V processes are active) 
@@ -225,11 +257,8 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 * `--referenceStorePath` - specifies the directory to store the Ensembl fasta and gtf files (Default: within the directory structure created by default in the launch directory)  
 
-* `--derivedStorePath` - specifies the directory to store the tool-specific indices created during processing (Default: within the directory structure created by default in the launch directory) 
+* `--derivedStorePath` - specifies the directory to store the tool-specific indices created during processing (Default: within the directory structure created by default in the launch directory)    
 
-* `--runsheetPath` - specifies the path to a local runsheet (Default: a runsheet is automatically generated using the metadata on the GeneLab Repository for the OSD dataset being processed)
-  > This is required when prcessing a non-OSD dataset as indicated in [Approach 3 above](#4c-approach-3-run-the-workflow-on-a-non-glds-dataset-using-a-user-created-runsheet)
-   
 <br>
 
 **Additional Optional Parameters:**
@@ -237,7 +266,7 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 All parameters listed above and additional optional arguments for the RCP workflow, including debug related options that may not be immediately useful for most users, can be viewed by running the following command:
 
 ```bash
-nextflow run NF_RCP-F_1.0.4/main.nf --help
+nextflow run NF_RCP-F_1.0.5/main.nf --help
 ```
 
 See `nextflow run -h` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details common to all nextflow workflows.

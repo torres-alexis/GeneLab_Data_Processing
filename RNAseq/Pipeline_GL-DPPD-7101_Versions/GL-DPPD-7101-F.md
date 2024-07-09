@@ -21,16 +21,18 @@ Jonathan Galazka (GeneLab Project Scientist)
 
 ## Updates from previous version
 
-Updated [Ensembl Reference Files](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110/GL-DPPD-7110_annotations.csv) now use:
-- Animals: Ensembl release 107
-- Plants: Ensembl plants release 54
-- Bacteria: Ensembl bacteria release 54
+<!-- - Updated [Ensembl Reference Files](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110/GL-DPPD-7110_annotations.csv) now use:
+  - Animals: Ensembl release 107
+  - Plants: Ensembl plants release 54
+  - Bacteria: Ensembl bacteria release 54 -->
 
 - Updated software versions (see changelog)
 
 - Added organism support for bacillus subtilis 
 
 - Added the 'osdAccession' parameter used for processing OSDR datasets, fixing runsheet generation issues
+
+- Added the 'isaArchivePath' parameter as another input option to process OSDR datasets
   
 ---
 
