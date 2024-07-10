@@ -295,6 +295,15 @@ workflow {
                         "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
                   )
 
+    // VV processes
+
+    VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
+                                                  VV_STAR_ALIGNMENTS.out.log,
+                                                  VV_RSEQC.out.log,
+                                                  VV_RSEM_COUNTS.out.log,
+                                                  VV_DESEQ2_ANALYSIS.out.log,
+                                                  ) | collect )
+                                                  
     // Software Version Capturing
     nf_version = "Nextflow Version:".concat("${nextflow.version}\n<><><>\n")
     ch_nextflow_version = Channel.value(nf_version)
@@ -308,6 +317,13 @@ workflow {
     COUNT_ALIGNED.out.version | mix(ch_software_versions) | set{ch_software_versions}
     DGE_BY_DESEQ2.out.version | mix(ch_software_versions) | set{ch_software_versions}
     STRANDEDNESS.out.versions | mix(ch_software_versions) | set{ch_software_versions}
+    VV_CONCAT_FILTER.out.versions
+    .map { path -> 
+      def content = path.text
+      return [text: content]
+    }
+    .mix(ch_software_versions)
+    .set { ch_software_versions }
     ch_software_versions | map { it.text + "\n<><><>\n"}
                           | unique
                           | mix(ch_nextflow_version)
