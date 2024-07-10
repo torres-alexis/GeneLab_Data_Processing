@@ -64,7 +64,8 @@ if (params.help) {
   println("                        the OSD study ID to process through the RNASeq Concensus Pipeline.")
   println("  --gldsAccession GLDS-000")
   println("                        the GLDS accession number to process through the RNASeq Concensus Pipeline.")
-  println("  --runsheetPath        Use a local runsheet instead one automatically generated from a GLDS ISA archive.")
+  println("  --runsheetPath        Use a local runsheet instead one automatically generated from an OSDR ISA archive.")  
+  println("  --isaArchivePath      Use a local ISA archive file to process an OSDR dataset instead of pulling one automatically.")  
   println("  --ensemblVersion n    Specifies the ensembl Version to use for the reference genome. The default version is ")
   println("  --skipVV              Skip automated V&V. Default: false")
   println("  --outputDir           Directory to save staged raw files and processed files. Default: <launch directory>")
@@ -78,6 +79,7 @@ if (params.help) {
   println("  --referenceStorePath  specifies the directory where fetched reference files are downloaded to")  
   println("  --derivedStorePath    specifies the directory where derivative reference files are saved. Examples of such files in this pipeline included BED and PRED files generated from the reference gtf")  
   println("  --ref_source          a string to label subdirectories in 'StorePath' paths. Examples include 'ensembl' or 'ensembl_plants'.")  
+  println("  --technicalReplicates Specifies a local .CSV file containing two columns: the input sample names matching those in the runsheet, and the sample names to which they should be collapsed.")
   println("  -stub-run             runs the workflow forcing 'unstranded' RSEM settings and using dummy gene counts in the differential gene expression (DGE) analysis. Useful when combined with the --truncateTo parameter this often leads to low gene counts and errors in the DGE analysis")  
   exit 0
   }
@@ -188,7 +190,7 @@ workflow {
     TRIMGALORE.out.reads | combine( BUILD_STAR.out.build ) | ALIGN_STAR
 
 
-    STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt ) 
+    STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt, max_read_length_ch ) 
     STRANDEDNESS.out.strandedness | map { it.text.split(":")[0] } | set { strandedness_ch }
 
     BUILD_RSEM( 
@@ -296,14 +298,15 @@ workflow {
                   )
 
     // VV processes
-
+    
     VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
                                                   VV_STAR_ALIGNMENTS.out.log,
                                                   VV_RSEQC.out.log,
                                                   VV_RSEM_COUNTS.out.log,
                                                   VV_DESEQ2_ANALYSIS.out.log,
                                                   ) | collect )
-                                                  
+  
+
     // Software Version Capturing
     nf_version = "Nextflow Version:".concat("${nextflow.version}\n<><><>\n")
     ch_nextflow_version = Channel.value(nf_version)
@@ -329,16 +332,6 @@ workflow {
                           | mix(ch_nextflow_version)
                           | collectFile(name: "software_versions.txt", newLine: true, cache: false)
         | set{ch_final_software_versions}
-
-    // VV processes
-      
-    VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
-                                                  VV_STAR_ALIGNMENTS.out.log,
-                                                  VV_RSEQC.out.log,
-                                                  VV_RSEM_COUNTS.out.log,
-                                                  VV_DESEQ2_ANALYSIS.out.log,
-                                                  ) | collect )
-
     // Generate final versions output
     SOFTWARE_VERSIONS(ch_final_software_versions)
 

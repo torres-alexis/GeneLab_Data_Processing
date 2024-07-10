@@ -39,6 +39,8 @@ Jonathan Galazka (GeneLab Project Scientist)
 - ERCCnorm steps were removed from the pipeline documentation. ERCC-normalized data are still available upon request.
 
 - STAR alignment now outputs unmapped and partially mapped reads in separate FASTQ files.
+
+- RSeQC Inner_Distance.py output plots are no longer cut off for datasets of read length 151+. The function now uses the max read length of the input dataset rather than a fixed 150.
   
 ---
 
@@ -718,7 +720,7 @@ zip -r genebody_cov_multiqc_GLbulkRNAseq_report.zip /path/to/genebody_cov_multiq
 inner_distance.py -r /path/to/annotation/BED/file \
  -i /path/to/*Aligned.sortedByCoord_sorted.out.bam \
  -k 15000000 \
- -l -150 \
+ -l -{maximum read length of raw reads} \
  -u 350 \
  -o  /path/to/inner_distance/output/directory
 ```

@@ -17,6 +17,7 @@ workflow strandedness{
     bam_array // array: sample-wise tuples (meta, bam_file)
     genome_bed
     samples_ch
+    max_read_length_ch
  
   main:
      
@@ -25,7 +26,7 @@ workflow strandedness{
 
      INFER_EXPERIMENT( ch_bam_bed )
      GENEBODY_COVERAGE( ch_bam_bed )
-     INNER_DISTANCE( ch_bam_bed )
+     INNER_DISTANCE( ch_bam_bed, max_read_length_ch )
      READ_DISTRIBUTION( ch_bam_bed )
     
      // duplicated in each subworkflow, could use refactoring 

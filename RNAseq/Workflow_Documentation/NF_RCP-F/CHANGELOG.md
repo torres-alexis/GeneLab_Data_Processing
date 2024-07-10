@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where input runsheet would not be copied to gldsAccession/Metadata/ by adding MOVE_RUNSHEET
 - Output folder is now the gldsAccession and not the OSD number.
 - UPDATE ISA TABLE now converts ", " to ","
+- Fixed issue where RSeQC Inner Distance plots would be cutoff for datasets with reads of length 151+
 
 ### Changed
 
