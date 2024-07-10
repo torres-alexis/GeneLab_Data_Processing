@@ -37,6 +37,8 @@ Jonathan Galazka (GeneLab Project Scientist)
 - DGE R script now uses parallel processing where possible using BiocParallel and DESeq parameters
 
 - ERCCnorm steps were removed from the pipeline documentation. ERCC-normalized data are still available upon request.
+
+- STAR alignment now outputs unmapped and partially mapped reads in separate FASTQ files.
   
 ---
 
@@ -362,7 +364,8 @@ STAR --twopassMode Basic \
  --outSAMheaderHD @HD VN:1.4 SO:coordinate \
  --outFileNamePrefix /path/to/STAR/output/directory/<sample_id> \
  --readFilesIn /path/to/trimmed_forward_reads \
- /path/to/trimmed_reverse_reads # only needed for PE studies
+ /path/to/trimmed_reverse_reads # only needed for PE studies 
+ --outReadsUnmapped Fastx \
 
 ```
 
@@ -390,6 +393,7 @@ STAR --twopassMode Basic \
 - `--outSAMheaderHD` – indicates a header line for the sam/bam file
 - `--outFileNamePrefix` – specifies the path to and prefix for the output file names; for GeneLab the prefix is the sample id
 - `--readFilesIn` – path to input read 1 (forward read) and read 2 (reverse read); for paired-end reads, read 1 and read 2 should be separated by a space; for single-end reads only read 1 should be indicated
+- `--outReadsUnmapped Fastx` - Specifies that unmapped and partially mapped reads will be outputted in a separate FASTQ file in addition to being present in the BAM output.
 
 **Input Data:**
 
@@ -404,6 +408,7 @@ STAR --twopassMode Basic \
 - *ReadsPerGene.out.tab (tab delimitated file containing STAR read counts per gene with 4 columns that correspond to different strandedness options: column 1 = gene ID, column 2 = counts for unstranded RNAseq, column 3 = counts for 1st read strand aligned with RNA, column 4 = counts for 2nd read strand aligned with RNA)
 - *Log.out (main log file containing detailed info about the STAR run)
 - *Log.progress.out (minute-by-minute report containing job progress statistics, such as the number of processed reads, % of mapped reads etc.)
+- *Unmapped.out.mate{1,2} (FASTQ file containing unmapped and partially mapped reads from mate 1 and mate 2 respectively)
 - **\*SJ.out.tab** (high confidence collapsed splice junctions in tab-delimited format)
 - *_STARgenome (directory containing the following:)
   - sjdbInfo.txt

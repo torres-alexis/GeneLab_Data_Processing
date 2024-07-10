@@ -258,7 +258,8 @@ workflow {
                       TRIM_MULTIQC.out.unzipped_report,
                       "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
                     )
-    VV_STAR_ALIGNMENTS( STAGING.out.runsheet,
+    VV_STAR_ALIGNMENTS( ch_meta,
+                        STAGING.out.runsheet,
                         ALIGN_STAR.out.publishables | collect,
                         QUANTIFY_STAR_GENES.out.publishables | collect,
                         ALIGN_MULTIQC.out.zipped_report,

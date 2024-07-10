@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the '--isaArchivePath "/path/to/*-ISA.zip*" parameter to run the workflow using an OSD dataset ISA archive
 - Added parallel processing to Perform_DGE.rmd execution using BiocParallel
 - Added '--technicalReplicates "/path/to/techReps.csv" for collapsing technical replicates with DESeq2::collapseReplicates
+- STAR alignment now outputs unmapped and partially mapped (discordant) reads into separate FASTQ files (Unmapped.out.mate1/2). The reads are also still present in the output BAMs. 
 
 ### Fixed
 
+- Fixed deprecated syntax issues and related warnings in VV-related code.
 - Fixed issue where input runsheet would not be copied to gldsAccession/Metadata/ by adding MOVE_RUNSHEET
+- Output folder is now the gldsAccession and not the OSD number.
 
 ### Changed
 

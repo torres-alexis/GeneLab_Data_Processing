@@ -73,6 +73,7 @@ process ALIGN_STAR {
     tuple val(meta), path("${ meta.id }/${ meta.id }_Aligned.sortedByCoord.out.bam"), emit: bam_by_coord
     tuple val(meta), path("${ meta.id }/${ meta.id }_Aligned.toTranscriptome.out.bam"), emit: bam_to_transcriptome
     path("${ meta.id }/${ meta.id }_ReadsPerGene.out.tab"), emit: read_per_gene
+    path("${ meta.id }/${ meta.id }_Unmapped.out.*"), emit: unmapped_reads
     path("versions.txt"), emit: version
 
   script:
@@ -99,6 +100,7 @@ process ALIGN_STAR {
     --quantMode TranscriptomeSAM GeneCounts\
     --outFileNamePrefix '${ meta.id }/${ meta.id }_' \
     --readFilesIn ${ reads }
+    --outReadsUnmapped Fastx \
 
     echo ALIGN_STAR_version: `STAR --version` > versions.txt
     """

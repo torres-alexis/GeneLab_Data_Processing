@@ -625,6 +625,28 @@ data assets:
       
     resource categories: *AlignedSequenceData_AlignedData
 
+  STAR forward unmapped reads:
+    processed location: 
+      - *alignDataDir
+      - "{sample}"
+      - "{sample}_Unmapped.out.mate1"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_AlignedData
+
+  STAR reverse unmapped reads:
+    processed location: 
+      - *alignDataDir
+      - "{sample}"
+      - "{sample}_Unmapped.out.mate2"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_AlignedData
+
   genebody coverage MultiQC directory:
     processed location: 
       - *rseqcDataDir
@@ -1128,7 +1150,7 @@ data asset sets:
     - "trimmed fastQC MultiQC directory"
     - "trimming MultiQC directory"
     - "reads trimming report"
-  STAR alignments:
+  STAR alignments for paired end data:
     - "aligned MultiQC directory"
     - "aligned MultiQC directory ZIP"
     - "aligned ToTranscriptome Bam"
@@ -1139,6 +1161,23 @@ data asset sets:
     - "aligned log Progress"
     - "aligned log Full"
     - "aligned sjTab"
+    - "STAR forward unmapped reads"
+    - "STAR reverse unmapped reads"
+    - "sample reads per gene table"
+    - "star number non-zero count genes table"
+    - "star unnormalized counts table"
+  STAR alignments for single end data:
+    - "aligned MultiQC directory"
+    - "aligned MultiQC directory ZIP"
+    - "aligned ToTranscriptome Bam"
+    - "aligned SortedByCoord Bam"
+    - "aligned SortedByCoord ResortedBam"
+    - "aligned SortedByCoord ResortedBamIndex"
+    - "aligned log Final"
+    - "aligned log Progress"
+    - "aligned log Full"
+    - "aligned sjTab"
+    - "STAR forward unmapped reads"
     - "sample reads per gene table"
     - "star number non-zero count genes table"
     - "star unnormalized counts table"
@@ -1198,6 +1237,7 @@ data asset sets:
     - "aligned log Progress"
     - "aligned log Full"
     - "aligned sjTab"
+    - "STAR forward unmapped reads"
     - "genebody coverage MultiQC directory"
     - "genebody coverage MultiQC directory ZIP"
     - "infer experiment MultiQC directory"
@@ -1256,6 +1296,8 @@ data asset sets:
     - "aligned log Progress"
     - "aligned log Full"
     - "aligned sjTab"
+    - "STAR forward unmapped reads"
+    - "STAR reverse unmapped reads"
     - "genebody coverage MultiQC directory"
     - "genebody coverage MultiQC directory ZIP"
     - "infer experiment MultiQC directory"
