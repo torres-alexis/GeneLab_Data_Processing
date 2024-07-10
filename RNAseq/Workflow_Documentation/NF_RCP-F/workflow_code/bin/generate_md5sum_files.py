@@ -46,8 +46,8 @@ def main(root_dir: Path, runsheet_path: Path, plug_in_dir: Path):
     else:
         key_sets.append("is single end full")
 
-    if has_ERCC:
-        key_sets.append("has ercc")
+    # if has_ERCC:
+    #     key_sets.append("has ercc")
 
     ds = load_data(
         key_sets=key_sets,
@@ -62,8 +62,8 @@ def main(root_dir: Path, runsheet_path: Path, plug_in_dir: Path):
         missing_keys = missing_keys.union(ALLOWED_MISSING_KEYS_FOR_PAIRED_END)
     else:
         missing_keys = missing_keys.union(ALLOWED_MISSING_KEYS_FOR_SINGLE_END)
-    if not ds.dataset.metadata['has_ERCC']:
-        missing_keys = missing_keys.union(ALLOWED_MISSING_KEYS_FOR_NON_ERCC)
+    # if not ds.dataset.metadata['has_ERCC']:
+    missing_keys = missing_keys.union(ALLOWED_MISSING_KEYS_FOR_NON_ERCC)
 
     df = generate_md5sum_table(
         ds.dataset,
