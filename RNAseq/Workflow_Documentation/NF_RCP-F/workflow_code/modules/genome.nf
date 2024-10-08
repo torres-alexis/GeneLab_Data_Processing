@@ -294,3 +294,114 @@ process TO_BED {
   genePredToBed ${ genome_pred } ${ genome_pred.baseName }.bed
   """
 }
+
+process BUILD_BOWTIE2 {
+  // Builds bowtie2 index, this is ercc-spike-in, organism, and ensembl version specific
+  tag "Refs:${ genomeFasta },${ genomeGtf }, Ensembl.V:${ensemblVersion}}"
+  storeDir "${ params.derivedStorePath }/Bowtie2_Indices/${ ref_source }_release${ensemblVersion}/${ meta.organism_sci.capitalize() }"
+
+  label 'maxCPU'
+  label 'big_mem'
+
+  input:
+    tuple path(genomeFasta), path(genomeGtf)
+    val(meta)
+    tuple val(ensemblVersion), val(ref_source) // Used for defining storage location 
+
+  output:
+    path("${ genomeFasta.baseName }"), emit: build
+
+  script:
+    """
+    mkdir -p Bacillus_subtilis_subsp_subtilis_str_168_gca_000009045.ASM904v1.dna.toplevel
+
+    bowtie2-build --threads ${task.cpus} \
+      -f ${ genomeFasta } \
+      ${ genomeFasta.baseName }/${ genomeFasta.baseName }
+    """
+}
+
+process ALIGN_BOWTIE2 {
+  // Aligns reads against Bowtie2 index
+  
+  tag "Sample: ${ meta.id }"
+  label 'maxCPU'
+  label 'align_mem'
+
+  input:
+    tuple val(meta), path(reads), path(BOWTIE2_INDEX_DIR)
+
+  output:
+    path("${ meta.id }/${ meta.id }*"), emit: publishables // used to ensure direct files are available for publishing directive
+    path("${ meta.id }/${ meta.id }.bowtie2.log"), emit: alignment_logs
+    tuple val(meta), path("${ meta.id }/${meta.id}.bam"), emit: bam
+    path("${ meta.id }/${ meta.id }.unmapped.fastq"), emit: unmapped_reads
+    path("versions.txt"), emit: version
+
+  script:
+    def readArgs = meta.paired_end ? "-1 ${ reads[0] } -2 ${ reads[1] }" : "-U ${ reads }"
+
+    """
+    export BOWTIE2_INDEXES=${ BOWTIE2_INDEX_DIR }
+
+    
+    mkdir -p ${ meta.id }
+    bowtie2 -x ${ BOWTIE2_INDEX_DIR } \
+    ${readArgs} \
+    --threads ${ task.cpus } \
+    --minins 0 \
+    --maxins 500 \
+    -k 1 \
+    --un ${ meta.id }/${ meta.id }.unmapped.fastq \
+    2> ${ meta.id }/${ meta.id }.bowtie2.log \
+    | samtools view -bS --threads ${ task.cpus } -o ${ meta.id }/${ meta.id }.bam -
+
+    echo ALIGN_BOWTIE2_version: `bowtie2 --version` > versions.txt
+    """
+}
+
+process QUANTIFY_BOWTIE2_GENES {
+
+  input:
+    val(meta)
+    tuple path(genomeFasta), path(genomeGtf)
+    path("samples.txt")
+    val(strandedness)
+    path(bam_files)
+
+  output:
+    tuple path("FeatureCounts_GLbulkRNAseq.csv"), path("FeatureCounts_GLbulkRNAseq.csv.summary"), emit: publishables
+    path("versions.txt"), emit: version
+  script:
+    def pairedOption = meta.paired_end ? "-p" : ""
+    def strandOption = (strandedness == "unstranded") ? 0 : (strandedness == "sense") ? 1 : 2
+    def bamList = bam_files.join(' ')
+    """
+    featureCounts ${pairedOption} \
+    -T ${ task.cpus } \
+    -a ${ genomeGtf } \
+    -s ${strandOption} \
+    -t exon \
+    -g gene_id \
+    -o "FeatureCounts_GLbulkRNAseq.csv" \
+    ${bamList}
+
+
+    echo QUANTIFY_BOWTIE2_GENES_version: `featureCounts -v 2>&1` > versions.txt
+    """
+
+}
+
+process QUANTIFY_NONZERO_GENES {
+
+    input:
+        path counts_file
+
+    output:
+        path("Bowtie2_NumNonZeroGenes_GLbulkRNAseq.csv"), emit: numNonzeroGenes
+
+    script:
+    """
+    Quantitate_non-zero_genes_per_sample_Bowtie2.py ${ counts_file } Bowtie2_NumNonZeroGenes_GLbulkRNAseq.csv
+    """
+}

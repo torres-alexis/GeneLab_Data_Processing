@@ -22,6 +22,8 @@ process ASSESS_STRANDEDNESS {
 process SORT_INDEX_BAM {
   tag "Sample:${ meta.id }"
   label 'big_mem'
+  memory '8 GB'
+  cpus 4
 
   input:
     tuple val(meta), path(bam_file)
@@ -32,15 +34,17 @@ process SORT_INDEX_BAM {
     path("versions.txt"), emit: version
 
   script:
-    sorted_bam_fname = bam_file.name.replaceAll('.out.bam','_sorted.out.bam')
+    sorted_bam_fname = bam_file.name.contains('.out.bam') ? 
+                   bam_file.name.replaceAll('.out.bam', '_sorted.out.bam') : 
+                   bam_file.name.replaceAll('.bam', '_sorted.bam')
     mem_MB_per_thread = (task.memory.toMega().intValue() * 0.8 / task.cpus).intValue()
     """    
-    samtools sort -m ${ mem_MB_per_thread  }M \
+    samtools sort -m ${ mem_MB_per_thread }M \
                   --threads ${ task.cpus } \
                   -o ${ sorted_bam_fname } \
                   ${ bam_file }
 
-    samtools index -@ ${ task.cpus  } ${ sorted_bam_fname }
+    samtools index -@ ${ task.cpus } ${ sorted_bam_fname }
 
     # VERSIONS
     echo "samtools version:\$(samtools --version-only)" > versions.txt

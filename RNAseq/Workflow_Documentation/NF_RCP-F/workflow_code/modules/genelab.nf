@@ -146,6 +146,7 @@ process SOFTWARE_VERSIONS {
     mode: params.publish_dir_mode
 
   input:
+    val(mode)
     path("software_versions.txt")
 
   output:
@@ -153,7 +154,7 @@ process SOFTWARE_VERSIONS {
 
   script:
     """
-    format_software_versions.py software_versions.txt
+    format_software_versions.py software_versions.txt ${ mode }
     mv software_versions.md software_versions_GLbulkRNAseq.md
     """
 }
@@ -170,7 +171,9 @@ def get_runsheet_paths(LinkedHashMap row) {
                      "drosophila_melanogaster":"FLY",
                      "caenorhabditis_elegans":"WORM",
                      "brachypodium_distachyon":"BRADI",
-                     "arabidopsis_thaliana":"ARABIDOPSIS"]
+                     "arabidopsis_thaliana":"ARABIDOPSIS",
+                     "bacillus_subtilis":"BACSU"
+                     ]
 
     def PRIMARY_KEYS = ["mus_musculus":"ENSEMBL",
                         "danio_rerio":"ENSEMBL",
@@ -179,7 +182,8 @@ def get_runsheet_paths(LinkedHashMap row) {
                         "drosophila_melanogaster":"ENSEMBL",
                         "caenorhabditis_elegans":"ENSEMBL",
                         "brachypodium_distachyon":"ENSEMBL",
-                        "arabidopsis_thaliana":"TAIR"]
+                        "arabidopsis_thaliana":"TAIR",
+                        "bacillus_subtilis":"ENSEMBL"]
 
     def meta = [:]
     meta.id                         = row["Sample Name"]

@@ -88,6 +88,35 @@ CONFIG = {
             {"code": "RED", "stdev_threshold": 4, "middle_fcn": "median"},
         ],
     },
+    "Bowtie2 Alignments By Sample-check_thresholds-Mapped": {
+        "mqc_key": "Bowtie 2 / HiSAT2",
+        "stat_string": "overall_alignment_rate",
+        "thresholds": [
+            {"code": "YELLOW", "type": "lower", "value": 70},
+            {"code": "RED", "type": "lower", "value": 50},
+        ],
+    },
+    "Bowtie2 Alignments-check_for_outliers": {
+        "mqc_module": "Bowtie 2 / HiSAT2",
+        "mqc_plot": "general_stats",
+        "mqc_keys": [
+            "overall_alignment_rate",
+            # "unpaired_aligned_one",
+            # "unpaired_aligned_multi",
+            # "unpaired_aligned_none",
+            # "paired_aligned_one",
+            # "paired_aligned_discord_one",
+            # "paired_aligned_mate_one_halved",
+            # "paired_aligned_multi",
+            # "paired_aligned_discord_multi",
+            # "paired_aligned_mate_multi_halved",
+            # "paired_aligned_mate_none_halved"
+        ],
+        "thresholds": [
+            {"code": "YELLOW", "stdev_threshold": 2, "middle_fcn": "median"},
+            {"code": "RED", "stdev_threshold": 4, "middle_fcn": "median"},
+        ],
+    },
     "RSeQC-check_for_outliers-geneBody_coverage": {
         "mqc_module": "RSeQC",
         "mqc_plot": "Gene Body Coverage",
@@ -150,6 +179,18 @@ CONFIG = {
             {"code": "RED", "stdev_threshold": 4, "middle_fcn": "median"},
         ],
     },
+    "FeatureCounts-check_for_outliers": {
+        "mqc_module": "featureCounts",
+        "mqc_plot": "general_stats",
+        "mqc_keys": [
+            "percent_assigned",
+            # "Assigned",
+        ],
+        "thresholds": [
+            {"code": "YELLOW", "stdev_threshold": 2, "middle_fcn": "median"},
+            {"code": "RED", "stdev_threshold": 4, "middle_fcn": "median"},
+        ],
+    },
 }
 
 # Manual kept in sync for now
@@ -161,9 +202,12 @@ COMPONENTS_LIST = [
     "Trimmed Reads By Sample",  # for trim reads V&V
     "STAR Alignments",  # for star alignment V&V
     "STAR Alignments By Sample",  # for star alignment V&V
+    "Bowtie2 Alignments",  # for Bowtie2 alignment V&V
+    "Bowtie2 Alignments By Sample",  # for star alignment V&V
     "RSeQC By Sample",  # for RSeQC V&V
     "RSeQC",  # for RSeQC V&V
     "RSEM Counts",  # for after RSEM V&V
+    "FeatureCounts", #for after Featurecounts V&V
     "Unnormalized Gene Counts",  # for after RSEM V&V
     "DGE Metadata",  # for post DGE
     "DGE Metadata ERCC",  # for post DGE
@@ -363,6 +407,37 @@ def validate(
                 )
 
         with vp.component_start(
+            name="Bowtie2 Alignments",
+            description="Dataset wide checks including outliers detection",
+        ):
+            with vp.payload(
+                payloads=[
+                    {
+                        "dataset": dataset,
+                        "data_asset_keys": ["Bowtie2 aligned log"],
+                    }
+                ]
+            ):
+                vp.add(
+                    check_for_outliers,
+                    config=config["Bowtie2 Alignments-check_for_outliers"],
+                )
+            with vp.payload(
+                payloads=[
+                    {
+                        "samples": list(dataset.samples),
+                        "multiqc_report_path": lambda: dataset.data_assets[
+                            "Bowtie2 aligned MultiQC directory"
+                        ].path,
+                    },
+                ]
+            ):
+                vp.add(
+                    check_sample_in_multiqc_report,
+                    description="Check all samples are present in Bowtie2 multiQC report",
+                )
+
+        with vp.component_start(
             name="RSeQC",
             description="RSeQC submodule outliers checking and other submodule specific dataset wide checks",
         ):
@@ -503,6 +578,38 @@ def validate(
                     check_sample_in_multiqc_report,
                     description="Check all samples are present in RSEM multiQC report",
                 )
+
+        with vp.component_start(
+            name="FeatureCounts",
+            description="Dataset wide checks including outliers detection",
+        ):
+            with vp.payload(
+                payloads=[
+                    {
+                        "dataset": dataset,
+                        "data_asset_keys": ["FeatureCounts summary"],
+                    }
+                ]
+            ):
+                vp.add(
+                    check_for_outliers,
+                    config=config["FeatureCounts-check_for_outliers"],
+                )
+            with vp.payload(
+                payloads=[
+                    {
+                        "samples": list(dataset.samples),
+                        "multiqc_report_path": lambda: dataset.data_assets[
+                            "FeatureCounts MultiQC directory"
+                        ].path,
+                    },
+                ]
+            ):
+                vp.add(
+                    check_sample_in_multiqc_report,
+                    description="Check all samples are present in FeatureCounts multiQC report",
+                )
+                
         with vp.component_start(
             name="Unnormalized Gene Counts",
             description="Validate normalization related output",
@@ -952,6 +1059,43 @@ def validate(
                                 "STAR Alignments By Sample-check_thresholds-MultiMapped"
                             ],
                             description="Check that mapping rates are reasonable, specifically that a considerable amount of reads multimap to the target genome",
+                        )
+                with vp.component_start(
+                    name="Bowtie2 Alignments By Sample",
+                    description="Bowtie2 Alignment outputs",
+                ):
+
+                    with vp.payload(
+                        payloads=[
+                            {
+                                "file": lambda sample=sample: sample.data_assets[
+                                    "Bowtie2 aligned Bam"
+                                ].path,
+                            }
+                        ]
+                    ):
+                        vp.add(
+                            check_bam_file_integrity,
+                            config={
+                                "samtools_bin": "samtools"
+                            },  # assumes accessible on path already
+                        )
+
+                    with vp.payload(
+                        payloads=[
+                            {
+                                "multiqc_inputs": lambda sample=sample: [
+                                    sample.data_assets["Bowtie2 aligned log"].path
+                                ],
+                            },
+                        ]
+                    ):
+                        vp.add(
+                            check_thresholds,
+                            config=config[
+                                "Bowtie2 Alignments By Sample-check_thresholds-Mapped"
+                            ],
+                            description="Check that mapping rates are reasonable, specifically most reads map to the target genome",
                         )
 
                 with vp.component_start(

@@ -1,5 +1,6 @@
 // Workflow that determines the strandedness of reads compared to a reference genome bed file
-include { SORT_INDEX_BAM } from './modules/rseqc.nf' addParams(PublishTo: "02-STAR_Alignment")
+def bowtie2PublishDir = params.mode == 'microbes' ? '02-Bowtie2_Alignment' : '02-STAR_Alignment'
+include { SORT_INDEX_BAM } from './modules/rseqc.nf' addParams(PublishTo: bowtie2PublishDir)
 include { GENEBODY_COVERAGE } from './modules/rseqc.nf' addParams(PublishTo: "RSeQC_Analyses/02_geneBody_coverage")
 include { INFER_EXPERIMENT } from './modules/rseqc.nf' addParams(PublishTo: "RSeQC_Analyses/03_infer_experiment")
 include { INNER_DISTANCE } from './modules/rseqc.nf' addParams(PublishTo: "RSeQC_Analyses/04_inner_distance")
@@ -17,7 +18,7 @@ workflow strandedness{
     bam_array // array: sample-wise tuples (meta, bam_file)
     genome_bed
     samples_ch
- 
+  
   main:
      
      bam_array | SORT_INDEX_BAM 

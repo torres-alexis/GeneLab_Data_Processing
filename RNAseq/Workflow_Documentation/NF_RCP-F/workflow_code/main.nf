@@ -16,17 +16,22 @@ include { MULTIQC as RAW_MULTIQC } from './modules/quality.nf' addParams(MQCLabe
 include { MULTIQC as TRIMMED_MULTIQC } from './modules/quality.nf' addParams(MQCLabel:"trimmed")
 include { MULTIQC as TRIM_MULTIQC } from './modules/quality.nf' addParams(MQCLabel:"trimming")
 include { MULTIQC as ALIGN_MULTIQC } from './modules/quality.nf' addParams(MQCLabel:"align")
-include { MULTIQC as COUNT_MULTIQC } from './modules/quality.nf' addParams(MQCLabel:"RSEM_count")
+def countsLabel = params.mode == 'microbes' ? "FeatureCounts" : "RSEM_count"
+include { MULTIQC as COUNT_MULTIQC } from './modules/quality.nf' addParams(MQCLabel: countsLabel)
 include { MULTIQC as ALL_MULTIQC } from './modules/quality.nf' addParams(MQCLabel:"all")
 include { TRIMGALORE } from './modules/quality.nf'
-include { BUILD_STAR;
+include { BUILD_BOWTIE2;
+          BUILD_STAR;
           ALIGN_STAR;
           BUILD_RSEM;
           COUNT_ALIGNED;
           SUBSAMPLE_GENOME;
           CONCAT_ERCC;
           QUANTIFY_STAR_GENES;
-          QUANTIFY_RSEM_GENES } from './modules/genome.nf'
+          QUANTIFY_RSEM_GENES;
+          ALIGN_BOWTIE2;
+          QUANTIFY_BOWTIE2_GENES;
+          QUANTIFY_NONZERO_GENES } from './modules/genome.nf'
 include { DGE_BY_DESEQ2 } from './modules/DGE_BY_DESEQ2'
 include { VV_RAW_READS;
           VV_TRIMMED_READS;
@@ -34,7 +39,9 @@ include { VV_RAW_READS;
           VV_RSEQC;
           VV_RSEM_COUNTS;
           VV_DESEQ2_ANALYSIS;
-          VV_CONCAT_FILTER } from './modules/vv.nf'
+          VV_CONCAT_FILTER;
+          VV_BOWTIE2_ALIGNMENTS;
+          VV_FEATURECOUNTS } from './modules/vv.nf'
 include { GET_MAX_READ_LENGTH } from './modules/fastqc.nf'
 include { UPDATE_ISA_TABLES;
           GENERATE_MD5SUMS;
@@ -76,6 +83,7 @@ if (params.help) {
   println("  --referenceStorePath  specifies the directory where fetched reference files are downloaded to")  
   println("  --derivedStorePath    specifies the directory where derivative reference files are saved. Examples of such files in this pipeline included BED and PRED files generated from the reference gtf")  
   println("  --ref_source          a string to label subdirectories in 'StorePath' paths. Examples include 'ensembl' or 'ensembl_plants'.")  
+  println("  --mode                Specifies whether to use the regular workflow or align and quantify gene counts using Bowtie2. Default: 'default'. Use 'microbes' mode specifically for microbial/bacterial genomes.")
   println("  -stub-run             runs the workflow forcing 'unstranded' RSEM settings and using dummy gene counts in the differential gene expression (DGE) analysis. Useful when combined with the --truncateTo parameter this often leads to low gene counts and errors in the DGE analysis")  
   exit 0
   }
@@ -174,66 +182,112 @@ workflow {
     REFERENCES( ch_meta | map { it.organism_sci }, ch_meta | map { it.has_ercc } )
     REFERENCES.out.genome_annotations | set { genome_annotations }      
 
-    BUILD_STAR( 
-      genome_annotations, 
-      ch_meta, 
-      max_read_length_ch,
-      REFERENCES.out.reference_version_and_source
-    )
+    if (params.mode == 'microbes') {
+      BUILD_BOWTIE2(
+        genome_annotations,
+        ch_meta,
+        REFERENCES.out.reference_version_and_source
+      )
+      TRIMGALORE.out.reads | combine( BUILD_BOWTIE2.out.build ) | ALIGN_BOWTIE2
 
-    TRIMGALORE.out.reads | combine( BUILD_STAR.out.build ) | ALIGN_STAR
+      ALIGN_BOWTIE2.out.alignment_logs | collect | set { align_mqc_ch }
 
+      STRANDEDNESS ( ALIGN_BOWTIE2.out.bam, REFERENCES.out.genome_bed, ch_samples_txt )
+      STRANDEDNESS.out.strandedness | map { it.text.split(":")[0] } | set { strandedness_ch }
 
-    STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt ) 
-    STRANDEDNESS.out.strandedness | map { it.text.split(":")[0] } | set { strandedness_ch }
+      bam_paths = ALIGN_BOWTIE2.out.bam.map { it[1] } | toSortedList()
 
-    BUILD_RSEM( 
-      genome_annotations, 
-      ch_meta,
-      REFERENCES.out.reference_version_and_source
+      QUANTIFY_BOWTIE2_GENES(
+        ch_meta,
+        genome_annotations,
+        ch_samples_txt,
+        strandedness_ch,
+        bam_paths
       )
 
-    ALIGN_STAR.out.bam_to_transcriptome | combine( BUILD_RSEM.out.build ) | set { aligned_ch }
-    QUANTIFY_STAR_GENES( 
-        ch_samples_txt, 
-        ALIGN_STAR.out.read_per_gene | toSortedList,
-        strandedness_ch
-      )
-      
-    COUNT_ALIGNED( aligned_ch, strandedness_ch )
+      QUANTIFY_BOWTIE2_GENES.out.publishables
+        .map { it[0] }
+        .set { bowtie2_gene_counts }
 
-    ALIGN_STAR.out.alignment_logs       | collect 
-                                        | set { align_mqc_ch }
+      QUANTIFY_BOWTIE2_GENES.out.publishables
+        .map { it[1] }
+        .set { fcsummary_ch }
+
+      QUANTIFY_NONZERO_GENES(bowtie2_gene_counts) | set {numNonzeroGenes}
+
+    } else {
+        BUILD_STAR(
+          genome_annotations, 
+          ch_meta,
+          max_read_length_ch,
+          REFERENCES.out.reference_version_and_source
+        )
+        TRIMGALORE.out.reads | combine( BUILD_STAR.out.build ) | ALIGN_STAR
+        STRANDEDNESS ( ALIGN_STAR.out.bam_by_coord, REFERENCES.out.genome_bed, ch_samples_txt ) 
+        STRANDEDNESS.out.strandedness | map { it.text.split(":")[0] } | set { strandedness_ch }
+
+        BUILD_RSEM( 
+          genome_annotations, 
+          ch_meta,
+          REFERENCES.out.reference_version_and_source
+        )
+
+        ALIGN_STAR.out.bam_to_transcriptome | combine( BUILD_RSEM.out.build ) | set { aligned_ch }
+        QUANTIFY_STAR_GENES( 
+            ch_samples_txt,
+            ALIGN_STAR.out.read_per_gene | toSortedList,
+            strandedness_ch
+        )
+          
+        COUNT_ALIGNED( aligned_ch, strandedness_ch ) | toSortedList| set { star_gene_counts }
+
+        ALIGN_STAR.out.alignment_logs       | collect 
+                                            | set { align_mqc_ch }
 
 
-    COUNT_ALIGNED.out.counts | map { it[1] } | collect | set { rsem_ch }
+        COUNT_ALIGNED.out.counts | map { it[1] } | collect | set { rsem_ch }
 
-    QUANTIFY_RSEM_GENES( ch_samples_txt, rsem_ch )
-
+        QUANTIFY_RSEM_GENES( ch_samples_txt, rsem_ch )
+    }
 
     // Note: This is loaded as a zip file to ensure correct caching (directories don't seem to yield identical hases)
     ch_r_scripts = channel.fromPath( "${ projectDir }/bin/dge_annotation_R_scripts.zip" ) 
 
+    gene_counts_channel = params.mode == 'microbes' ? bowtie2_gene_counts : star_gene_counts
+    
+
     DGE_BY_DESEQ2(STAGING.out.runsheet, 
-                  COUNT_ALIGNED.out.gene_counts | toSortedList, 
-                  ch_meta, 
-                  REFERENCES.out.gene_annotations, 
-                  ch_r_scripts
-                  )
+                      gene_counts_channel,
+                      ch_meta, 
+                      REFERENCES.out.gene_annotations, 
+                      ch_r_scripts
+    )
 
     // ALL MULTIQC
     RAW_MULTIQC( ch_samples_txt, raw_mqc_ch, ch_multiqc_config  )
     TRIMMED_MULTIQC( ch_samples_txt, trim_mqc_ch, ch_multiqc_config ) // refering to the trimmed reads
     TRIM_MULTIQC( ch_samples_txt, TRIMGALORE.out.reports | collect, ch_multiqc_config ) // refering to the trimming process
-    ALIGN_MULTIQC( ch_samples_txt, align_mqc_ch, ch_multiqc_config )
-    COUNT_MULTIQC( ch_samples_txt, rsem_ch, ch_multiqc_config )
-    raw_mqc_ch | concat( trim_mqc_ch ) 
-                | concat( ALIGN_STAR.out.alignment_logs ) 
-                | concat( STRANDEDNESS.out.rseqc_logs )
-                | concat( rsem_ch )
-                | concat( TRIMGALORE.out.reports )
-                | collect | set { all_mqc_ch }
-    ALL_MULTIQC( ch_samples_txt, all_mqc_ch, ch_multiqc_config )
+    if (params.mode == 'microbes') {
+      ALIGN_MULTIQC( ch_samples_txt, align_mqc_ch, ch_multiqc_config )
+      COUNT_MULTIQC( ch_samples_txt, fcsummary_ch, ch_multiqc_config )
+      raw_mqc_ch | concat( trim_mqc_ch ) 
+        | concat( ALIGN_BOWTIE2.out.alignment_logs ) 
+        | concat( STRANDEDNESS.out.rseqc_logs )
+        | concat( fcsummary_ch )
+        | concat( TRIMGALORE.out.reports )
+        | collect | set { all_mqc_ch }
+      ALL_MULTIQC( ch_samples_txt, all_mqc_ch, ch_multiqc_config )
+    } else {
+        ALIGN_MULTIQC( ch_samples_txt, align_mqc_ch, ch_multiqc_config )
+        COUNT_MULTIQC( ch_samples_txt, rsem_ch, ch_multiqc_config )
+        raw_mqc_ch | concat( trim_mqc_ch ) 
+        | concat( ALIGN_STAR.out.alignment_logs ) 
+        | concat( STRANDEDNESS.out.rseqc_logs )
+        | concat( rsem_ch )
+        | concat( TRIMGALORE.out.reports )
+        | collect | set { all_mqc_ch }
+        ALL_MULTIQC( ch_samples_txt, all_mqc_ch, ch_multiqc_config )
+    }
 
     VV_RAW_READS( ch_meta,
                   STAGING.out.runsheet,
@@ -254,41 +308,79 @@ workflow {
                       TRIM_MULTIQC.out.unzipped_report,
                       "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
                     )
-    VV_STAR_ALIGNMENTS( STAGING.out.runsheet,
-                        ALIGN_STAR.out.publishables | collect,
-                        QUANTIFY_STAR_GENES.out.publishables | collect,
-                        ALIGN_MULTIQC.out.zipped_report,
-                        ALIGN_MULTIQC.out.unzipped_report,
-                        STRANDEDNESS.out.bam_bed | collect,
-                        "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-                      )
-    VV_RSEQC( ch_meta,
-              STAGING.out.runsheet,
-              STRANDEDNESS.out.rseqc_logs,
-              STRANDEDNESS.out.genebody_coverage_multiqc,
-              STRANDEDNESS.out.infer_experiment_multiqc,
-              STRANDEDNESS.out.inner_distance_multiqc,
-              STRANDEDNESS.out.read_distribution_multiqc,
-              "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-            )
-    VV_RSEM_COUNTS( STAGING.out.runsheet,
+    if (params.mode == 'microbes') {
+        VV_BOWTIE2_ALIGNMENTS( STAGING.out.runsheet,
+                      ALIGN_BOWTIE2.out.publishables | collect,
+                      ALIGN_MULTIQC.out.zipped_report,
+                      ALIGN_MULTIQC.out.unzipped_report,
+                      STRANDEDNESS.out.bam_bed | collect,
+                      "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+        VV_FEATURECOUNTS( STAGING.out.runsheet,
+                            QUANTIFY_BOWTIE2_GENES.out.publishables | collect,
+                            numNonzeroGenes,
+                            COUNT_MULTIQC.out.zipped_report,
+                            COUNT_MULTIQC.out.unzipped_report,
+                            "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+        VV_RSEQC( ch_meta,
+                  STAGING.out.runsheet,
+                  STRANDEDNESS.out.rseqc_logs,
+                  STRANDEDNESS.out.genebody_coverage_multiqc,
+                  STRANDEDNESS.out.infer_experiment_multiqc,
+                  STRANDEDNESS.out.inner_distance_multiqc,
+                  STRANDEDNESS.out.read_distribution_multiqc,
+                  "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+
+        VV_DESEQ2_ANALYSIS( ch_meta,
+                            STAGING.out.runsheet,
+                            QUANTIFY_BOWTIE2_GENES.out.publishables,
+                            COUNT_MULTIQC.out.zipped_report,
+                            COUNT_MULTIQC.out.unzipped_report,
+                            DGE_BY_DESEQ2.out.norm_counts,
+                            DGE_BY_DESEQ2.out.dge,
+                            DGE_BY_DESEQ2.out.norm_counts_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                            DGE_BY_DESEQ2.out.dge_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                            "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+    } else {
+        VV_STAR_ALIGNMENTS( STAGING.out.runsheet,
+                            ALIGN_STAR.out.publishables | collect,
+                            QUANTIFY_STAR_GENES.out.publishables | collect,
+                            ALIGN_MULTIQC.out.zipped_report,
+                            ALIGN_MULTIQC.out.unzipped_report,
+                            STRANDEDNESS.out.bam_bed | collect,
+                            "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+        VV_RSEM_COUNTS( STAGING.out.runsheet,
                     COUNT_ALIGNED.out.only_counts | collect,
                     QUANTIFY_RSEM_GENES.out.publishables,
                     COUNT_MULTIQC.out.zipped_report,
                     COUNT_MULTIQC.out.unzipped_report,
                     "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-                  )
-    VV_DESEQ2_ANALYSIS( ch_meta,
-                        STAGING.out.runsheet,
-                        QUANTIFY_RSEM_GENES.out.publishables,
-                        COUNT_MULTIQC.out.zipped_report,
-                        COUNT_MULTIQC.out.unzipped_report,
-                        DGE_BY_DESEQ2.out.norm_counts,
-                        DGE_BY_DESEQ2.out.dge,
-                        DGE_BY_DESEQ2.out.norm_counts_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
-                        DGE_BY_DESEQ2.out.dge_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
-                        "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-                  )
+        )
+        VV_RSEQC( ch_meta,
+                  STAGING.out.runsheet,
+                  STRANDEDNESS.out.rseqc_logs,
+                  STRANDEDNESS.out.genebody_coverage_multiqc,
+                  STRANDEDNESS.out.infer_experiment_multiqc,
+                  STRANDEDNESS.out.inner_distance_multiqc,
+                  STRANDEDNESS.out.read_distribution_multiqc,
+                  "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        ) 
+        VV_DESEQ2_ANALYSIS( ch_meta,
+                            STAGING.out.runsheet,
+                            QUANTIFY_RSEM_GENES.out.publishables,
+                            COUNT_MULTIQC.out.zipped_report,
+                            COUNT_MULTIQC.out.unzipped_report,
+                            DGE_BY_DESEQ2.out.norm_counts,
+                            DGE_BY_DESEQ2.out.dge,
+                            DGE_BY_DESEQ2.out.norm_counts_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                            DGE_BY_DESEQ2.out.dge_ercc | ifEmpty( { file("NO_FILES.placeholder") }),
+                            "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+          )
+    }
 
     // Software Version Capturing
     nf_version = "Nextflow Version:".concat("${nextflow.version}\n<><><>\n")
@@ -299,8 +391,14 @@ workflow {
     TRIMGALORE.out.version | mix(ch_software_versions) | set{ch_software_versions}
     TRIMMED_FASTQC.out.version | mix(ch_software_versions) | set{ch_software_versions}
     TRIMMED_MULTIQC.out.version | mix(ch_software_versions) | set{ch_software_versions}
-    ALIGN_STAR.out.version | mix(ch_software_versions) | set{ch_software_versions}
-    COUNT_ALIGNED.out.version | mix(ch_software_versions) | set{ch_software_versions}
+    if (params.mode == 'microbes') {
+        ALIGN_BOWTIE2.out.version | mix(ch_software_versions) | set{ch_software_versions}
+        QUANTIFY_BOWTIE2_GENES.out.version | mix(ch_software_versions) | set{ch_software_versions}
+    } else {
+        ALIGN_STAR.out.version | mix(ch_software_versions) | set{ch_software_versions}
+        COUNT_ALIGNED.out.version | mix(ch_software_versions) | set{ch_software_versions}
+    }
+
     DGE_BY_DESEQ2.out.version | mix(ch_software_versions) | set{ch_software_versions}
     STRANDEDNESS.out.versions | mix(ch_software_versions) | set{ch_software_versions}
     ch_software_versions | map { it.text + "\n<><><>\n"}
@@ -310,16 +408,25 @@ workflow {
         | set{ch_final_software_versions}
 
     // VV processes
-      
-    VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
-                                                  VV_STAR_ALIGNMENTS.out.log,
-                                                  VV_RSEQC.out.log,
-                                                  VV_RSEM_COUNTS.out.log,
-                                                  VV_DESEQ2_ANALYSIS.out.log,
-                                                  ) | collect )
+    
+    if (params.mode == 'microbes') {
+      VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
+                                              VV_BOWTIE2_ALIGNMENTS.out.log,
+                                              VV_RSEQC.out.log,
+                                              VV_FEATURECOUNTS.out.log,
+                                              //VV_DESEQ2_ANALYSIS.out.log
+                                              ) | collect )
+    } else {
+      VV_CONCAT_FILTER( VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log,
+                                                    VV_STAR_ALIGNMENTS.out.log,
+                                                    VV_RSEQC.out.log,
+                                                    VV_RSEM_COUNTS.out.log,
+                                                    VV_DESEQ2_ANALYSIS.out.log
+                                                    ) | collect )
+    }
 
     // Generate final versions output
-    SOFTWARE_VERSIONS(ch_final_software_versions)
+    SOFTWARE_VERSIONS(params.mode, ch_final_software_versions)
 
     emit:
       meta = ch_meta 

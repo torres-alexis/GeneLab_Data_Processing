@@ -7,7 +7,9 @@ _anchors:
   rawDataDir: &rawDataDir "00-RawData"
   trimDataDir: &trimDataDir "01-TG_Preproc"
   alignDataDir: &alignDataDir "02-STAR_Alignment"
+  Bowtie2alignDataDir: &Bowtie2alignDataDir "02-Bowtie2_Alignment"
   countsDataDir: &countsDataDir "03-RSEM_Counts"
+  Bowtie2countsDataDir: &Bowtie2countsDataDir "03-FeatureCounts"
   normCountsDataDir: &normCountsDataDir "04-DESeq2_NormCounts"
   DGEDataDir: &DGEDataDir "05-DESeq2_DGE"
   rseqcDataDir: &rseqcDataDir "RSeQC_Analyses" # DISCUSS: Should this be renamed to "RSeQC_Analyses" for consistent casing? -J.O. , this has been renamed and differs from the recent bash based processings
@@ -512,6 +514,16 @@ data assets:
     tags:
       - processed
       
+  Bowtie2 aligned MultiQC directory:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "align_multiqc_GLbulkRNAseq_report"
+
+    resource categories: *neverPublished
+
+    tags:
+      - processed
+
   aligned MultiQC directory ZIP:
     processed location: 
       - *alignDataDir
@@ -526,6 +538,17 @@ data assets:
       publish to repo: true
       include subdirectory in table: true
       table order: 8
+
+  Bowtie2 aligned MultiQC directory ZIP:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "align_multiqc_GLbulkRNAseq_report.zip"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_MultiQCReports
+
 
   aligned ToTranscriptome Bam:
     processed location: 
@@ -619,6 +642,61 @@ data assets:
       - *alignDataDir
       - "{sample}"
       - "{sample}_SJ.out.tab"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_AlignedData
+
+  Bowtie2 aligned Bam:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "{sample}"
+      - "{sample}.bam"
+
+    tags:
+      - processed
+      
+    resource categories:  *neverPublished
+
+  Bowtie2 aligned SortedBam:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "{sample}"
+      - "{sample}_sorted.bam"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_AlignedData
+
+  Bowtie2 aligned SortedBamIndex:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "{sample}"
+      - "{sample}_sorted.bam.bai"
+
+    tags:
+      - processed
+      
+    resource categories: *AlignedSequenceData_AlignedData
+
+  Bowtie2 aligned log:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "{sample}"
+      - "{sample}.bowtie2.log"
+
+    tags:
+      - processed
+
+    resource categories: *neverPublished
+
+  Bowtie2 unmapped reads:
+    processed location: 
+      - *Bowtie2alignDataDir
+      - "{sample}"
+      - "{sample}.unmapped.fastq"
 
     tags:
       - processed
@@ -794,6 +872,26 @@ data assets:
       include subdirectory in table: true
       table order: 11
 
+  FeatureCounts MultiQC directory:
+    processed location: 
+      - *Bowtie2countsDataDir
+      - "FeatureCounts_multiqc_GLbulkRNAseq_report" # RENAMED from count_multiqc_report  as of 4/14/2022
+
+    tags:
+      - processed
+      
+    resource categories: *neverPublished
+
+  FeatureCounts MultiQC directory ZIP:
+    processed location: 
+      - *Bowtie2countsDataDir
+      - "FeatureCounts_multiqc_GLbulkRNAseq_report.zip"
+
+    tags:
+      - processed
+
+    resource categories: *RawCountsData_MultiQCReports
+
   star number non-zero count genes table:
     processed location: 
       - *alignDataDir
@@ -887,6 +985,47 @@ data assets:
       - processed
       
     resource categories: *neverPublished
+
+  FeatureCounts table:
+    processed location: 
+      - *Bowtie2countsDataDir
+      - "FeatureCounts_GLbulkRNAseq.csv"
+
+    tags:
+      - processed
+      
+    resource categories: *RawCountsData_CountData
+
+  FeatureCounts summary:
+    processed location: 
+      - *Bowtie2countsDataDir
+      - "FeatureCounts_GLbulkRNAseq.csv.summary"
+
+    tags:
+      - processed
+      
+    resource categories: *neverPublished
+
+  Bowtie2 number non-zero count genes table:
+    processed location: 
+      - *Bowtie2countsDataDir
+      - "Bowtie2_NumNonZeroGenes_GLbulkRNAseq.csv"
+
+    tags:
+      - processed
+      
+    resource categories: *neverPublished
+
+  Bowtie2 unnormalized counts table:
+    processed location: 
+      - *normCountsDataDir
+      - "Bowtie2_Unnormalized_Counts_GLbulkRNAseq.csv"
+
+    tags:
+      - processed
+      
+    resource categories: *RawCountsTables
+
 
   DESeq2 normalized counts table:
     processed location: 
@@ -1142,6 +1281,14 @@ data asset sets:
     - "sample reads per gene table"
     - "star number non-zero count genes table"
     - "star unnormalized counts table"
+  Bowtie2 alignments:
+    - "Bowtie2 aligned MultiQC directory"
+    - "Bowtie2 aligned MultiQC directory ZIP"
+    - "Bowtie2 aligned Bam"
+    - "Bowtie2 aligned SortedBam"
+    - "Bowtie2 aligned SortedBamIndex"
+    - "Bowtie2 aligned log"
+    - "Bowtie2 unmapped reads"
   RSeQC output for paired end data:
     - "genebody coverage MultiQC directory"
     - "genebody coverage MultiQC directory ZIP"
@@ -1173,6 +1320,13 @@ data asset sets:
     - "sample gene counts table"
     - "sample isoform counts table"
     - "sample counts stats directory"
+  Feature Counts:
+    - "FeatureCounts MultiQC directory"
+    - "FeatureCounts MultiQC directory ZIP"
+    - "FeatureCounts table"
+    - "FeatureCounts summary"
+    - "Bowtie2 number non-zero count genes table"
+    # - "Bowtie2 unnormalized counts table"
   is single end full:
     - "runsheet"
     - "ISA Archive"
