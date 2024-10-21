@@ -29,14 +29,15 @@ workflow staging{
     stageLocal
   main:
     sample_limit = params.limitSamplesTo ? params.limitSamplesTo : -1 // -1 in take means no limit
-
     if (!params.runsheetPath) {
-    RUNSHEET_FROM_GLDS(
-      ch_glds_accession,
-      "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
-       )
-    RUNSHEET_FROM_GLDS.out.runsheet | set{ ch_runsheet }
-    GENERATE_METASHEET( RUNSHEET_FROM_GLDS.out.isaArchive, RUNSHEET_FROM_GLDS.out.runsheet )
+      ch_osd_accession = Channel.from( params.osdAccession )
+      RUNSHEET_FROM_GLDS(
+        ch_osd_accession,
+        ch_glds_accession,
+        "${ projectDir }/bin/dp_tools__NF_RCP" // dp_tools plugin
+        )
+      RUNSHEET_FROM_GLDS.out.runsheet | set{ ch_runsheet }
+      GENERATE_METASHEET( RUNSHEET_FROM_GLDS.out.isaArchive, RUNSHEET_FROM_GLDS.out.runsheet )
     } else {
       ch_runsheet = channel.fromPath(params.runsheetPath)
     }

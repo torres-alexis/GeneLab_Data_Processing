@@ -8,25 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-PUBLISH_TABLE_ORDER = [
-    "Nextflow",
-    "FastQC",
-    "MultiQC",
-    "Cutadapt",
-    "TrimGalore!",
-    "gtfToGenePred",
-    "genePredToBed",
-    "STAR",
-    "RSEM",
-    "R",
-    "Bioconductor",
-    "DESeq2",
-    "tximport",
-    # "tidyverse",
-    # "STRINGdb",
-    # "PANTHER.db",
-]
-
 # Certain tools lack a way to print version information and thus cannot be capture dynamically as part of the workflow
 # As a workaround, those tool versions should be manually specified here
 MANUALLY_DEFINED = [
@@ -121,6 +102,31 @@ def _parse_multiqc_block(text) -> dict:
                 "Program": "MultiQC",
                 "Version": line.split()[-1],
                 "Relevant Links": "https://multiqc.info/",
+            }
+        
+def _parse_bowtie2_block(text) -> dict:
+    """Parses a Bowtie2 version output"""
+    for line in text.splitlines():
+        if "bowtie2-align-s version" in line:
+            # Split the line into parts and find the version number, 
+            # which is typically the fourth element in the list (after 'version')
+            parts = line.split()
+            version_index = parts.index('version') + 1  # Find the index of 'version' and get the next item
+            version_number = parts[version_index] if version_index < len(parts) else None
+            return {
+                "Program": "Bowtie2",
+                "Version": version_number,
+                "Relevant Links": "http://bowtie-bio.sourceforge.net/bowtie2/index.shtml",
+            }
+        
+def _parse_featureCounts_block(text) -> dict:
+    """Parses a featureCounts version output"""
+    for line in text.splitlines():
+        if line.startswith("QUANTIFY_BOWTIE2_GENES_version"):
+            return {
+                "Program": "featureCounts",
+                "Version": line.split("featureCounts v")[-1].strip(),
+                "Relevant Links": "https://subread.sourceforge.net/featureCounts.html",
             }
 
 
@@ -261,7 +267,44 @@ def _parse_R_block(
     return versions
 
 
-def main(software_versions_path: Path):
+def main(software_versions_path: Path, mode: str):
+    if mode.lower() == "microbes":
+        PUBLISH_TABLE_ORDER = [
+            "Nextflow",
+            "FastQC",
+            "MultiQC",
+            "Cutadapt",
+            "TrimGalore!",
+            "gtfToGenePred",
+            "genePredToBed",
+            "Bowtie2",
+            "featureCounts",
+            "R",
+            "Bioconductor",
+            "DESeq2",
+            # "tidyverse",
+            # "STRINGdb",
+            # "PANTHER.db",
+        ]
+    else:
+        PUBLISH_TABLE_ORDER = [
+            "Nextflow",
+            "FastQC",
+            "MultiQC",
+            "Cutadapt",
+            "TrimGalore!",
+            "gtfToGenePred",
+            "genePredToBed",
+            "STAR",
+            "RSEM",
+            "R",
+            "Bioconductor",
+            "DESeq2",
+            "tximport",
+            # "tidyverse",
+            # "STRINGdb",
+            # "PANTHER.db",
+        ]
     with software_versions_path.open() as f:
         text_blocks = f.read().split("<><><>")
     results = list()
@@ -276,6 +319,10 @@ def main(software_versions_path: Path):
             results.append(_parse_STAR_block(text_block))
         elif "samtools version:" in text_block:
             results.append(_parse_samtools_block(text_block))
+        elif "ALIGN_BOWTIE2_version" in text_block:
+            results.append(_parse_bowtie2_block(text_block))
+        elif "QUANTIFY_BOWTIE2_GENES_version" in text_block:
+            results.append(_parse_featureCounts_block(text_block))
         elif "Nextflow Version:" in text_block:
             results.append(_parse_Nextflow_block(text_block))
         elif "R version" in text_block:
@@ -317,4 +364,4 @@ def main(software_versions_path: Path):
 
 
 if __name__ == "__main__":
-    main(software_versions_path=Path(sys.argv[1]))
+    main(software_versions_path=Path(sys.argv[1]), mode=sys.argv[2])

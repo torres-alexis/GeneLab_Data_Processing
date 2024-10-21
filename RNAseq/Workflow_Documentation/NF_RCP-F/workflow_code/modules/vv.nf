@@ -273,9 +273,9 @@ process VV_DESEQ2_ANALYSIS {
   input:
     val(meta)
     path("VV_INPUT/Metadata/*")
-    path("VV_INPUT/03-RSEM_Counts/*") // RSEM dataset output
-    path("VV_INPUT/03-RSEM_Counts/*") // zipped multiqc report 
-    path("VV_INPUT/03-RSEM_Counts/*") // unzipped multiqc report
+    path("VV_INPUT/${params.microbes ? '03-FeatureCounts' : '03-RSEM_Counts'}/*") // dataset output depending on microbes
+    path("VV_INPUT/${params.microbes ? '03-FeatureCounts' : '03-RSEM_Counts'}/*") // zipped multiqc report
+    path("VV_INPUT/${params.microbes ? '03-FeatureCounts' : '03-RSEM_Counts'}/*") // unzipped multiqc report
     path("VV_INPUT/04-DESeq2_NormCounts/*") // norm counts files
     path("VV_INPUT/05-DESeq2_DGE/*") // dge files
     path("VV_INPUT/04-DESeq2_NormCounts/*") // ERCC norm counts files
@@ -297,9 +297,9 @@ process VV_DESEQ2_ANALYSIS {
     if ${ !params.skipVV } ; then
       dpt validation run ${dp_tools__NF_RCP} . Metadata/*_runsheet.csv \\
                           --data-asset-key-sets  \\
-                            'RSEM Output,DGE Output${ meta.has_ercc ? ",ERCC DGE Output" : ''}' \\
+                            '${params.microbes ? "FeatureCounts Output" : "RSEM Output"},${params.microbes ? "FeatureCounts " : ""}DGE Output${meta.has_ercc ? ",ERCC DGE Output" : ""}' \\
                           --run-components \\
-                            'DGE Metadata${ meta.has_ercc ? ",DGE Metadata ERCC" : '' },DGE Output${ meta.has_ercc ? ",DGE Output ERCC" : '' }' \\
+                            'DGE Metadata${ meta.has_ercc ? ",DGE Metadata ERCC" : '' },${params.microbes ? "FeatureCounts " : ""}DGE Output${ meta.has_ercc ? ",DGE Output ERCC" : '' }' \\
                           --max-flag-code ${ params.max_flag_code } \\
                           --output VV_log.tsv
     fi
@@ -326,5 +326,93 @@ process VV_CONCAT_FILTER {
     """
     concat_logs.py
     filter_to_only_issues.py
+    """
+}
+
+process VV_BOWTIE2_ALIGNMENTS {
+  publishDir "${ params.outputDir }/${ params.gldsAccession }",
+    pattern:  "VV_log.tsv" ,
+    mode: params.publish_dir_mode,
+    saveAs: { "VV_Logs/VV_log_${ task.process.replace(":","-") }_GLbulkRNAseq.tsv" }
+  // V&V'ed data publishing
+  publishDir "${ params.outputDir }/${ params.gldsAccession }",
+    pattern: '02-Bowtie2_Alignment',
+    mode: params.publish_dir_mode
+
+  label 'VV'
+
+  input:
+    path("VV_INPUT/Metadata/*")
+    path("VV_INPUT/02-Bowtie2_Alignment/*") // direct Bowtie2 alignment output
+    path("VV_INPUT/02-Bowtie2_Alignment/*") // zipped multiqc report 
+    path("VV_INPUT/02-Bowtie2_Alignment/*") // unzipped multiqc report
+    path("VV_INPUT/02-Bowtie2_Alignment/*") // reindexed, sorted bam/bed files
+    path(dp_tools__NF_RCP)
+
+  output:
+    path("02-Bowtie2_Alignment")
+    path("VV_log.tsv"), optional: params.skipVV, emit: log
+
+  script:
+    """
+    # move from VV_INPUT to task directory
+    # This allows detection as output files for publishing
+    mv VV_INPUT/* . || true
+    sort_into_subdirectories_by_sample.py 02-Bowtie2_Alignment 02-Bowtie2_Alignment '*'
+
+    # Run V&V unless user requests to skip V&V
+    if ${ !params.skipVV } ; then
+      dpt validation run ${dp_tools__NF_RCP} . Metadata/*_runsheet.csv \\
+                          --data-asset-key-sets  \\
+                            'Bowtie2 alignments' \\
+                          --run-components \\
+                            'Bowtie2 Alignments,Bowtie2 Alignments By Sample' \\
+                          --max-flag-code ${ params.max_flag_code } \\
+                          --output VV_log.tsv
+    fi
+    """
+}
+
+process VV_FEATURECOUNTS {
+  publishDir "${ params.outputDir }/${ params.gldsAccession }",
+    pattern:  "VV_log.tsv" ,
+    mode: params.publish_dir_mode,
+    saveAs: { "VV_Logs/VV_log_${ task.process.replace(":","-") }_GLbulkRNAseq.tsv" }
+  // V&V'ed data publishing
+  publishDir "${ params.outputDir }/${ params.gldsAccession }",
+    pattern: '03-FeatureCounts',
+    mode: params.publish_dir_mode
+
+  label 'VV'
+
+  input:
+    path("VV_INPUT/Metadata/*")
+    path("VV_INPUT/03-FeatureCounts/*") // FeatureCounts counts and summary
+    path("VV_INPUT/03-FeatureCounts/*") // FeatureCounts num non-zero genes csv
+    path("VV_INPUT/03-FeatureCounts/*") // zipped multiqc report 
+    path("VV_INPUT/03-FeatureCounts/*") // unzipped multiqc report
+    path(dp_tools__NF_RCP)
+    
+
+  output:
+    path("03-FeatureCounts")
+    path("VV_log.tsv"), optional: params.skipVV, emit: log
+  
+  script:
+    """
+    # move from VV_INPUT to task directory
+    # This allows detection as output files for publishing
+    mv VV_INPUT/* . || true
+
+    # Run V&V unless user requests to skip V&V
+    if ${ !params.skipVV } ; then
+      dpt validation run ${dp_tools__NF_RCP} . Metadata/*_runsheet.csv \\
+                          --data-asset-key-sets  \\
+                            'FeatureCounts' \\
+                          --run-components \\
+                            'FeatureCounts' \\
+                          --max-flag-code ${ params.max_flag_code } \\
+                          --output VV_log.tsv
+    fi
     """
 }

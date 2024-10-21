@@ -5,14 +5,15 @@ process DGE_BY_DESEQ2 {
 
   input:
     path("runsheet.csv")
-    path("Rsem_gene_counts/*")
+    path(gene_counts)
     val(meta)
     path(annotation_file)
     path("dge_annotation_R_scripts.zip")
 
   output:
     tuple path("norm_counts_output/Normalized_Counts_GLbulkRNAseq.csv"),
-          path("norm_counts_output/RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"), emit: norm_counts
+          path(params.microbes ? "norm_counts_output/FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv" : 
+            "norm_counts_output/RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"), emit: norm_counts
 
     tuple path("dge_output/contrasts_GLbulkRNAseq.csv"),
           path("dge_output/SampleTable_GLbulkRNAseq.csv"),
@@ -35,35 +36,36 @@ process DGE_BY_DESEQ2 {
 
   script:
     """
-    # Unzip r scripts
+    # Unzip R scripts
     unzip dge_annotation_R_scripts.zip
 
     Rscript --vanilla dge_annotation_R_scripts/dge_annotation_workflow.R \\
         --runsheet_path runsheet.csv \\
+        ${ params.microbes ? '--microbes' : ''} \\
         ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
-        --input_gene_results_dir "Rsem_gene_counts" \\
+        --input_gene_results_dir ${ gene_counts } \\
         --primary_keytype ${ meta.primary_keytype } \\
         --normalization 'default' \\
         --normalized_counts_output_prefix "norm_counts_output/" \\
         --dge_output_prefix "dge_output/" \\
         --annotation_file_path ${annotation_file} \\
-        --extended_table_output_prefix "dge_output/"\\
+        --extended_table_output_prefix "dge_output/" \\
         --extended_table_output_suffix "_GLbulkRNAseq.csv"
 
-    if ${ meta.has_ercc ? 'true' : 'false'}
+    if (${ meta.has_ercc ? 'true' : 'false' })
     then
         Rscript --vanilla dge_annotation_R_scripts/dge_annotation_workflow.R \\
             --runsheet_path runsheet.csv \\
+            ${ params.microbes ? '--microbes' : ''} \\
             ${ params.use_dummy_gene_counts ? '--DEBUG_MODE_ADD_DUMMY_COUNTS' : ''} \\
-            --input_gene_results_dir "Rsem_gene_counts" \\
+            --input_gene_results_dir ${ gene_counts } \\
             --primary_keytype ${ meta.primary_keytype } \\
             --normalization 'ERCC-groupB' \\
             --normalized_counts_output_prefix "norm_counts_output/ERCC_" \\
             --dge_output_prefix "dge_output_ercc/ERCCnorm_" \\
             --annotation_file_path ${annotation_file} \\
-            --extended_table_output_prefix "dge_output_ercc/"\\
+            --extended_table_output_prefix "dge_output_ercc/" \\
             --extended_table_output_suffix "_ERCCnorm_GLbulkRNAseq.csv"
     fi
-    # bump
     """
 }

@@ -533,6 +533,39 @@ def check_rsem_counts_and_unnormalized_tables_parity(
         )
     return {"code": code, "message": message}
 
+def check_featurecounts_and_unnormalized_tables_parity(featurecounts_table_path: Path, deseq2_table_path: Path) -> dict:
+    # Read the featureCounts data, skipping the first line of metadata and setting separator to tab
+    df_featurecounts = pd.read_csv(featurecounts_table_path, header=1, sep="\t")
+    
+    # Read the DESeq2 data
+    df_deseq2 = pd.read_csv(deseq2_table_path)
+
+    # Extract sample names from DESeq2, ignoring the first column which is likely 'Unnamed: 0'
+    deseq2_sample_names = set(df_deseq2.columns[1:])
+    featurecounts_sample_names = set(df_featurecounts.columns[6:])  # skipping the first six columns which are metadata
+
+    # Check for missing columns
+    missing_in_featurecounts = deseq2_sample_names - featurecounts_sample_names
+    extra_in_featurecounts = featurecounts_sample_names - deseq2_sample_names
+
+    if missing_in_featurecounts or extra_in_featurecounts:
+        return {
+            "code": "HALT",
+            "message": f"Columns do not match: unique to featurecounts: {extra_in_featurecounts}. unique to deseq2: {missing_in_featurecounts}."
+        }
+
+    # Rearrange DESeq2 columns to match featureCounts columns order
+    df_deseq2 = df_deseq2[["Unnamed: 0"] + list(df_featurecounts.columns[6:])]
+
+    # Check if the dataframes are equal (ignoring the first column in DESeq2 which is likely an index)
+    if df_deseq2.iloc[:, 1:].equals(df_featurecounts.iloc[:, 6:]):
+        code = "GREEN"
+        message = "Tables of unnormalized counts match."
+    else:
+        code = "HALT"
+        message = "Tables of unnormalized counts have the same columns but values do not match."
+
+    return {"code": code, "message": message}
 
 def check_aggregate_star_unnormalized_counts_table_values_against_samplewise_tables(
     unnormalizedCountTable: Path, samplewise_tables: dict[str, Path]
@@ -1216,10 +1249,6 @@ def check_dge_table_log2fc_within_reason(
         df_dge_filtered["positive_sign_expected"] = (
             df_dge[group1_mean_col] - df_dge[group2_mean_col] > 0
         )
-
-        df_dge_filtered["matches_expected_sign"] = (
-            (df_dge[query_column] > 0) & df_dge_filtered["positive_sign_expected"]
-        ) | ((df_dge[query_column] < 0) & ~df_dge_filtered["positive_sign_expected"])
 
         all_suspect_signs = all_suspect_signs | df_dge_filtered.loc[
             df_dge_filtered["matches_expected_sign"] == False

@@ -16,6 +16,7 @@ params:
     DEBUG_MODE_ADD_DUMMY_COUNTS: FALSE
     work_dir: "." # NON_DPPD: should be set to launch directory 
     SUMMARY_FILE_PATH: "summary.txt"
+    microbes: FALSE # Set this to true to use Bowtie2 inputs
 ---
 
 ## Substeps {.tabset}
@@ -33,7 +34,6 @@ library(knitr)
 options(timeout=600)
 
 # Import libraries (tximport, DESeq2, tidyverse)
-library(tximport)
 library(DESeq2)
 library(stringr)
 
@@ -79,10 +79,10 @@ rownames(study) <- compare_csv[,1]
 
 ```{r study_df-to-group_df}
 ##### Format groups and indicate the group that each sample belongs to #####
-if (dim(study) >= 2){
-    group<-apply(study,1,paste,collapse = " & ") # concatenate multiple factors into one condition per sample
-} else{
-    group<-study[,1]
+if (ncol(study) >= 2){
+    group <- apply(study, 1, paste, collapse = " & ") # concatenate multiple factors into one condition per sample
+} else {
+    group <- study[, 1]  # If only one column, use it directly
 }
 group_names <- paste0("(",group,")",sep = "") # human readable group names
 group <- sub("^BLOCKER_", "",  make.names(paste0("BLOCKER_", group))) # group naming compatible with R models, this maintains the default behaviour of make.names with the exception that 'X' is never prepended to group namesnames(group) <- group_names
@@ -108,22 +108,69 @@ rm(contrast.names)
 
 ### 3. Load Gene Counts
 ```{r load-gene-counts }
-##### Import RSEM raw (gene) count data #####
-files <- list.files(
-            path = params$input_gene_results_dir, 
-            pattern = ".genes.results", 
-            full.names = TRUE
-        )
+##### Import Bowtie2 or RSEM raw (gene) count data #####
+if (params$microbes) {
+    counts_file <- params$input_gene_results_dir
+    if (!file.exists(counts_file)) {
+        stop(paste("File not found:", counts_file))
+    }
+    
+    # Load featureCounts data for microbes mode
+    featurecounts_data <- tryCatch({
+        read.csv(file = counts_file, header = TRUE, sep = "\t", skip = 1, stringsAsFactors = FALSE, check.names = FALSE)
+    }, error = function(e) {
+        print("Error reading the counts file:")
+        print(e)
+        NULL
+    })
 
-## Reorder the *genes.results files to match the ordering of the ISA samples
+    if (is.null(featurecounts_data)) {
+        stop("FeatureCounts data could not be read.")
+    }
 
-samples = rownames(study)
-reordering <- sapply(samples, function(x)grep(paste0("Rsem_gene_counts/", x,".genes.results$"), files, value=FALSE))
-files <- files[reordering]
-names(files) <- samples
-txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
-if ((dim(txi.rsem$counts)[2] == nrow(study)) == FALSE) {
-    stop(sprintf("Assert statement: '%s' was False: Sample count mismatch after comparing imported gene results and runsheet", deparse(quote(dim(txi.rsem$counts)[2] == nrow(study))) )) }
+    # Identify metadata columns and sample columns
+    metadata_cols <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
+    sample_cols <- setdiff(colnames(featurecounts_data), metadata_cols)
+
+    # Remove the ".bam" suffix from the sample columns
+    sample_cols <- sub("\\.bam$", "", sample_cols)
+
+    # Reorder sample columns to match the sample order in the study
+    samples <- rownames(study)
+    sample_col_indices <- match(samples, sample_cols)
+
+    # Subset and reorder the featurecounts_data to keep only the reordered sample columns
+    counts <- featurecounts_data[, sample_col_indices, drop = FALSE]
+    counts <- as.data.frame(lapply(counts, function(x) {
+        num <- as.numeric(x)
+        num[is.na(num)] <- 0
+        return(num)
+    }))
+    colnames(counts) <- samples  # Rename the columns to match the sample names
+
+    rownames(counts) <- featurecounts_data$Geneid # Set Geneid as row names
+    txi.rsem <- list(counts = counts)
+    
+} else {
+    library(tximport)
+    # Load RSEM data for default mode
+    files <- list.files(
+        path = params$input_gene_results_dir, 
+        pattern = ".genes.results", 
+        full.names = TRUE
+    )
+    samples = rownames(study)
+    reordering <- sapply(samples, function(x) grep(paste0("Rsem_gene_counts/", x, ".genes.results$"), files, value = FALSE))
+    files <- files[reordering]
+    names(files) <- samples
+    txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
+    if ((dim(txi.rsem$counts)[2] == nrow(study)) == FALSE) {
+        stop(sprintf("Assert statement: '%s' was False: Sample count mismatch after comparing imported gene results and runsheet", deparse(quote(dim(txi.rsem$counts)[2] == nrow(study)))))
+    }
+    ## Add 1 to genes with lengths of zero - needed to make DESeqDataSet object
+    print(sprintf("DEBUG: %s: Converting %d zero length genes to 1-length of %d genes (%f %% total)", Sys.time(), length(txi.rsem$length[txi.rsem$length == 0]), length(txi.rsem$length), length(txi.rsem$length[txi.rsem$length == 0])/length(txi.rsem$length)))
+    txi.rsem$length[txi.rsem$length == 0] <- 1
+}
 
 if (params$DEBUG_MODE_LIMIT_GENES) {
     txi.rsem <- lapply(txi.rsem, tail, n = 150)
@@ -135,10 +182,6 @@ if (params$DEBUG_MODE_ADD_DUMMY_COUNTS) {
     txi.rsem$counts <- txi.rsem$counts + matrix(sample( 0:5000, NROW(txi.rsem$counts)*NCOL(txi.rsem$counts), replace=TRUE),nrow=NROW(txi.rsem$counts))
     print(sprintf("DEBUG: %s: Replacing original counts with random values from 0 to 5000", Sys.time()))
 }
-
-## Add 1 to genes with lengths of zero - needed to make DESeqDataSet object
-print(sprintf("DEBUG: %s: Converting %d zero length genes to 1-length of %d genes (%f %% total)", Sys.time(), length(txi.rsem$length[txi.rsem$length == 0]), length(txi.rsem$length), length(txi.rsem$length[txi.rsem$length == 0])/length(txi.rsem$length)))
-txi.rsem$length[txi.rsem$length == 0] <- 1
 
 print(sprintf("DEBUG: %s Printing: '%s' below", Sys.time(), 'txi.rsem'))
 print(txi.rsem, quote = TRUE)
@@ -158,11 +201,21 @@ rownames(sampleTable) <- colnames(txi.rsem$counts)
 ### 4. DGE
 ```{r load-deseq2-dataset}
 # Create dataset
-dds <- DESeq2::DESeqDataSetFromTximport(
+if (params$microbes) {
+    # Build DESeqDataSet directly from counts for microbes mode
+    dds <- DESeqDataSetFromMatrix(
+        countData = txi.rsem$counts,
+        colData = sampleTable,
+        design = ~condition
+    )
+} else {
+    # Build DESeqDataSet from tximport object for non-microbes mode
+    dds <- DESeqDataSetFromTximport(
         txi = txi.rsem,
         colData = sampleTable,
         design = ~condition
     )
+}
 summary(dds)
 ```
 
@@ -284,9 +337,14 @@ dds_1 <- DESeq(dds)
 ```{r output-normalized-counts-related-files}
 normCounts <- as.data.frame(counts(dds_1, normalized = TRUE))
 dir.create(dirname(paste0(params$normalized_counts_output_prefix, "_")), recursive = TRUE)
+output_file_name <- if (params$microbes) {
+    "FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv"
+} else {
+    "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"
+}
 write.csv(
     txi.rsem$counts,
-    file = paste0(params$normalized_counts_output_prefix, "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv")
+    file = paste0(params$normalized_counts_output_prefix, output_file_name)
     )
 write.csv(
     normCounts,
@@ -395,13 +453,20 @@ writeLines(output, conn)
 ```{r version-reporting}
 ## print session info ##
 print("Session Info below: ")
-sessionInfo()
+session_info_output <- capture.output(sessionInfo())
+
+## Get Bioconductor version
+if ("BiocManager" %in% rownames(installed.packages())) {
+    bioc_version <- BiocManager::version()
+} else {
+    bioc_version <- "NA"
+}
+
 ## Log same info into versions.txt file
 version_output_fn <- "versions.txt"
-cat(capture.output(sessionInfo()),
-    "BioC_version_associated_with_R_version",
-    toString(tools:::.BioC_version_associated_with_R_version()),
+cat(paste(session_info_output, 
+          "\nBioC_version_associated_with_R_version: ", bioc_version, 
+          sep = "\n"),
     file = version_output_fn,
-    append = TRUE,
-    sep = "\n")
+    append = TRUE)
 ```

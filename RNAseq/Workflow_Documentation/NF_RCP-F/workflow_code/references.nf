@@ -76,7 +76,7 @@ workflow references{
         PARSE_ANNOTATIONS_TABLE.out.reference_version_and_source | set { ch_ref_source_version }
       }
       // use assets table to find current annotations file
-      PARSE_ANNOTATIONS_TABLE.out.annotations_db_url | set{ ch_gene_annotations_url }
+      PARSE_ANNOTATIONS_TABLE.out.annotations_db_url | set{ gene_annotations }
 
       // SUBSAMPLING STEP : USED FOR DEBUG/TEST RUNS
       if ( params.genomeSubsample ) {
@@ -106,6 +106,6 @@ workflow references{
   emit:
       genome_annotations = genome_annotations
       genome_bed = TO_BED.out
-      gene_annotations = ch_gene_annotations_url
+      gene_annotations = gene_annotations
       reference_version_and_source = ch_ref_source_version
 }

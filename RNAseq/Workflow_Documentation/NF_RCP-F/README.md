@@ -144,7 +144,8 @@ While in the location containing the `NF_RCP-F_1.0.4` directory that was downloa
 ```bash
 nextflow run NF_RCP-F_1.0.4/main.nf \ 
    -profile singularity \
-   --gldsAccession OSD-194 
+   --osdAccession OSD-194 \
+   --gldsAccession GLDS-194 
 ```
 
 <br>
@@ -156,6 +157,7 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 ```bash
 nextflow run NF_RCP-F_1.0.4/main.nf \ 
    -profile singularity \
+   --osdAccession OSD-194 \
    --gldsAccession OSD-194 \
    --ensemblVersion 107 \
    --ref_source ensembl \ 
@@ -184,7 +186,9 @@ nextflow run NF_RCP-F_1.0.4/main.nf \
 
 * `-profile` - Specifies the configuration profile(s) to load, `singularity` instructs Nextflow to setup and use singularity for all software called in the workflow
 
-* `--gldsAccession OSD-###` – specifies the OSD dataset to process through the RCP workflow (replace ### with the OSD number)  
+* `--osdAccession OSD-###` – specifies the OSD ID to process through the RCP workflow (replace ### with the OSD number)
+
+* `--gldsAccession GLDS-###` – specifies the GLDS dataset to process through the RCP workflow (replace ### with the GLDS number)  
   > Note: The primary output directory will be titled "OSD-###"
 
 * `--gldsAccession output_directory` – specifies the output directory name to use when processing a non-OSD dataset, as indicated in [Approach 3 above](#4c-approach-3-run-the-workflow-on-a-non-glds-dataset-using-a-user-created-runsheet)
