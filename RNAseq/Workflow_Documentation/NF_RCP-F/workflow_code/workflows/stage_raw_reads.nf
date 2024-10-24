@@ -1,4 +1,5 @@
-nextflow.enable.dsl=2
+// Include the COPY_READS module
+include { COPY_READS } from '../modules/copy_reads.nf'
 
 workflow STAGE_RAW_READS {
     take:
@@ -35,43 +36,19 @@ workflow STAGE_RAW_READS {
                                         | set { ch_raw_reads }
 
             // Moves the truncated files to expected raw read locations as per samplesheet
-            ch_raw_reads | STAGE_READS
+            ch_raw_reads | COPY_READS
         } else if ( stage_local && !truncate_to ) {
         // download full raw reads
             ch_samples | map { it -> it[0].paired_end ? [it[0], [ it[1][0], it[1][1] ]] : [it[0], [it[1][0]]]}
                          | set { ch_raw_reads }
 
             // Download the raw reads and publish them to expected raw read locations as per samplesheet
-            ch_raw_reads | STAGE_READS
+            ch_raw_reads | COPY_READS
         } else {
         // Don't download any raw reads
         }
 
     emit:
-        raw_reads = stage_local ? STAGE_READS.out.raw_reads : null
+        raw_reads = stage_local ? COPY_READS.out.raw_reads : null
 }
 
-process STAGE_READS {
-    // Stages the raw reads into appropriate publish directory
-    publishDir params.glds ? "${params.outdir}/GLDS-${params.glds}/00-RawData" : "${params.outdir}/00-RawData",
-        mode: params.publish_dir_mode
-    tag "${ meta.id }"
-
-    input:
-        tuple val(meta), path("?.gz")
-
-    output:
-        tuple val(meta), path("${meta.id}*.gz"), emit: raw_reads
-
-    script:
-        if ( meta.paired_end ) {
-        """
-        cp -P 1.gz ${meta.id}_R1_raw.fastq.gz
-        cp -P 2.gz ${meta.id}_R2_raw.fastq.gz
-        """
-        } else {
-        """
-        cp -P 1.gz  ${meta.id}_raw.fastq.gz
-        """
-        }
-    }
