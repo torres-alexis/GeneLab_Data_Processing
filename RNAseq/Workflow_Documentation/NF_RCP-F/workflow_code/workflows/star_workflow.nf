@@ -32,8 +32,18 @@ workflow STAR_WORKFLOW {
             runsheet_path = ISA_TO_RUNSHEET.out.runsheet
         }
 
-        //Parse runsheet
+        //Parse runsheet for processing metadata and check for unique read file paths
         PARSE_RUNSHEET(runsheet_path)
+        // samples is a channel of tuples, where each tuple contains:
+        // 1. A map of metadata about the sample with the following keys:
+        //    - id: String (Sample Name)
+        //    - organism_sci: String (Organism name, lowercase with underscores, e.g. 'mus_musculus')
+        //    - paired_end: Boolean
+        //    - has_ercc: Boolean
+        //    - factors: Map of factor values (keys are factor names, values are factor levels)
+        // 2. A list of read file paths associated with that sample
+        // Example usage: samples.take(1) | view { meta, reads -> ... }
+        samples = PARSE_RUNSHEET.out.samples
 
     emit:
         accessions_txt
