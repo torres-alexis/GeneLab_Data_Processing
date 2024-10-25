@@ -18,10 +18,15 @@ if (params.help) {
     showHelp(workflow)
 }
 
+if (params.version) {
+    println("${workflow.manifest.name} ${workflow.manifest.version}")
+    exit 0
+}
+
 // Print the pipeline version
 println """
 ${colorCodes.c_bright_green}${colorCodes.c_line}
-GeneLab RNA-Seq Consensus Pipeline NF-RCP-${workflow.manifest.version}
+${workflow.manifest.name} ${workflow.manifest.version}
 ${colorCodes.c_line}${colorCodes.c_reset}
 """.stripIndent()
 
