@@ -13,11 +13,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="Download ISA archive for a given dataset using OSD ID."
     )
-    parser.add_argument("--osd", required=True, help="OSD ID (e.g., 576)")
+    parser.add_argument("--osd", required=True, help="OSD ID (e.g., OSD-576)")
     parser.add_argument("--outdir", required=True, help="Output directory to save the ISA archive")
     args = parser.parse_args()
 
-    osd_id = args.osd
+    osd_id = args.osd.split('-')[-1] if '-' in args.osd else args.osd
     outdir = args.outdir
 
     # Build the JSON URL to get file information

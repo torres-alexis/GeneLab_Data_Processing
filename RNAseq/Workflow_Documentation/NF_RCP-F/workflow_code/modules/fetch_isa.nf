@@ -1,19 +1,18 @@
 process FETCH_ISA {
 
-    tag "OSD-${osd}"
+    tag "${osd_accession}"
 
-    publishDir params.glds ? "${params.outdir}/GLDS-${params.glds}/Metadata" : "${params.outdir}/Metadata",
+    publishDir "${glds_accession}/Metadata",
         mode: params.publish_dir_mode
 
     input:
-    val(osd)
-    val(glds)
-
+    val(osd_accession)
+    val(glds_accession)
     output:
     path "*.zip", emit: isa_archive
 
     script:
     """
-    python $projectDir/bin/fetch_isa.py --osd ${osd} --outdir .
+    python $projectDir/bin/fetch_isa.py --osd ${osd_accession} --outdir .
     """
 }

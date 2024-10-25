@@ -39,13 +39,13 @@ if (params.limit_samples_to || params.truncate_to || params.force_single_end || 
 println("${colorCodes.c_reset}")
 
 // Check required parameters
-if ((params.glds && params.osd) || params.runsheet_path || params.isa_archive_path) {
+if ((params.accession) || params.runsheet_path || params.isa_archive_path) {
     // Proceed
 } else {
     log.error """
         Missing Required Parameters: You must provide either both --osd and --glds, or --runsheet_path, or --glds and --isa_archive_path.
         Examples:
-          --osd 194 --glds 194
+          --accession [OSD-# or GLDS-#]
           --runsheet_path /path/to/runsheet.csv
           --isa_archive_path /path/to/isa_archive.zip
     """
@@ -54,11 +54,45 @@ if ((params.glds && params.osd) || params.runsheet_path || params.isa_archive_pa
 
 include { STAR_WORKFLOW } from './workflows/star_workflow.nf'
 
-// Main workflow
+// Validate accession format. Must be OSD-#. 
+if (params.accession && !params.accession.matches(/^(OSD|GLDS)-\d+$/)) {
+    log.error "Invalid accession format. Expected format: OSD-# or GLDS-#"
+    exit 1
+}
+
+// Set up channels. This will be used to pass in parameters from initialization 
+// into the entire workflow or subworkflows run independently (e.g. rerunning a 
+// specific step for reprocessing a dataset after metadata updates)
+ch_dp_tools_plugin = params.dp_tools_plugin ? 
+    Channel.value(file(params.dp_tools_plugin)) : 
+    Channel.value(file(params.mode == 'microbes' ? 
+        "$projectDir/bin/dp_tools__NF_RCP_Bowtie2" : 
+        "$projectDir/bin/dp_tools__NF_RCP"))
+
+ch_accession = params.accession ? Channel.value(params.accession) : null
+ch_runsheet = params.runsheet_path ? Channel.fromPath(params.runsheet_path) : null
+ch_isa_archive = params.isa_archive_path ? Channel.fromPath(params.isa_archive_path) : null
+ch_force_single_end = Channel.value(params.force_single_end)
+ch_limit_samples_to = Channel.value(params.limit_samples_to)
+ch_reference_table = Channel.fromPath(params.reference_table)
+ch_api_url = Channel.value(params.api_url)
+// Set params.outdir based on the presence of an accession input
+params.outdir = params.accession ? "$projectDir/${params.accession}" : "$projectDir/results"
+
+// Main workflows
 workflow {
     if (params.mode == 'microbes') {
-        //BOWTIE2_WORKFLOW()
+        //BOWTIE2_WORKFLOW() // Uncomment after implemented
     } else {
-        STAR_WORKFLOW()
+        STAR_WORKFLOW(
+            ch_dp_tools_plugin,
+            ch_reference_table,
+            ch_force_single_end,
+            ch_limit_samples_to,
+            ch_accession,
+            ch_isa_archive,
+            ch_runsheet,
+            ch_api_url
+        )
     }
 }

@@ -1,11 +1,12 @@
 process ISA_TO_RUNSHEET {
-    tag "OSD-${params.osd}_GLDS-${glds}"
+    tag "${osd_accession}_${glds_accession}"
 
-    publishDir params.glds ? "${params.outdir}/GLDS-${params.glds}/Metadata" : "${params.outdir}/Metadata",
+    publishDir "${glds_accession}/Metadata",
         mode: params.publish_dir_mode
 
     input: 
-    val(glds)
+    val(osd_accession)
+    val(glds_accession)
     path isa_archive
     path dp_tools_plugin
 
@@ -14,6 +15,6 @@ process ISA_TO_RUNSHEET {
 
     script:
     """
-    dpt-isa-to-runsheet --accession GLDS-${glds} --isa-archive ${isa_archive} --plugin-dir ${dp_tools_plugin}
+    dpt-isa-to-runsheet --accession ${osd_accession} --isa-archive ${isa_archive} --plugin-dir ${dp_tools_plugin}
     """
 }
