@@ -72,12 +72,23 @@ ch_dp_tools_plugin = params.dp_tools_plugin ?
 ch_accession = params.accession ? Channel.value(params.accession) : null
 ch_runsheet = params.runsheet_path ? Channel.fromPath(params.runsheet_path) : null
 ch_isa_archive = params.isa_archive_path ? Channel.fromPath(params.isa_archive_path) : null
-ch_force_single_end = Channel.value(params.force_single_end)
-ch_limit_samples_to = Channel.value(params.limit_samples_to)
-ch_reference_table = Channel.fromPath(params.reference_table)
+ch_reference_table = Channel.value(params.reference_table)
 ch_api_url = Channel.value(params.api_url)
+
+ch_limit_samples_to = Channel.value(params.limit_samples_to)
+ch_truncate_to = Channel.value(params.truncate_to)
+ch_genome_subsample = Channel.value(params.genome_subsample)
+ch_force_single_end = Channel.value(params.force_single_end)
+
 // Set params.outdir based on the presence of an accession input
 params.outdir = params.accession ? "$projectDir/${params.accession}" : "$projectDir/results"
+
+
+// set reference params
+ch_reference_source = Channel.value(params.reference_source)
+ch_reference_version = Channel.value(params.reference_version)
+ch_reference_fasta = Channel.value(params.reference_fasta)
+ch_reference_gtf = Channel.value(params.reference_gtf)
 
 // Main workflows
 workflow {
@@ -87,12 +98,18 @@ workflow {
         STAR_WORKFLOW(
             ch_dp_tools_plugin,
             ch_reference_table,
-            ch_force_single_end,
-            ch_limit_samples_to,
             ch_accession,
             ch_isa_archive,
             ch_runsheet,
-            ch_api_url
+            ch_api_url,
+            ch_force_single_end,
+            ch_limit_samples_to,
+            ch_truncate_to,
+            ch_genome_subsample,
+            ch_reference_source,
+            ch_reference_version,
+            ch_reference_fasta,
+            ch_reference_gtf
         )
     }
 }

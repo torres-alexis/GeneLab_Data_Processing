@@ -63,7 +63,7 @@ workflow PARSE_RUNSHEET {
 
         // Print autodetected processing metadata for the first sample
         ch_samples.take(1) | view { meta, reads -> 
-            """${colorCodes.c_bright_green}Autodetected Processing Metadata:
+            """${colorCodes.c_blue}Autodetected Processing Metadata:${colorCodes.c_bright_green}
             Has ERCC: ${meta.has_ercc}
             Paired End: ${meta.paired_end}
             Organism: ${meta.organism_sci}${colorCodes.c_reset}"""
