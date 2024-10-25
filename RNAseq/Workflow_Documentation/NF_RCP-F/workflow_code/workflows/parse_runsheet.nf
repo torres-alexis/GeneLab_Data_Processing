@@ -40,12 +40,10 @@ def mutate_to_single_end(it) {
 
 workflow PARSE_RUNSHEET {
     take:
-        ch_runsheet
-        force_single_end
-        limit_samples_to
+        runsheet_path
     
     main:
-        ch_samples = ch_runsheet 
+        ch_samples = runsheet_path 
             | splitCsv(header: true)
             | map { row -> get_runsheet_paths(row) }
 
@@ -70,7 +68,7 @@ workflow PARSE_RUNSHEET {
             Paired End: ${meta.paired_end}
             Organism: ${meta.organism_sci}${colorCodes.c_reset}"""
         }
-        // Check that all read files are unique
+        // Check that all read file paths are unique
         ch_samples
             .flatMap { meta, reads -> reads }
             .collect()

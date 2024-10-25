@@ -16,18 +16,24 @@ workflow STAR_WORKFLOW {
     main:
         // Set up runsheet
         if (runsheet_path == null) {
+            //Get both OSD and GLDS accessions based on the input accession
             GET_ACCESSIONS( accession, api_url )
             accessions_txt = GET_ACCESSIONS.out.accessions_txt // returns accessions.txt with line1 = osd_accession, line2 = glds_accession. 
             osd_accession = accessions_txt.map { it.readLines()[0].trim() }
             glds_accession = accessions_txt.map { it.readLines()[1].trim() }
 
+            //Fetch ISA archive if not provided
             if (isa_archive_path == null) {
                 FETCH_ISA(osd_accession, glds_accession)
                 isa_archive = FETCH_ISA.out.isa_archive
             }
+            //Convert ISA archive to runsheet
             ISA_TO_RUNSHEET( osd_accession, glds_accession, isa_archive, dp_tools_plugin )
             runsheet_path = ISA_TO_RUNSHEET.out.runsheet
         }
+
+        //Parse runsheet
+        PARSE_RUNSHEET(runsheet_path)
 
     emit:
         accessions_txt
