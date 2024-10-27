@@ -93,9 +93,11 @@ workflow STAR_WORKFLOW {
             reference_fasta = PARSE_ANNOTATIONS_TABLE.out.reference_fasta_url
             reference_gtf = PARSE_ANNOTATIONS_TABLE.out.reference_gtf_url
             reference_source = PARSE_ANNOTATIONS_TABLE.out.reference_source
-        reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
+            reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
         }
         
+        // Add a view operation to display the reference_fasta
+        // reference_fasta.view { it -> println "Reference FASTA URL: ${it}" }
 
     emit:
         accessions_txt

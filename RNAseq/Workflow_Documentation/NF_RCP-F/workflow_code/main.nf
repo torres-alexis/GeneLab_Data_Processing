@@ -90,10 +90,10 @@ params.outdir = params.accession ? "$projectDir/${params.accession}" : "$project
 
 
 // set reference params
-ch_reference_source = Channel.value(params.reference_source)
-ch_reference_version = Channel.value(params.reference_version)
-ch_reference_fasta = Channel.value(params.reference_fasta)
-ch_reference_gtf = Channel.value(params.reference_gtf)
+ch_reference_source = params.reference_source ? Channel.value(params.reference_source) : null
+ch_reference_version = params.reference_version ? Channel.value(params.reference_version) : null
+ch_reference_fasta = params.reference_fasta ? Channel.value(params.reference_fasta) : null
+ch_reference_gtf = params.reference_gtf ? Channel.value(params.reference_gtf) : null
 
 // Main workflows
 workflow {
