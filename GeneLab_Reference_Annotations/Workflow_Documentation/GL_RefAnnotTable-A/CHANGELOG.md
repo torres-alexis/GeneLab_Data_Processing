@@ -32,7 +32,7 @@ organism-specific annotation packages (org.*.eg.db) in R if not available on
 Bioconductor. Used for:  
     - Bacillus subtilis, subsp. subtilis 168  
     - Brachypodium distachyon  
-    - Escherichia coli,str. K-12 substr. MG1655  
+    - Escherichia coli, str. K-12 substr. MG1655  
     - Oryzias latipes  
     - Salmonella enterica subsp. enterica serovar Typhimurium str. LT2  
 - Added NCBI as a source for FASTA and GTF files  
