@@ -3,6 +3,8 @@ include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
+// include { PREPARE_REFERENCES } from './prepare_references.nf'
+include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
 workflow STAR_WORKFLOW {
     take:
         dp_tools_plugin
@@ -19,6 +21,7 @@ workflow STAR_WORKFLOW {
         reference_version
         reference_fasta
         reference_gtf
+        reference_store_path
     main:
         // Set up runsheet
         if (runsheet_path == null) {
@@ -95,10 +98,16 @@ workflow STAR_WORKFLOW {
             reference_source = PARSE_ANNOTATIONS_TABLE.out.reference_source
             reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
         }
-        
-        // Add a view operation to display the reference_fasta
-        // reference_fasta.view { it -> println "Reference FASTA URL: ${it}" }
+        DOWNLOAD_REFERENCES(reference_store_path, organism_sci, reference_fasta, reference_gtf, reference_version, reference_source)
+        reference_fasta = DOWNLOAD_REFERENCES.out.reference_fasta_path // this is a path
+        reference_gtf = DOWNLOAD_REFERENCES.out.reference_gtf_path // this is a path
+
+        // Prepare reference files: reference genome with or without ERCC concatenation and annotation file
+        // PREPARE_REFERENCES(reference_store_path, reference_fasta, reference_gtf, genome_subsample, has_ercc)
+        // outputs:
+        // - genome_fasta
+        // - genome_gtf
 
     emit:
-        accessions_txt
+        reference_fasta
 }
