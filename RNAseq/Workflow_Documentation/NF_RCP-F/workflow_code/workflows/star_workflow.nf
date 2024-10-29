@@ -89,8 +89,6 @@ workflow STAR_WORKFLOW {
         //     """
         // }
 
-
-
         // Extract organism_sci from the first sample in order to read the correct row from the annotations table
         ch_meta | map { meta -> meta.organism_sci }
         | set { organism_sci }
@@ -99,7 +97,6 @@ workflow STAR_WORKFLOW {
         // organism_sci | view { it -> 
         //     "Organism: ${it}"
         // }
-
 
         // Parse the annotations table
         // Outputs:
@@ -155,14 +152,11 @@ workflow STAR_WORKFLOW {
         // Convert genome gtf to bed
         GTF_TO_PRED(derived_store_path, organism_sci, reference_source, reference_version, reference_gtf_post_ercc)
         genome_pred = GTF_TO_PRED.out.genome_pred
-
-        // Prepare reference files: reference genome with or without ERCC concatenation and annotation file
-        // PREPARE_REFERENCES(reference_store_path, reference_fasta, reference_gtf, genome_subsample, has_ercc)
-        // outputs:
-        // - genome_fasta
-        // - genome_gtf
         PRED_TO_BED(derived_store_path, organism_sci, reference_source, reference_version, genome_pred)
         genome_bed = PRED_TO_BED.out.genome_bed
+
+        // BUILD STAR GENOME INDEX
+        //BUILD_STAR()
 
     emit:
         genome_bed

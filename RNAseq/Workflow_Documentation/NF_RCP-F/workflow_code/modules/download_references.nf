@@ -1,6 +1,6 @@
 process DOWNLOAD_REFERENCES {
   // Download and decompress genome and gtf files
-  tag "Organism: ${organism_sci} | Reference Source: ${reference_source}${reference_source.toLowerCase().contains('ensembl') ? ' | Reference Version: ' + reference_version : ''}"
+  tag "Organism: ${organism_sci}, Reference Source: ${reference_source}${reference_source.toLowerCase().contains('ensembl') ? ', Reference Version: ' + reference_version : ''}"
   storeDir "${reference_store_path}/${reference_source}/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${organism_sci}"
 
   input:

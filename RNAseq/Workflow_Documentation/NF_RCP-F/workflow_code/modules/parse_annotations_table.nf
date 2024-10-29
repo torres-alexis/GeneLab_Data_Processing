@@ -19,8 +19,8 @@ process PARSE_ANNOTATIONS_TABLE {
     val(fasta_url), emit: reference_fasta_url
     val(gtf_url), emit: reference_gtf_url
     val(annotations_db_url), emit: annotations_db_url
-    val(refSource), emit: reference_source
-    val(refVersion), emit: reference_version
+    val(reference_source), emit: reference_source
+    val(reference_version), emit: reference_version
   
   exec:
     def organisms = [:]
@@ -35,13 +35,14 @@ process PARSE_ANNOTATIONS_TABLE {
     fasta_url = organisms[organism_key][5]
     gtf_url = organisms[organism_key][6]
     annotations_db_url = organisms[organism_key][9]
-    refVersion = organisms[organism_key][3]
-    refSource = organisms[organism_key][4]
-
-    println "${colorCodes.c_blue}Annotation table values parsed for '${organism_key}':"
-    println "${colorCodes.c_bright_green}- fasta_url: ${fasta_url}${colorCodes.c_reset}"
-    println "${colorCodes.c_bright_green}- gtf_url: ${gtf_url}${colorCodes.c_reset}"
-    println "${colorCodes.c_bright_green}- annotations_db_url: ${annotations_db_url}${colorCodes.c_reset}"
-    println "${colorCodes.c_bright_green}- refVersion: ${refVersion}${colorCodes.c_reset}"
-    println "${colorCodes.c_bright_green}- refSource: ${refSource}${colorCodes.c_reset}"
+    reference_version = organisms[organism_key][3]
+    reference_source = organisms[organism_key][4]
+    println "${colorCodes.c_blue}Annotation table values parsed for '${organism_key}':${colorCodes.c_bright_green}"
+    println "            Reference Fasta URL: ${fasta_url}"
+    println "            Reference GTF URL: ${gtf_url}" 
+    println "            Annotations Database URL: ${annotations_db_url}"
+    println "            Reference Source: ${reference_source}${colorCodes.c_reset}"
+    if (reference_source.toLowerCase().contains('ensembl')) {
+        println "${colorCodes.c_bright_green}            Reference Version: ${reference_version}${colorCodes.c_reset}"
+    }
 }

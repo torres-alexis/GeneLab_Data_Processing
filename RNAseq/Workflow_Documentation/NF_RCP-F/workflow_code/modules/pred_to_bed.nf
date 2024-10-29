@@ -1,6 +1,6 @@
 process PRED_TO_BED {
     // Converts reference genePred into Bed format
-    storeDir "${ derived_store_path }/Genome_GTF_BED_Files/${ reference_source }_release${reference_version}/${ organism_sci }"
+    storeDir "${ derived_store_path }/Genome_GTF_BED_Files/${reference_source}/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${organism_sci}" 
             
     input:
         val(derived_store_path)
