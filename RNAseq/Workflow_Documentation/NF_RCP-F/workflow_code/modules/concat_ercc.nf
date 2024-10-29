@@ -1,6 +1,5 @@
 process CONCAT_ERCC {
-    // Concanates ERCC fasta and gtf to reference fasta and gtf
-    storeDir "${reference_store_path}/${reference_source}/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${organism_sci}"
+    storeDir "${reference_store_path}/${reference_source}/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${organism_sci}_ERCC"
 
     input:
         val(reference_store_path)

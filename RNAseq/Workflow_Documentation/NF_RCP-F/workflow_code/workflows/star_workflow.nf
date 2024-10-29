@@ -135,7 +135,7 @@ workflow STAR_WORKFLOW {
             reference_gtf_pre_ercc = reference_gtf
         }
 
-        // Download ERCC files if has_ercc is true
+        // Download and concatenate ERCC files if has_ercc is true
         if (has_ercc) {
             DOWNLOAD_ERCC(has_ercc, reference_store_path)
             ercc_fasta = DOWNLOAD_ERCC.out.ercc_fasta
