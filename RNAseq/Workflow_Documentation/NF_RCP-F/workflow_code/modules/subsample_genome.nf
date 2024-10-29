@@ -12,7 +12,8 @@ process SUBSAMPLE_GENOME {
 
   output:
     path("${ reference_fasta.baseName }_sub_${ genome_subsample  }.fa"), emit: subsampled_fasta
-    path("${ reference_gtf.baseName }_sub_${ genome_subsample }.gtf"), emit: subsampled_gtf
+    path("${ reference_gtf.baseName }_sub_${ genome_subsample }.gtf")  , emit: subsampled_gtf
+    //path("versions.yml")                                               , emit: versions
 
   script:
     """
@@ -22,5 +23,8 @@ process SUBSAMPLE_GENOME {
     # subsample gtf file
     grep '^#!' ${reference_gtf } > ${ reference_gtf.baseName }_sub_${ genome_subsample  }.gtf
     grep '^${genome_subsample}\t' ${reference_gtf} >> ${ reference_gtf.baseName }_sub_${ genome_subsample  }.gtf
+
+    #echo '"${task.process}":' > versions.yml
+    #echo "    samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')" >> versions.yml
     """
 }
