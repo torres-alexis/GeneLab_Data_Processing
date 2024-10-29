@@ -5,8 +5,9 @@ include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 // include { PREPARE_REFERENCES } from './prepare_references.nf'
 include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
-include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
 include { SUBSAMPLE_GENOME } from '../modules/subsample_genome.nf'
+include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
+include { CONCAT_ERCC } from '../modules/concat_ercc.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -139,10 +140,14 @@ workflow STAR_WORKFLOW {
             DOWNLOAD_ERCC(has_ercc, reference_store_path)
             ercc_fasta = DOWNLOAD_ERCC.out.ercc_fasta
             ercc_gtf = DOWNLOAD_ERCC.out.ercc_gtf
-            //TO ADD : CONCAT ERCC
+            CONCAT_ERCC(reference_store_path, organism_sci, reference_source, reference_version, reference_fasta_pre_ercc, reference_gtf_pre_ercc, ercc_fasta, ercc_gtf, has_ercc)
+            reference_fasta_post_ercc = CONCAT_ERCC.out.genome_fasta
+            reference_gtf_post_ercc = CONCAT_ERCC.out.genome_gtf
         } else {
             ercc_fasta = null
             ercc_gtf = null
+            reference_fasta_post_ercc = reference_fasta_pre_ercc
+            reference_gtf_post_ercc = reference_gtf_pre_ercc
         }
 
 
@@ -153,5 +158,5 @@ workflow STAR_WORKFLOW {
         // - genome_gtf
 
     emit:
-        reference_fasta
+        reference_gtf_post_ercc
 }
