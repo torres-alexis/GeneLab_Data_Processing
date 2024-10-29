@@ -9,6 +9,7 @@ include { SUBSAMPLE_GENOME } from '../modules/subsample_genome.nf'
 include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
 include { CONCAT_ERCC } from '../modules/concat_ercc.nf'
 include { GTF_TO_PRED } from '../modules/gtf_to_pred.nf'
+include { PRED_TO_BED } from '../modules/pred_to_bed.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -160,7 +161,9 @@ workflow STAR_WORKFLOW {
         // outputs:
         // - genome_fasta
         // - genome_gtf
+        PRED_TO_BED(derived_store_path, organism_sci, reference_source, reference_version, genome_pred)
+        genome_bed = PRED_TO_BED.out.genome_bed
 
     emit:
-        genome_pred
+        genome_bed
 }
