@@ -5,6 +5,17 @@ include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 // include { PREPARE_REFERENCES } from './prepare_references.nf'
 include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
+include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
+
+def colorCodes = [
+    c_line: "┅" * 70,
+    c_back_bright_red: "\u001b[41;1m",
+    c_bright_green: "\u001b[32;1m",
+    c_blue: "\033[0;34m",
+    c_yellow: "\u001b[33;1m",
+    c_reset: "\033[0m"
+]
+
 workflow STAR_WORKFLOW {
     take:
         dp_tools_plugin
@@ -53,12 +64,15 @@ workflow STAR_WORKFLOW {
         // 2. A list of read file paths associated with that sample
         // Example usage: samples.take(1) | view { meta, reads -> ... }
         samples = PARSE_RUNSHEET.out.samples
+        
 
         // Extract metadata from the first sample and set it as a channel
         samples | first 
                 | map { meta, reads -> meta }
                 | set { ch_meta }
         
+        has_ercc = ch_meta.map { it.has_ercc }
+
         // // Add a view operation to display the metadata
         // ch_meta | view { meta -> 
         //     """
@@ -91,16 +105,33 @@ workflow STAR_WORKFLOW {
         // - reference_source: val(reference_source)
         // - reference_version: val(reference_version)
         PARSE_ANNOTATIONS_TABLE(annotations_csv_url_string, organism_sci)
+
         // Use the parsed values if the reference_fasta and reference_gtf are not provided. Reference_source and reference_version are optional.
-        if (reference_fasta == null || reference_gtf == null) {
-            reference_fasta = PARSE_ANNOTATIONS_TABLE.out.reference_fasta_url
-            reference_gtf = PARSE_ANNOTATIONS_TABLE.out.reference_gtf_url
+        if (reference_fasta == null && reference_gtf == null) {
+            reference_fasta_url = PARSE_ANNOTATIONS_TABLE.out.reference_fasta_url
+            reference_gtf_url = PARSE_ANNOTATIONS_TABLE.out.reference_gtf_url
             reference_source = PARSE_ANNOTATIONS_TABLE.out.reference_source
             reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
+
+            DOWNLOAD_REFERENCES(reference_store_path, organism_sci, reference_fasta_url, reference_gtf_url, reference_version, reference_source)
+            reference_fasta = DOWNLOAD_REFERENCES.out.reference_fasta_path // this is a path
+            reference_gtf = DOWNLOAD_REFERENCES.out.reference_gtf_path // this is a path
         }
-        DOWNLOAD_REFERENCES(reference_store_path, organism_sci, reference_fasta, reference_gtf, reference_version, reference_source)
-        reference_fasta = DOWNLOAD_REFERENCES.out.reference_fasta_path // this is a path
-        reference_gtf = DOWNLOAD_REFERENCES.out.reference_gtf_path // this is a path
+        else {
+            reference_fasta.view {file -> "Using manually provided local reference genome fasta: ${file}"}
+            reference_gtf.view {file -> "Using manually provided reference genome gtf: ${file}"}
+        }
+
+        // Download ERCC files if has_ercc is true
+        if (has_ercc) {
+            DOWNLOAD_ERCC(has_ercc, reference_store_path)
+            ercc_fasta = DOWNLOAD_ERCC.out.ercc_fasta
+            ercc_gtf = DOWNLOAD_ERCC.out.ercc_gtf
+        } else {
+            ercc_fasta = null
+            ercc_gtf = null
+        }
+
 
         // Prepare reference files: reference genome with or without ERCC concatenation and annotation file
         // PREPARE_REFERENCES(reference_store_path, reference_fasta, reference_gtf, genome_subsample, has_ercc)
