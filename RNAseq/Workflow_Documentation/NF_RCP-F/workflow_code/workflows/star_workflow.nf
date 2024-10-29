@@ -8,6 +8,7 @@ include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
 include { SUBSAMPLE_GENOME } from '../modules/subsample_genome.nf'
 include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
 include { CONCAT_ERCC } from '../modules/concat_ercc.nf'
+include { GTF_TO_PRED } from '../modules/gtf_to_pred.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -150,6 +151,9 @@ workflow STAR_WORKFLOW {
             reference_gtf_post_ercc = reference_gtf_pre_ercc
         }
 
+        // Convert genome gtf to bed
+        GTF_TO_PRED(derived_store_path, organism_sci, reference_source, reference_version, reference_gtf_post_ercc)
+        genome_pred = GTF_TO_PRED.out.genome_pred
 
         // Prepare reference files: reference genome with or without ERCC concatenation and annotation file
         // PREPARE_REFERENCES(reference_store_path, reference_fasta, reference_gtf, genome_subsample, has_ercc)
@@ -158,5 +162,5 @@ workflow STAR_WORKFLOW {
         // - genome_gtf
 
     emit:
-        reference_gtf_post_ercc
+        genome_pred
 }

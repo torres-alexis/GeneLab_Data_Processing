@@ -15,7 +15,7 @@ process CONCAT_ERCC {
 
     output:
         path("${ genome_fasta.baseName }_and_ERCC92.fa"), emit: genome_fasta
-        path("${ genome_gtf.baseName }_and_ERCC92.gtf"), emit: genome_gtf
+        path("${ genome_gtf.baseName }_and_ERCC92.gtf") , emit: genome_gtf
 
     when:
         has_ercc

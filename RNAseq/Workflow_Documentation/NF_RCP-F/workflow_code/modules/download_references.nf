@@ -13,7 +13,7 @@ process DOWNLOAD_REFERENCES {
   
   output:
     path("{*.fa,*.fna}"), emit: reference_fasta_path //
-    path("*.gtf"), emit: reference_gtf_path
+    path("*.gtf")       , emit: reference_gtf_path
 
   script:
   """

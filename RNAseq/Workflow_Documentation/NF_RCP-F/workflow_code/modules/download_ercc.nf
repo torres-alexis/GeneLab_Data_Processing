@@ -6,7 +6,7 @@ process DOWNLOAD_ERCC {
     val(reference_store_path)
 
   output:
-    path("ERCC92.fa"), emit: ercc_fasta
+    path("ERCC92.fa") , emit: ercc_fasta
     path("ERCC92.gtf"), emit: ercc_gtf
     
   when:
