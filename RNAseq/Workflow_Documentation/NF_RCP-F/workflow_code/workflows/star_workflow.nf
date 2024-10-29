@@ -6,7 +6,7 @@ include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 // include { PREPARE_REFERENCES } from './prepare_references.nf'
 include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
 include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
-
+include { SUBSAMPLE_GENOME } from '../modules/subsample_genome.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -33,6 +33,7 @@ workflow STAR_WORKFLOW {
         reference_fasta
         reference_gtf
         reference_store_path
+        derived_store_path
     main:
         // Set up runsheet
         if (runsheet_path == null) {
@@ -105,6 +106,7 @@ workflow STAR_WORKFLOW {
         // - reference_source: val(reference_source)
         // - reference_version: val(reference_version)
         PARSE_ANNOTATIONS_TABLE(annotations_csv_url_string, organism_sci)
+        gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.annotations_db_url
 
         // Use the parsed values if the reference_fasta and reference_gtf are not provided. Reference_source and reference_version are optional.
         if (reference_fasta == null && reference_gtf == null) {
@@ -121,12 +123,23 @@ workflow STAR_WORKFLOW {
             reference_fasta.view {file -> "Using manually provided local reference genome fasta: ${file}"}
             reference_gtf.view {file -> "Using manually provided reference genome gtf: ${file}"}
         }
+        
+        // SUBSAMPLING STEP : USED FOR DEBUG/TEST RUNS
+        if ( genome_subsample ) {
+            SUBSAMPLE_GENOME( derived_store_path, organism_sci, reference_fasta, reference_gtf, reference_source, reference_version, genome_subsample )
+            reference_fasta_pre_ercc = SUBSAMPLE_GENOME.out.subsampled_fasta
+            reference_gtf_pre_ercc = SUBSAMPLE_GENOME.out.subsampled_gtf
+        } else {
+            reference_fasta_pre_ercc = reference_fasta
+            reference_gtf_pre_ercc = reference_gtf
+        }
 
         // Download ERCC files if has_ercc is true
         if (has_ercc) {
             DOWNLOAD_ERCC(has_ercc, reference_store_path)
             ercc_fasta = DOWNLOAD_ERCC.out.ercc_fasta
             ercc_gtf = DOWNLOAD_ERCC.out.ercc_gtf
+            //TO ADD : CONCAT ERCC
         } else {
             ercc_fasta = null
             ercc_gtf = null

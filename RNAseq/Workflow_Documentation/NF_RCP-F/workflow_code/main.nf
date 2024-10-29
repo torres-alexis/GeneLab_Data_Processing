@@ -36,7 +36,7 @@ if (params.limit_samples_to || params.truncate_to || params.force_single_end || 
     println("WARNING: Debugging options enabled!")
     println("Sample limit: ${params.limit_samples_to ?: 'Not set'}")
     println("Read truncation: ${params.truncate_to ? "First ${params.truncate_to} records" : 'Not set'}")
-    println("Reference genome subsampling: ${params.genome_subsample ? "Chromosome '${params.genome_subsample}'" : 'Not set'}")
+    println("Reference genome subsampling: ${params.genome_subsample ? "Region '${params.genome_subsample}'" : 'Not set'}")
     println("Force single-end analysis: ${params.force_single_end ? 'Yes' : 'No'}")
 } else {
     println("No debugging options enabled")
@@ -86,6 +86,7 @@ ch_genome_subsample = Channel.value(params.genome_subsample)
 ch_force_single_end = Channel.value(params.force_single_end)
 
 ch_reference_store_path = Channel.value(params.reference_store_path)
+ch_derived_store_path = Channel.value(params.derived_store_path)
 
 // Set params.outdir based on the presence of an accession input
 params.outdir = params.accession ? "$projectDir/${params.accession}" : "$projectDir/results"
@@ -117,7 +118,8 @@ workflow {
             ch_reference_version,
             ch_reference_fasta,
             ch_reference_gtf,
-            ch_reference_store_path
+            ch_reference_store_path,
+            ch_derived_store_path
         )
     }
 }
