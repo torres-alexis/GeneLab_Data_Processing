@@ -43,10 +43,13 @@ workflow PARSE_RUNSHEET {
         runsheet_path
     
     main:
+
+        sample_limit = params.limit_samples_to ? params.limit_samples_to : -1 // -1 in take means no limit
+
         ch_samples = runsheet_path 
             | splitCsv(header: true)
             | map { row -> get_runsheet_paths(row) }
-
+            | take( sample_limit )
         // Validate consistency across samples
         ch_samples
             .map { meta, reads -> [meta.has_ercc, meta.paired_end, meta.organism_sci] }
@@ -77,11 +80,11 @@ workflow PARSE_RUNSHEET {
                 def unique_count = all_reads.toSet().size()
                 
                 if (unique_count != total_count) {
-                    throw new RuntimeException("${colorCodes.c_back_bright_red}ERROR: Duplicate read files detected. Please check the runsheet.${colorCodes.c_reset}")
+                    throw new RuntimeException("${colorCodes.c_back_bright_red}ERROR: Duplicate read file paths detected. Please check the runsheet.${colorCodes.c_reset}")
                 } else {
-                    println "${colorCodes.c_bright_green}All ${unique_count} read files are unique.${colorCodes.c_reset}"
+                    println "${colorCodes.c_bright_green}All ${unique_count} read file paths are unique.${colorCodes.c_reset}"
                 }
-        }
+            }
 
     emit:
         samples = ch_samples

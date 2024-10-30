@@ -28,7 +28,6 @@ workflow STAR_WORKFLOW {
         runsheet_path
         api_url
         force_single_end
-        limit_samples_to
         truncate_to
         reference_source
         reference_version
@@ -114,7 +113,10 @@ workflow STAR_WORKFLOW {
 
         // Metadata and reference files are ready. Stage the raw reads, find the max read length, and build the STAR index.
 
-        //STAGE_RAW_READS( samples, )
+        // Stage the raw or truncated reads. Note: limit_samples_to has been removed in favor of simply using truncate_to for testing
+        // This is done because the runsheet is parsed earlier in the workflow and limit_samples_to is no longer needed.
+
+       // STAGE_RAW_READS( samples, params.stage_local, params.truncate_to )
 
 
         // BUILD STEP : STAR INDEX // TODO TEST

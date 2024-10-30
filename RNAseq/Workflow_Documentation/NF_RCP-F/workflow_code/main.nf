@@ -80,7 +80,6 @@ ch_isa_archive = params.isa_archive_path ? Channel.fromPath(params.isa_archive_p
 ch_reference_table = Channel.value(params.reference_table)
 ch_api_url = Channel.value(params.api_url)
 
-ch_limit_samples_to = Channel.value(params.limit_samples_to)
 ch_truncate_to = Channel.value(params.truncate_to)
 ch_genome_subsample = Channel.value(params.genome_subsample)
 ch_force_single_end = Channel.value(params.force_single_end)
@@ -112,7 +111,6 @@ workflow {
             ch_runsheet,
             ch_api_url,
             ch_force_single_end,
-            ch_limit_samples_to,
             ch_truncate_to,
             ch_reference_source,
             ch_reference_version,
