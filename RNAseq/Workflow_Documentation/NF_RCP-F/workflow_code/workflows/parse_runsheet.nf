@@ -43,13 +43,20 @@ workflow PARSE_RUNSHEET {
         runsheet_path
     
     main:
-
         sample_limit = params.limit_samples_to ? params.limit_samples_to : -1 // -1 in take means no limit
 
         ch_samples = runsheet_path 
             | splitCsv(header: true)
             | map { row -> get_runsheet_paths(row) }
+            | map{ it -> params.force_single_end ? mutate_to_single_end(it) : it }
             | take( sample_limit )
+
+        // Discard paired-end read 2 & keep only read 1 for forced single-end analysis if force_single_end is true
+        ch_samples | map { it -> it[0].paired_end ? [it[0], [ it[1][0], it[1][1] ]] : [it[0], [it[1][0]]]}
+                 | set { ch_samples }
+
+        // ch_samples | view
+
         // Validate consistency across samples
         ch_samples
             .map { meta, reads -> [meta.has_ercc, meta.paired_end, meta.organism_sci] }

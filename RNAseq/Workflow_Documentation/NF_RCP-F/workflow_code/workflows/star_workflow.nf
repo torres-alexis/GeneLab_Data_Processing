@@ -57,6 +57,7 @@ workflow STAR_WORKFLOW {
         PARSE_RUNSHEET(runsheet_path)
 
         samples = PARSE_RUNSHEET.out.samples
+        //samples | view
         samples | first 
                 | map { meta, reads -> meta }
                 | set { ch_meta }
@@ -116,7 +117,7 @@ workflow STAR_WORKFLOW {
         // Stage the raw or truncated reads. Note: limit_samples_to has been removed in favor of simply using truncate_to for testing
         // This is done because the runsheet is parsed earlier in the workflow and limit_samples_to is no longer needed.
 
-       // STAGE_RAW_READS( samples, params.stage_local, params.truncate_to )
+       // STAGE_RAW_READS( samples )
 
 
         // BUILD STEP : STAR INDEX // TODO TEST
