@@ -84,7 +84,6 @@ workflow STAR_WORKFLOW {
             reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
         }
 
-        // good to here
         // SUBSAMPLING STEP : USED FOR DEBUG/TEST RUNS
         if ( params.genome_subsample ) {
             SUBSAMPLE_GENOME( derived_store_path, organism_sci, genome_references_pre_subsample, reference_source, reference_version )
@@ -98,7 +97,20 @@ workflow STAR_WORKFLOW {
         CONCAT_ERCC( reference_store_path, organism_sci, reference_source, reference_version, genome_references_pre_ercc, ch_maybe_ercc_refs, has_ercc )
         .ifEmpty { genome_references_pre_ercc.value }  | set { genome_references }
         
+        GTF_TO_PRED(
+            derived_store_path,
+            organism_sci,
+            reference_source,
+            reference_version,
+            genome_references | map { it[1] }
+        )
+        PRED_TO_BED( 
+            derived_store_path,
+            organism_sci,
+            reference_source,
+            reference_version,
+            GTF_TO_PRED.out.genome_pred
+        )
     emit:
-        genome_references
-
+        PRED_TO_BED.out.genome_bed
 }
