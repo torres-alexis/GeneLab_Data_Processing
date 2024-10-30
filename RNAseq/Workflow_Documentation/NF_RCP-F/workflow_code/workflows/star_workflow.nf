@@ -89,11 +89,16 @@ workflow STAR_WORKFLOW {
         if ( params.genome_subsample ) {
             SUBSAMPLE_GENOME( derived_store_path, organism_sci, genome_references_pre_subsample, reference_source, reference_version )
             SUBSAMPLE_GENOME.out.build | flatten | toList | set { genome_references_pre_ercc }
-      } else {
-        genome_references_pre_subsample | flatten | toList | set { genome_references_pre_ercc }
-      }
+        } else {
+            genome_references_pre_subsample | flatten | toList | set { genome_references_pre_ercc }
+        }
 
+        // ERCC STEP : ADD ERCC Fasta and GTF to genome files
+        DOWNLOAD_ERCC(has_ercc, reference_store_path).ifEmpty([file("ERCC92.fa"), file("ERCC92.gtf")]) | set { ch_maybe_ercc_refs }
+        CONCAT_ERCC( reference_store_path, organism_sci, reference_source, reference_version, genome_references_pre_ercc, ch_maybe_ercc_refs, has_ercc )
+        .ifEmpty { genome_references_pre_ercc.value }  | set { genome_references }
+        
     emit:
-        genome_references_pre_ercc
+        genome_references
 
 }

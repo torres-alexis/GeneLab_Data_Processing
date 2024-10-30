@@ -6,16 +6,13 @@ process CONCAT_ERCC {
         val(organism_sci)
         val(reference_source)
         val(reference_version)
-        path(genome_fasta)
-        path(genome_gtf)
-        path(ercc_fasta)
-        path(ercc_gtf)
+        tuple path(genome_fasta), path(genome_gtf)
+        tuple path(ercc_fasta), path(ercc_gtf)
         val(has_ercc)
 
-
     output:
-        path("${ genome_fasta.baseName }_and_ERCC92.fa"), emit: genome_fasta
-        path("${ genome_gtf.baseName }_and_ERCC92.gtf") , emit: genome_gtf
+        tuple path("${ genome_fasta.baseName }_and_ERCC92.fa"), \
+          path("${ genome_gtf.baseName }_and_ERCC92.gtf")
 
     when:
         has_ercc
