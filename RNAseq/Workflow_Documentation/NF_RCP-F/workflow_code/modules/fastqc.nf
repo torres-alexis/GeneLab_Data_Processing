@@ -7,9 +7,8 @@ process FASTQC {
     tuple val(meta), path(reads)
 
   output:
-    tuple val(meta), path("*.html"), emit: html
-    tuple val(meta), path("*.zip") , emit: zip
-    path "versions.yml"            , emit: versions
+    tuple val(meta), path("${ meta.id }*.html"), path("${ meta.id }*.zip"), emit: fastqc
+    path "versions.yml"                                                   , emit: versions
 
   script:
     // Calculate memory per thread (100MB minimum, 10000MB maximum)

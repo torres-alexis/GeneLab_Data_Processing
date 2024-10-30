@@ -14,6 +14,7 @@ include { STAGE_RAW_READS } from './stage_raw_reads.nf'
 include { FASTQC as RAW_FASTQC } from '../modules/fastqc.nf'
 include { GET_MAX_READ_LENGTH } from '../modules/get_max_read_length.nf'
 include { TRIMGALORE } from '../modules/trimgalore.nf'
+include { FASTQC as TRIMMED_FASTQC } from '../modules/fastqc.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -128,21 +129,30 @@ workflow STAR_WORKFLOW {
         samples_txt = STAGE_RAW_READS.out.samples_txt
         //samples_txt | view
 
-        RAW_FASTQC(raw_reads)
+        RAW_FASTQC( raw_reads )
 
-        RAW_FASTQC.out.zip
-        .map { meta, zip -> zip }
-        .collect()                      // Collect all zip files into a single list
-        | set { ch_raw_fastqc_zip }     // Create a channel with all zip files
+        RAW_FASTQC.out.fastqc | map { it -> [ it[1], it[2] ] }
+                          | flatten
+                          | unique
+                          | collect        // Collect all zip files into a single list
+                          | set { raw_fastqc_zip }     // Create a channel with all zip files
         
-        GET_MAX_READ_LENGTH(ch_raw_fastqc_zip)
+        GET_MAX_READ_LENGTH( raw_fastqc_zip )
         GET_MAX_READ_LENGTH.out.length 
         | map { it.toString().toInteger() }  // ensure it's an integer
-        | first()                            // take first (and only) value
         | set { max_read_length_ch }
         //max_read_length_ch.view { "Max read length: $it" }
 
         TRIMGALORE( raw_reads )
+        trimmed_reads = TRIMGALORE.out.reads
+
+        TRIMMED_FASTQC( trimmed_reads )
+        TRIMMED_FASTQC.out.fastqc | map { it -> [ it[1], it[2] ] } \
+                              | flatten \
+                              | unique \
+                              | collect \
+                              | set { trim_fastqc_zip }
+
 
         // BUILD STEP : STAR INDEX // TODO TEST
         //BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
