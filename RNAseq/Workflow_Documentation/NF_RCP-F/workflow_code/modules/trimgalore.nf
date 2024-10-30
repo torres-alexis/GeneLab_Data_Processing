@@ -1,9 +1,5 @@
 process TRIMGALORE {
-    // Stages the raw reads into appropriate publish directory
-    publishDir params.glds ? "${params.outdir}/GLDS-${params.glds}/01-TG_Preproc" : "${params.outdir}/01-TG_Preproc",
-        mode: params.publish_dir_mode
-  tag "${ meta.id }"
-  label 'low_cpu_med_memory'
+  tag "Sample: ${ meta.id }"
 
   input:
     tuple val(meta), path(reads)

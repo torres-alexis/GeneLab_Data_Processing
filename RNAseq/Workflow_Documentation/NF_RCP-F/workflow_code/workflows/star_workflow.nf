@@ -13,6 +13,8 @@ include { PRED_TO_BED } from '../modules/pred_to_bed.nf'
 include { STAGE_RAW_READS } from './stage_raw_reads.nf'
 include { FASTQC as RAW_FASTQC } from '../modules/fastqc.nf'
 include { GET_MAX_READ_LENGTH } from '../modules/get_max_read_length.nf'
+include { TRIMGALORE } from '../modules/trimgalore.nf'
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -139,6 +141,8 @@ workflow STAR_WORKFLOW {
         | first()                            // take first (and only) value
         | set { max_read_length_ch }
         //max_read_length_ch.view { "Max read length: $it" }
+
+        TRIMGALORE( raw_reads )
 
         // BUILD STEP : STAR INDEX // TODO TEST
         //BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
