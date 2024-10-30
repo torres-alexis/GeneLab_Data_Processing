@@ -1,7 +1,7 @@
 process COPY_READS {
     publishDir "${publishdir}/00-RawData",
         mode: params.publish_dir_mode
-    tag "${ meta.id }"
+    tag "Sample: ${ meta.id }"
 
     input:
         val(publishdir)

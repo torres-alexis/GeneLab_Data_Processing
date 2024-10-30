@@ -1,8 +1,7 @@
 process FASTQC {
   // memory and versioning adapted from https://github.com/nf-core/modules/blob/master/modules/nf-core/fastqc/main.nf
   // FastQC performed on reads
-  tag "${ meta.id }"
-  label 'low_cpu_memory'
+  tag "Sample: ${ meta.id }"
 
   input:
     tuple val(meta), path(reads)

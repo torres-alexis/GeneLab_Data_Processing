@@ -11,6 +11,7 @@ include { CONCAT_ERCC } from '../modules/concat_ercc.nf'
 include { GTF_TO_PRED } from '../modules/gtf_to_pred.nf'
 include { PRED_TO_BED } from '../modules/pred_to_bed.nf'
 include { STAGE_RAW_READS } from './stage_raw_reads.nf'
+include { FASTQC as RAW_FASTQC } from '../modules/fastqc.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -125,7 +126,7 @@ workflow STAR_WORKFLOW {
         samples_txt = STAGE_RAW_READS.out.samples_txt
         //samples_txt | view
 
-
+        RAW_FASTQC(raw_reads)
 
 
         // BUILD STEP : STAR INDEX // TODO TEST
