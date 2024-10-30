@@ -88,8 +88,9 @@ ch_force_single_end = Channel.value(params.force_single_end)
 ch_reference_store_path = Channel.value(params.reference_store_path)
 ch_derived_store_path = Channel.value(params.derived_store_path)
 
-// Set params.outdir based on the presence of an accession input
-params.outdir = params.accession ? "$projectDir/${params.accession}" : "$projectDir/results"
+// Set outdir based on the presence of an accession input.. currently not implemented as nextflow.config's outdir is only used for nextflow run info
+//  and ch_outdir is used for all processes' publishDir in order to set either ./results or ./{accession}
+ch_outdir = params.accession ? "$projectDir/${params.accession}" : "$projectDir/results"
 
 
 // set reference params
