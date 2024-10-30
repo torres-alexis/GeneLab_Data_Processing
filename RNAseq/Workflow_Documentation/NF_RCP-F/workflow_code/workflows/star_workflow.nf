@@ -112,8 +112,11 @@ workflow STAR_WORKFLOW {
             GTF_TO_PRED.out.genome_pred
         )
 
+        // Metadata and reference files are ready. Stage the raw reads, find the max read length, and build the STAR index.
+
+
         // BUILD STEP : STAR INDEX // TODO TEST
-        BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
+        //BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
     emit:
-        BUILD_STAR_INDEX.out.build
+        PRED_TO_BED.out.genome_bed
 }
