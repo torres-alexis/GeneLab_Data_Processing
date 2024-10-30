@@ -37,6 +37,11 @@ workflow STAGE_RAW_READS {
 
             // Moves the truncated files to expected raw read locations as per samplesheet
             ch_raw_reads | COPY_READS
+            // Collect sample IDs into a file
+            COPY_READS.out.raw_reads | map{ it -> it[1] } | collect | set { ch_all_raw_reads }
+            COPY_READS.out.raw_reads | map { it[0].id }
+                            | collectFile(name: "samples.txt", sort: true, newLine: true)
+                            | set { samples_txt }
         } else if ( stage_local && !truncate_to ) {
         // download full raw reads
             ch_samples | map { it -> it[0].paired_end ? [it[0], [ it[1][0], it[1][1] ]] : [it[0], [it[1][0]]]}
@@ -44,11 +49,19 @@ workflow STAGE_RAW_READS {
 
             // Download the raw reads and publish them to expected raw read locations as per samplesheet
             ch_raw_reads | COPY_READS
+            // Collect sample IDs into a file
+            COPY_READS.out.raw_reads | map{ it -> it[1] } | collect | set { ch_all_raw_reads }
+            COPY_READS.out.raw_reads | map { it[0].id }
+                            | collectFile(name: "samples.txt", sort: true, newLine: true)
+                            | set { samples_txt }
         } else {
         // Don't download any raw reads
         }
 
+
     emit:
         raw_reads = stage_local ? COPY_READS.out.raw_reads : null
+        ch_all_raw_reads = stage_local ? ch_all_raw_reads : null
+        samples_txt = stage_local ? samples_txt : null
 }
 
