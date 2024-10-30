@@ -38,6 +38,8 @@ workflow STAR_WORKFLOW {
         reference_store_path
         derived_store_path
     main:
+        publishdir = "results" // default path passed to publishDir, updated below to "GLDS-#" if processing and OSDR dataset
+
         // Set up runsheet
         if (runsheet_path == null) {
             //Get both OSD and GLDS accessions based on the input accession
@@ -45,7 +47,7 @@ workflow STAR_WORKFLOW {
             accessions_txt = GET_ACCESSIONS.out.accessions_txt // returns accessions.txt with line1 = osd_accession, line2 = glds_accession. 
             osd_accession = accessions_txt.map { it.readLines()[0].trim() }
             glds_accession = accessions_txt.map { it.readLines()[1].trim() }
-
+            publishdir = accessions_txt.map { it.readLines()[1].trim() }
             //Fetch ISA archive if not provided
             if (isa_archive_path == null) {
                 FETCH_ISA(osd_accession, glds_accession)
@@ -118,8 +120,12 @@ workflow STAR_WORKFLOW {
 
         // Stage the raw or truncated reads.
         // Copies the reads into the local filesystem if stage_local is true (default) and creates samples.txt file with sample IDs.
-        STAGE_RAW_READS( samples )
-        //STAGE_RAW_READS.out.samples_txt | view
+        STAGE_RAW_READS( publishdir, samples )
+        raw_reads = STAGE_RAW_READS.out.raw_reads
+        samples_txt = STAGE_RAW_READS.out.samples_txt
+        //samples_txt | view
+
+
 
 
         // BUILD STEP : STAR INDEX // TODO TEST

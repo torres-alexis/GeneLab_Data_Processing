@@ -1,9 +1,10 @@
 process COPY_READS {
-    publishDir params.glds ? "${params.outdir}/GLDS-${params.glds}/00-RawData" : "${params.outdir}/00-RawData",
+    publishDir "${publishdir}/00-RawData",
         mode: params.publish_dir_mode
     tag "${ meta.id }"
 
     input:
+        val(publishdir)
         tuple val(meta), path("?.gz")
 
     output:

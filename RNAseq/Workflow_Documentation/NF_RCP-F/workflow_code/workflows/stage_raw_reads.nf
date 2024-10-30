@@ -3,12 +3,12 @@ include { COPY_READS } from '../modules/copy_reads.nf'
 
 workflow STAGE_RAW_READS {
     take:
+        publishdir
         ch_samples
 
     main:
         stage_local = params.stage_local
         truncate_to = params.truncate_to
-
         if ( stage_local && truncate_to ) {
         // Download truncated raw reads
             ch_samples | map { it -> it[0].paired_end ? [it[0], it[1][0], it[1][1]] : [it[0], it[1][0]]}
@@ -36,7 +36,7 @@ workflow STAGE_RAW_READS {
                                         | set { ch_raw_reads }
 
             // Moves the truncated files to expected raw read locations as per samplesheet
-            ch_raw_reads | COPY_READS
+            COPY_READS(publishdir, ch_raw_reads)
             // Collect sample IDs into a file
             COPY_READS.out.raw_reads | map{ it -> it[1] } | collect | set { ch_all_raw_reads }
             COPY_READS.out.raw_reads | map { it[0].id }
@@ -48,7 +48,7 @@ workflow STAGE_RAW_READS {
                          | set { ch_raw_reads }
 
             // Download the raw reads and publish them to expected raw read locations as per samplesheet
-            ch_raw_reads | COPY_READS
+            COPY_READS(publishdir, ch_raw_reads)
             // Collect sample IDs into a file
             COPY_READS.out.raw_reads | map{ it -> it[1] } | collect | set { ch_all_raw_reads }
             COPY_READS.out.raw_reads | map { it[0].id }
