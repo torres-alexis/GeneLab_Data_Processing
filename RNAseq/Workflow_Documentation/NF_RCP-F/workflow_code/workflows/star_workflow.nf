@@ -10,6 +10,8 @@ include { DOWNLOAD_ERCC } from '../modules/download_ercc.nf'
 include { CONCAT_ERCC } from '../modules/concat_ercc.nf'
 include { GTF_TO_PRED } from '../modules/gtf_to_pred.nf'
 include { PRED_TO_BED } from '../modules/pred_to_bed.nf'
+include { STAGE_RAW_READS } from './stage_raw_reads.nf'
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -117,7 +119,7 @@ workflow STAR_WORKFLOW {
         // Stage the raw or truncated reads. Note: limit_samples_to has been removed in favor of simply using truncate_to for testing
         // This is done because the runsheet is parsed earlier in the workflow and limit_samples_to is no longer needed.
 
-       // STAGE_RAW_READS( samples )
+        STAGE_RAW_READS( samples )
 
 
         // BUILD STEP : STAR INDEX // TODO TEST

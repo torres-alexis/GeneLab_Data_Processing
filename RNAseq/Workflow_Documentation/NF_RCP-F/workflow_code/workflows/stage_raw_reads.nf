@@ -4,10 +4,10 @@ include { COPY_READS } from '../modules/copy_reads.nf'
 workflow STAGE_RAW_READS {
     take:
         ch_samples
-        stage_local
-        truncate_to
 
     main:
+        stage_local = params.stage_local
+        truncate_to = params.truncate_to
 
         if ( stage_local && truncate_to ) {
         // Download truncated raw reads
