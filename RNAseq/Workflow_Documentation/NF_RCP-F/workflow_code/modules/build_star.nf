@@ -8,8 +8,7 @@ process BUILD_STAR {
     val(organism_sci)
     val(reference_source)
     val(reference_version)
-    path(genome_fasta)
-    path(genome_gtf)
+    tuple path(genome_fasta), path(genome_gtf)
     val(meta)
     val(max_read_length) // Based on fastQC report for all samples
 

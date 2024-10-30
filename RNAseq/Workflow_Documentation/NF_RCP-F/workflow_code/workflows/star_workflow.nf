@@ -111,6 +111,9 @@ workflow STAR_WORKFLOW {
             reference_version,
             GTF_TO_PRED.out.genome_pred
         )
+
+        // BUILD STEP : STAR INDEX // TODO TEST
+        BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
     emit:
-        PRED_TO_BED.out.genome_bed
+        BUILD_STAR_INDEX.out.build
 }
