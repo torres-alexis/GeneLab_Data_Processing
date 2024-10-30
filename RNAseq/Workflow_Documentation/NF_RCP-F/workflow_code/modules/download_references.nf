@@ -6,14 +6,13 @@ process DOWNLOAD_REFERENCES {
   input:
     val(reference_store_path)
     val(organism_sci)
+    val(reference_source)
+    val(reference_version)
     val(fasta_url)
     val(gtf_url)
-    val(reference_version)
-    val(reference_source)
   
   output:
-    path("{*.fa,*.fna}"), emit: reference_fasta_path //
-    path("*.gtf")       , emit: reference_gtf_path
+    tuple path("{*.fa,*.fna}"), path("*.gtf")       , emit: reference_files
 
   script:
   """

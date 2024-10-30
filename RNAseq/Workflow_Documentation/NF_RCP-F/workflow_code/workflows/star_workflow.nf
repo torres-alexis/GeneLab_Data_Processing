@@ -30,7 +30,6 @@ workflow STAR_WORKFLOW {
         force_single_end
         limit_samples_to
         truncate_to
-        genome_subsample
         reference_source
         reference_version
         reference_fasta
@@ -56,108 +55,45 @@ workflow STAR_WORKFLOW {
             runsheet_path = ISA_TO_RUNSHEET.out.runsheet
         }
 
-        //Parse runsheet for processing metadata and check for unique read file paths
         PARSE_RUNSHEET(runsheet_path)
-        // samples is a channel of tuples, where each tuple contains:
-        // 1. A map of metadata about the sample with the following keys:
-        //    - id: String (Sample Name)
-        //    - organism_sci: String (Organism name, lowercase with underscores, e.g. 'mus_musculus')
-        //    - paired_end: Boolean
-        //    - has_ercc: Boolean
-        //    - factors: Map of factor values (keys are factor names, values are factor levels)
-        // 2. A list of read file paths associated with that sample
-        // Example usage: samples.take(1) | view { meta, reads -> ... }
-        samples = PARSE_RUNSHEET.out.samples
-        
 
-        // Extract metadata from the first sample and set it as a channel
+        samples = PARSE_RUNSHEET.out.samples
         samples | first 
                 | map { meta, reads -> meta }
                 | set { ch_meta }
         
         has_ercc = ch_meta.map { it.has_ercc }
 
-        // // Add a view operation to display the metadata
-        // ch_meta | view { meta -> 
-        //     """
-        //     Metadata for first sample:
-        //     Sample ID: ${meta.id}
-        //     Organism: ${meta.organism_sci}
-        //     Paired End: ${meta.paired_end}
-        //     Has ERCC: ${meta.has_ercc}
-        //     Factors: ${meta.factors}
-        //     """
-        // }
-
-        // Extract organism_sci from the first sample in order to read the correct row from the annotations table
         ch_meta | map { meta -> meta.organism_sci }
         | set { organism_sci }
 
-        // Add a view operation to display the organism_sci
-        // organism_sci | view { it -> 
-        //     "Organism: ${it}"
-        // }
-
-        // Parse the annotations table
-        // Outputs:
-        // - reference_fasta_url: val(reference_fasta_url)
-        // - reference_gtf_url: val(reference_gtf_url)
-        // - annotations_db_url: val(annotations_db_url)
-        // - reference_source: val(reference_source)
-        // - reference_version: val(reference_version)
         PARSE_ANNOTATIONS_TABLE(annotations_csv_url_string, organism_sci)
         gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.annotations_db_url
 
-        // Use the parsed values if the reference_fasta and reference_gtf are not provided. Reference_source and reference_version are optional.
-        if (reference_fasta == null && reference_gtf == null) {
-            reference_fasta_url = PARSE_ANNOTATIONS_TABLE.out.reference_fasta_url
-            reference_gtf_url = PARSE_ANNOTATIONS_TABLE.out.reference_gtf_url
+        // Use manually provided reference genome files if provided. Reference source and version are optional.
+        if (params.reference_fasta && params.reference_gtf) {
+            genome_references_pre_subsample = Channel.fromPath([params.reference_fasta, params.reference_gtf], checkIfExists: true).toList()
+            genome_references_pre_subsample | view
+            Channel.value(params.reference_source) | set { reference_source }
+            Channel.value(params.reference_version) | set { reference_version }
+        } else{
+            // Use annotations table to get genome reference files
+            DOWNLOAD_REFERENCES(reference_store_path, organism_sci, PARSE_ANNOTATIONS_TABLE.out.reference_source, PARSE_ANNOTATIONS_TABLE.out.reference_version, PARSE_ANNOTATIONS_TABLE.out.reference_fasta_url, PARSE_ANNOTATIONS_TABLE.out.reference_gtf_url)
+            genome_references_pre_subsample = DOWNLOAD_REFERENCES.out.reference_files
             reference_source = PARSE_ANNOTATIONS_TABLE.out.reference_source
             reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
+        }
 
-            DOWNLOAD_REFERENCES(reference_store_path, organism_sci, reference_fasta_url, reference_gtf_url, reference_version, reference_source)
-            reference_fasta = DOWNLOAD_REFERENCES.out.reference_fasta_path // this is a path
-            reference_gtf = DOWNLOAD_REFERENCES.out.reference_gtf_path // this is a path
-        }
-        else {
-            reference_fasta.view {file -> "Using manually provided local reference genome fasta: ${file}"}
-            reference_gtf.view {file -> "Using manually provided reference genome gtf: ${file}"}
-        }
-        
+        // good to here
         // SUBSAMPLING STEP : USED FOR DEBUG/TEST RUNS
-        if ( genome_subsample ) {
-            SUBSAMPLE_GENOME( derived_store_path, organism_sci, reference_fasta, reference_gtf, reference_source, reference_version, genome_subsample )
-            reference_fasta_pre_ercc = SUBSAMPLE_GENOME.out.subsampled_fasta
-            reference_gtf_pre_ercc = SUBSAMPLE_GENOME.out.subsampled_gtf
-        } else {
-            reference_fasta_pre_ercc = reference_fasta
-            reference_gtf_pre_ercc = reference_gtf
-        }
-
-        // Download and concatenate ERCC files if has_ercc is true
-        if (has_ercc) {
-            DOWNLOAD_ERCC(has_ercc, reference_store_path)
-            ercc_fasta = DOWNLOAD_ERCC.out.ercc_fasta
-            ercc_gtf = DOWNLOAD_ERCC.out.ercc_gtf
-            CONCAT_ERCC(reference_store_path, organism_sci, reference_source, reference_version, reference_fasta_pre_ercc, reference_gtf_pre_ercc, ercc_fasta, ercc_gtf, has_ercc)
-            reference_fasta_post_ercc = CONCAT_ERCC.out.genome_fasta
-            reference_gtf_post_ercc = CONCAT_ERCC.out.genome_gtf
-        } else {
-            ercc_fasta = null
-            ercc_gtf = null
-            reference_fasta_post_ercc = reference_fasta_pre_ercc
-            reference_gtf_post_ercc = reference_gtf_pre_ercc
-        }
-
-        // Convert genome gtf to bed
-        GTF_TO_PRED(derived_store_path, organism_sci, reference_source, reference_version, reference_gtf_post_ercc)
-        genome_pred = GTF_TO_PRED.out.genome_pred
-        PRED_TO_BED(derived_store_path, organism_sci, reference_source, reference_version, genome_pred)
-        genome_bed = PRED_TO_BED.out.genome_bed
-
-        // BUILD STAR GENOME INDEX
-        //BUILD_STAR()
+        if ( params.genome_subsample ) {
+            SUBSAMPLE_GENOME( derived_store_path, organism_sci, genome_references_pre_subsample, reference_source, reference_version )
+            SUBSAMPLE_GENOME.out.build | flatten | toList | set { genome_references_pre_ercc }
+      } else {
+        genome_references_pre_subsample | flatten | toList | set { genome_references_pre_ercc }
+      }
 
     emit:
-        genome_bed
+        genome_references_pre_ercc
+
 }

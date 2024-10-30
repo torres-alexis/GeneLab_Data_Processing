@@ -113,7 +113,6 @@ workflow {
             ch_force_single_end,
             ch_limit_samples_to,
             ch_truncate_to,
-            ch_genome_subsample,
             ch_reference_source,
             ch_reference_version,
             ch_reference_fasta,
