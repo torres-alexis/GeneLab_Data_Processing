@@ -17,6 +17,9 @@ include { TRIMGALORE } from '../modules/trimgalore.nf'
 include { FASTQC as TRIMMED_FASTQC } from '../modules/fastqc.nf'
 include { BUILD_STAR_INDEX } from '../modules/build_star_index.nf'
 include { ALIGN_STAR } from '../modules/align_star.nf'
+include { SORT_AND_INDEX_BAM } from '../modules/sort_and_index_bam.nf'
+include { INFER_EXPERIMENT } from '../modules/rseqc.nf'
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -120,6 +123,7 @@ workflow STAR_WORKFLOW {
             reference_version,
             GTF_TO_PRED.out.genome_pred
         )
+        genome_bed = PRED_TO_BED.out.genome_bed
 
         // Metadata and reference files are ready. Stage the raw reads, find the max read length, and build the STAR index.
 
@@ -159,7 +163,16 @@ workflow STAR_WORKFLOW {
         BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
         index_dir = BUILD_STAR_INDEX.out.index_dir
         // Align trimmed reads to STAR index
-        ALIGN_STAR(trimmed_reads, index_dir)
+        ALIGN_STAR( trimmed_reads, index_dir )
+
+
+        // Sort and index coordinate-aligned bam files
+        SORT_AND_INDEX_BAM( ALIGN_STAR.out.bam_by_coord)
+        sorted_bam = SORT_AND_INDEX_BAM.out.sorted_bam
+
+        // RSeQC modules
+        INFER_EXPERIMENT( sorted_bam, genome_bed )
+
     emit:
-        ALIGN_STAR.out.alignment_logs
+        INFER_EXPERIMENT.out.versions
 }
