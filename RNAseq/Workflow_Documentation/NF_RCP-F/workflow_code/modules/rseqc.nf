@@ -19,17 +19,17 @@ process ASSESS_STRANDEDNESS {
 }
 
 process GENEBODY_COVERAGE {
-  tag "Sample:${ meta.id }"
-  label 'big_mem'
+  tag "Sample: ${ meta.id }"
 
   input:
-    tuple val(meta), path(bam_file), path(bai_file), path(genome_bed) // bam file sorted by coordinate
+    tuple val(meta), path(bam_file), path(bai_file) // bam file sorted by coordinate
+    path(genome_bed)
 
   output:
     path("${ meta.id }.geneBodyCoverage.txt"), emit: log_only
     path("${ meta.id }.geneBodyCoverage.*"), emit: all_output
     tuple val(meta), path("${ meta.id }.geneBodyCoverage.txt"), emit: log
-    path("versions.txt"), emit: version
+    path("versions.yml"), emit: versions
 
   script:
     def log_fname = "${ meta.id }.geneBodyCoverage.txt" 
@@ -37,8 +37,8 @@ process GENEBODY_COVERAGE {
     geneBody_coverage.py -r ${ genome_bed} -i ${ bam_file } -o ${ meta.id }
 
     # VERSIONS
-    echo "RSeQC genebody_coverage version below:\n" > versions.txt 
-    geneBody_coverage.py --version >> versions.txt
+    echo '"${task.process}":' > versions.yml
+    echo "    geneBody_coverage.py: \$(geneBody_coverage.py --version | sed -e "s/geneBody_coverage.py //g")" >> versions.yml
     """
 }
 
@@ -61,7 +61,7 @@ process INFER_EXPERIMENT {
 
     # VERSIONS
     echo '"${task.process}":' > versions.yml
-    echo "    rseqc: \$(infer_experiment.py --version | sed -e 's/infer_experiment.py //g')" >> versions.yml
+    echo "    infer_experiment.py: \$(infer_experiment.py --version | sed -e 's/infer_experiment.py //g')" >> versions.yml
     """
 }
 

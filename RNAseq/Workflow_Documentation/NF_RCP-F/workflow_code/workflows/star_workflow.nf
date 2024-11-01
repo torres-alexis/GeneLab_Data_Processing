@@ -19,6 +19,7 @@ include { BUILD_STAR_INDEX } from '../modules/build_star_index.nf'
 include { ALIGN_STAR } from '../modules/align_star.nf'
 include { SORT_AND_INDEX_BAM } from '../modules/sort_and_index_bam.nf'
 include { INFER_EXPERIMENT } from '../modules/rseqc.nf'
+include { GENEBODY_COVERAGE } from '../modules/rseqc.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -172,6 +173,7 @@ workflow STAR_WORKFLOW {
 
         // RSeQC modules
         INFER_EXPERIMENT( sorted_bam, genome_bed )
+        GENEBODY_COVERAGE( sorted_bam, genome_bed )
 
     emit:
         INFER_EXPERIMENT.out.versions
