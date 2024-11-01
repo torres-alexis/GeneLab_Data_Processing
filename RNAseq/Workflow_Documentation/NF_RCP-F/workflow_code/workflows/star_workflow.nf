@@ -15,7 +15,8 @@ include { FASTQC as RAW_FASTQC } from '../modules/fastqc.nf'
 include { GET_MAX_READ_LENGTH } from '../modules/get_max_read_length.nf'
 include { TRIMGALORE } from '../modules/trimgalore.nf'
 include { FASTQC as TRIMMED_FASTQC } from '../modules/fastqc.nf'
-
+include { BUILD_STAR_INDEX } from '../modules/build_star_index.nf'
+include { ALIGN_STAR } from '../modules/align_star.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -140,8 +141,8 @@ workflow STAR_WORKFLOW {
         GET_MAX_READ_LENGTH( raw_fastqc_zip )
         GET_MAX_READ_LENGTH.out.length 
         | map { it.toString().toInteger() }  // ensure it's an integer
-        | set { max_read_length_ch }
-        //max_read_length_ch.view { "Max read length: $it" }
+        | set { max_read_length }
+        //max_read_length.view { "Max read length: $it" }
 
         TRIMGALORE( raw_reads )
         trimmed_reads = TRIMGALORE.out.reads
@@ -155,7 +156,10 @@ workflow STAR_WORKFLOW {
 
 
         // BUILD STEP : STAR INDEX // TODO TEST
-        //BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
+        BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
+        index_dir = BUILD_STAR_INDEX.out.index_dir
+        // Align trimmed reads to STAR index
+        ALIGN_STAR(trimmed_reads, index_dir)
     emit:
-        PRED_TO_BED.out.genome_bed
+        ALIGN_STAR.out.alignment_logs
 }

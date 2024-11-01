@@ -1,4 +1,4 @@
-process BUILD_STAR {
+process BUILD_STAR_INDEX {
   // Builds STAR index, this is ercc-spike-in, organism, read length and ensembl version specific
   tag "Refs: ${ genome_fasta }, ${ genome_gtf }, Source: ${reference_source}${reference_source.toLowerCase().contains('ensembl') ? ', Version: ' + reference_version : ''}, MaxReadLength: ${ max_read_length }${ genome_subsample ? ', GenomeSubsample: ' + genome_subsample : ''}"
   storeDir "${ derived_store_path }/STAR_Indices/${ reference_source }/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${ meta.organism_sci }/RL-${ max_read_length.toInteger() }"
@@ -14,8 +14,8 @@ process BUILD_STAR {
 
 
   output:
-    path("${ genomeFasta.baseName }_RL-${ max_read_length.toInteger() }"), emit: build
-    path("${ genomeFasta.baseName }_RL-${ max_read_length.toInteger() }/genomeParameters.txt") // Check for completion, only successful builds should generate this file, this is required as the process error is NOT currently used to raised an exception in the python wrapper.
+    path("${ genome_fasta.baseName }_RL-${ max_read_length.toInteger() }"), emit: index_dir
+    path("${ genome_fasta.baseName }_RL-${ max_read_length.toInteger() }/genomeParameters.txt") // Check for completion, only successful builds should generate this file, this is required as the process error is NOT currently used to raised an exception in the python wrapper.
 
   script:
     """
@@ -33,7 +33,7 @@ process BUILD_STAR {
 
     # Get bases in the fasta file
     # We substract the number of lines to remove newline characters from the count
-    NUM_BASES=\$(( \$(grep -v '>' ${ genomeFasta } | wc -c) - \$(grep -v '>' ${ genomeFasta } | wc -l)))
+    NUM_BASES=\$(( \$(grep -v '>' ${ genome_fasta } | wc -c) - \$(grep -v '>' ${ genome_fasta } | wc -l)))
     echo NUM_BASES=\$NUM_BASES
 
     # Compute parameter using formula: min(14, log2(GenomeLength)/2 - 1)
@@ -46,9 +46,9 @@ process BUILD_STAR {
     --runMode genomeGenerate \
     --limitGenomeGenerateRAM ${ (task.memory.toBytes() * 0.8).round() } \
     --genomeSAindexNbases \$COMPUTED_GenomeSAindexNbases \
-    --genomeDir ${ genomeFasta.baseName }_RL-${ max_read_length.toInteger() } \
-    --genomeFastaFiles ${ genomeFasta } \
-    --sjdbGTFfile ${ genomeGtf } \
+    --genomeDir ${ genome_fasta.baseName }_RL-${ max_read_length.toInteger() } \
+    --genomeFastaFiles ${ genome_fasta } \
+    --sjdbGTFfile ${ genome_gtf } \
     --sjdbOverhang ${ max_read_length.toInteger() - 1 }
     """
 }
