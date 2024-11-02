@@ -1,5 +1,6 @@
 process QUANTIFY_STAR_GENES {
   tag "Dataset-wide"
+  
   input:
     path("samples.txt")
     path("02-STAR_Alignment/*")

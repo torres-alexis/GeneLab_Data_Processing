@@ -26,6 +26,7 @@ include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
 include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
 include { QUANTIFY_STAR_GENES } from '../modules/quantify_star_genes.nf'
 include { COUNT_ALIGNED } from '../modules/count_aligned.nf' 
+include { QUANTIFY_RSEM_GENES } from '../modules/quantify_rsem_genes.nf'
 
 include { MULTIQC as RAW_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"raw")
 include { MULTIQC as TRIMMED_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimmed")
@@ -206,14 +207,14 @@ workflow STAR_WORKFLOW {
         // Quantify STAR gene counts
         QUANTIFY_STAR_GENES( samples_txt, ALIGN_STAR.out.reads_per_gene | toSortedList, strandedness)
 
-        // // Build RSEM transcriptome index
+        // Build RSEM transcriptome index
         BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
         rsem_index_dir = BUILD_RSEM_INDEX.out.index_dir
 
-        // Run RSEM with STAR transcriptome-aligned BAM
+        // Run RSEM on the transcriptome-aligned BAM from STAR to calculate transcript expression estimates and quantify gene counts
         COUNT_ALIGNED( transcriptome_aligned_bam, rsem_index_dir, strandedness )
-        
-
+        rsem_counts = COUNT_ALIGNED.out.counts | map { it[1] } | collect
+        QUANTIFY_RSEM_GENES( samples_txt, rsem_counts )
 
 
         // // MultiQC
