@@ -24,6 +24,7 @@ include { INNER_DISTANCE } from '../modules/rseqc.nf'
 include { READ_DISTRIBUTION } from '../modules/rseqc.nf'
 include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
 include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
+include { QUANTIFY_STAR_GENES } from '../modules/quantify_star_genes.nf'
 
 include { MULTIQC as RAW_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"raw")
 include { MULTIQC as TRIMMED_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimmed")
@@ -179,15 +180,14 @@ workflow STAR_WORKFLOW {
 
         // Build STAR genome index
         BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
-        index_dir = BUILD_STAR_INDEX.out.index_dir
+        star_index_dir = BUILD_STAR_INDEX.out.index_dir
 
-        // Align trimmed reads to STAR index
-        ALIGN_STAR( trimmed_reads, index_dir )
+        // STAR two-pass alignment
+        ALIGN_STAR( trimmed_reads, star_index_dir )
         ALIGN_STAR.out.alignment_logs | collect
                                       | set { star_alignment_logs } 
-
-
-        // Sort and index coordinate-aligned bam files
+        
+        // Sort and index genome coordinate-aligned bam files
         SORT_AND_INDEX_BAM( ALIGN_STAR.out.bam_by_coord)
         sorted_bam = SORT_AND_INDEX_BAM.out.sorted_bam
 
@@ -196,28 +196,36 @@ workflow STAR_WORKFLOW {
         GENEBODY_COVERAGE( sorted_bam, genome_bed )
         INNER_DISTANCE( sorted_bam, genome_bed )
         READ_DISTRIBUTION( sorted_bam, genome_bed )
-
         infer_expt_out = INFER_EXPERIMENT.out.log | map { it[1] }
                                | collect
-        
+        // Parse RSeQC infer_experiment.py results using thresholds set in bin/assess_strandedness.py to determine the strandedness of the dataset
         ASSESS_STRANDEDNESS( infer_expt_out )
         strandedness = ASSESS_STRANDEDNESS.out | map { it.text.split(":")[0] }
 
-        // Build RSEM genome index, to do: finish alignment steps 
-        BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
+        // Quantify STAR gene counts
+        QUANTIFY_STAR_GENES( samples_txt, ALIGN_STAR.out.reads_per_gene | toSortedList, strandedness)
 
-        // MultiQC
-        ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
-        RAW_READS_MULTIQC( samples_txt, raw_fastqc_zip, ch_multiqc_config )
-        TRIMMING_MULTIQC( samples_txt, TRIMGALORE.out.reports | collect, ch_multiqc_config )
-        TRIMMED_READS_MULTIQC( samples_txt, trim_fastqc_zip, ch_multiqc_config )
-        ALIGN_MULTIQC( samples_txt, star_alignment_logs, ch_multiqc_config )
-        INFER_EXPERIMENT_MULTIQC( samples_txt, INFER_EXPERIMENT.out.log | map { it[1] } | collect, ch_multiqc_config )
-        GENEBODY_COVERAGE_MULTIQC( samples_txt, GENEBODY_COVERAGE.out.log | map { it[1] } | collect, ch_multiqc_config )
-        INNER_DISTANCE_MULTIQC( samples_txt, INNER_DISTANCE.out.log | map { it[1] } | collect, ch_multiqc_config )
-        READ_DISTRIBUTION_MULTIQC( samples_txt, READ_DISTRIBUTION.out.log | map { it[1] } | collect, ch_multiqc_config )
+        // // Build RSEM transcriptome index
+        // BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
+        // rsem_index_dir = BUILD_RSEM_INDEX.out.index_dir
+
+        // // Process STAR transcriptome alignments along with RSEM genome index, for counts 
+        // transcriptome_alignments = ALIGN_STAR.out.bam_to_transcriptome
+
+
+
+        // // MultiQC
+        // ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
+        // RAW_READS_MULTIQC( samples_txt, raw_fastqc_zip, ch_multiqc_config )
+        // TRIMMING_MULTIQC( samples_txt, TRIMGALORE.out.reports | collect, ch_multiqc_config )
+        // TRIMMED_READS_MULTIQC( samples_txt, trim_fastqc_zip, ch_multiqc_config )
+        // ALIGN_MULTIQC( samples_txt, star_alignment_logs, ch_multiqc_config )
+        // INFER_EXPERIMENT_MULTIQC( samples_txt, INFER_EXPERIMENT.out.log | map { it[1] } | collect, ch_multiqc_config )
+        // GENEBODY_COVERAGE_MULTIQC( samples_txt, GENEBODY_COVERAGE.out.log | map { it[1] } | collect, ch_multiqc_config )
+        // INNER_DISTANCE_MULTIQC( samples_txt, INNER_DISTANCE.out.log | map { it[1] } | collect, ch_multiqc_config )
+        // READ_DISTRIBUTION_MULTIQC( samples_txt, READ_DISTRIBUTION.out.log | map { it[1] } | collect, ch_multiqc_config )
         
 
     emit:
-        TRIMMED_READS_MULTIQC.out.versions
+        QUANTIFY_STAR_GENES.out.publishables
 }

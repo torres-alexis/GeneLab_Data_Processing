@@ -12,7 +12,7 @@ process BUILD_RSEM_INDEX {
     val(meta)
 
   output:
-    path("${ genome_fasta.baseName }"), emit: build
+    path("${ genome_fasta.baseName }"), emit: index_dir
     path("${ genome_fasta.baseName }/${ organism_str }.grp") // to ensure check expected file contents exist
     //path("versions.yaml"), emit: versions
 
