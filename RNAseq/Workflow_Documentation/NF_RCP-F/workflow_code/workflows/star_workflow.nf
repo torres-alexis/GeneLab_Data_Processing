@@ -25,6 +25,7 @@ include { READ_DISTRIBUTION } from '../modules/rseqc.nf'
 include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
 include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
 include { QUANTIFY_STAR_GENES } from '../modules/quantify_star_genes.nf'
+include { COUNT_ALIGNED } from '../modules/count_aligned.nf' 
 
 include { MULTIQC as RAW_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"raw")
 include { MULTIQC as TRIMMED_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimmed")
@@ -184,8 +185,8 @@ workflow STAR_WORKFLOW {
 
         // STAR two-pass alignment
         ALIGN_STAR( trimmed_reads, star_index_dir )
-        ALIGN_STAR.out.alignment_logs | collect
-                                      | set { star_alignment_logs } 
+        star_alignment_logs = ALIGN_STAR.out.alignment_logs | collect
+        transcriptome_aligned_bam = ALIGN_STAR.out.bam_to_transcriptome // STAR transcriptome-aligned BAM file used for transcript-level quantification & abundance estimation with RSEM
         
         // Sort and index genome coordinate-aligned bam files
         SORT_AND_INDEX_BAM( ALIGN_STAR.out.bam_by_coord)
@@ -206,11 +207,12 @@ workflow STAR_WORKFLOW {
         QUANTIFY_STAR_GENES( samples_txt, ALIGN_STAR.out.reads_per_gene | toSortedList, strandedness)
 
         // // Build RSEM transcriptome index
-        // BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
-        // rsem_index_dir = BUILD_RSEM_INDEX.out.index_dir
+        BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
+        rsem_index_dir = BUILD_RSEM_INDEX.out.index_dir
 
-        // // Process STAR transcriptome alignments along with RSEM genome index, for counts 
-        // transcriptome_alignments = ALIGN_STAR.out.bam_to_transcriptome
+        // Run RSEM with STAR transcriptome-aligned BAM
+        COUNT_ALIGNED( transcriptome_aligned_bam, rsem_index_dir, strandedness )
+        
 
 
 
@@ -227,5 +229,5 @@ workflow STAR_WORKFLOW {
         
 
     emit:
-        QUANTIFY_STAR_GENES.out.publishables
+        COUNT_ALIGNED.out.versions
 }
