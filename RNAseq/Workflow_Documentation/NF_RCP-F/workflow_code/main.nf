@@ -98,6 +98,7 @@ ch_reference_version = params.reference_version ? Channel.value(params.reference
 ch_reference_fasta = params.reference_fasta ? Channel.fromPath(params.reference_fasta) : null
 ch_reference_gtf = params.reference_gtf ? Channel.fromPath(params.reference_gtf) : null
 
+
 // Main workflows
 workflow {
     if (params.mode == 'microbes') {

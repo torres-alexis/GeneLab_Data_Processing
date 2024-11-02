@@ -3,28 +3,26 @@ process MULTIQC {
     
     input:
     path(sample_names)
-    path(fastqc_zips, stageAs: 'fastqc/*')
+    path("mqc_in/*") // any number of multiqc compatible files
     path(multiqc_config)
     
 
     output:
-    // path("${ params.MQCLabel }_multiqc_GLbulkRNAseq_report.zip"), emit: zipped_report
+    // path("${ params.MQCLabel }_multiqc_GLbulkRNAseq_report.zip"), emit: zipped_report, to do: reimplement zip output w/ cleaned paths
     path("${ params.MQCLabel }_multiqc_GLbulkRNAseq_report"), emit: unzipped_report
     path("${ params.MQCLabel }_multiqc_GLbulkRNAseq_report/${ params.MQCLabel }_multiqc_GLbulkRNAseq.html"), emit: html
     path("${ params.MQCLabel }_multiqc_GLbulkRNAseq_report/${ params.MQCLabel }_multiqc_GLbulkRNAseq_data"), emit: data
-    
-    
     path("versions.yml"), emit: versions
 
     script:
-    def config_arg = multiqc_config.name != "NO_FILE" ? "--config ${multiqc_config}" : ""
+    def config_arg = multiqc_config.name != "NO_FILE" ? "--config ${ multiqc_config }" : ""
     """
     multiqc \\
         --force \\
         --interactive \\
         -o ${ params.MQCLabel }_multiqc_GLbulkRNAseq_report \\
         -n ${ params.MQCLabel }_multiqc_GLbulkRNAseq \\
-        $config_arg \\
+        ${ config_arg } \\
         .
     # zip -r '${ params.MQCLabel }_multiqc_GLbulkRNAseq_report.zip' '${ params.MQCLabel }_multiqc_GLbulkRNAseq_report'
     # Use awk to clean paths in relevant multiqc output files, leaving them starting from the nextflow '/work/' directory

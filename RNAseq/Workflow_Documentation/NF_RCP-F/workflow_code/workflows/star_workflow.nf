@@ -25,6 +25,18 @@ include { READ_DISTRIBUTION } from '../modules/rseqc.nf'
 include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
 include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
 
+include { MULTIQC as RAW_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"raw")
+include { MULTIQC as TRIMMED_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimmed")
+include { MULTIQC as TRIMMING_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimming")
+include { MULTIQC as ALIGN_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"align")
+//include { MULTIQC as COUNT_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"RSEM_count")
+include { MULTIQC as GENEBODY_COVERAGE_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"geneBody_cov") //PublishTo: "RSeQC_Analyses/02_geneBody_coverage", 
+include { MULTIQC as INFER_EXPERIMENT_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"infer_exp") //PublishTo: "RSeQC_Analyses/03_infer_experiment", 
+include { MULTIQC as INNER_DISTANCE_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"inner_dist") //PublishTo: "RSeQC_Analyses/04_inner_distance", 
+include { MULTIQC as READ_DISTRIBUTION_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"read_dist") //PublishTo: "RSeQC_Analyses/05_read_distribution", 
+
+//include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"all")
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -55,8 +67,7 @@ workflow STAR_WORKFLOW {
 
         // Set up runsheet
         if (runsheet_path == null) {
-            //Get both OSD and GLDS accessions based on the input accession
-            GET_ACCESSIONS( accession, api_url )
+            GET_ACCESSIONS( accession, api_url ) //Get both OSD and GLDS accessions based on the input accession
             accessions_txt = GET_ACCESSIONS.out.accessions_txt // returns accessions.txt with line1 = osd_accession, line2 = glds_accession. 
             osd_accession = accessions_txt.map { it.readLines()[0].trim() }
             glds_accession = accessions_txt.map { it.readLines()[1].trim() }
@@ -101,7 +112,7 @@ workflow STAR_WORKFLOW {
             reference_version = PARSE_ANNOTATIONS_TABLE.out.reference_version
         }
 
-        // SUBSAMPLING STEP : USED FOR DEBUG/TEST RUNS
+        // Genomic region subsampling step is used only for debugging / testing 
         if ( params.genome_subsample ) {
             SUBSAMPLE_GENOME( derived_store_path, organism_sci, genome_references_pre_subsample, reference_source, reference_version )
             SUBSAMPLE_GENOME.out.build | flatten | toList | set { genome_references_pre_ercc }
@@ -109,11 +120,12 @@ workflow STAR_WORKFLOW {
             genome_references_pre_subsample | flatten | toList | set { genome_references_pre_ercc }
         }
 
-        // ERCC STEP : ADD ERCC Fasta and GTF to genome files
+        // Add ERCC Fasta and GTF to genome files
         DOWNLOAD_ERCC(has_ercc, reference_store_path).ifEmpty([file("ERCC92.fa"), file("ERCC92.gtf")]) | set { ch_maybe_ercc_refs }
         CONCAT_ERCC( reference_store_path, organism_sci, reference_source, reference_version, genome_references_pre_ercc, ch_maybe_ercc_refs, has_ercc )
         .ifEmpty { genome_references_pre_ercc.value }  | set { genome_references }
         
+        // Convert GTF file to RSeQC-compatible BED file
         GTF_TO_PRED(
             derived_store_path,
             organism_sci,
@@ -133,7 +145,6 @@ workflow STAR_WORKFLOW {
         // Metadata and reference files are ready. Stage the raw reads, find the max read length, and build the STAR index.
 
         // Stage the raw or truncated reads.
-        // Copies the reads into the local filesystem if stage_local is true (default) and creates samples.txt file with sample IDs.
         STAGE_RAW_READS( publishdir, samples )
         raw_reads = STAGE_RAW_READS.out.raw_reads
         samples_txt = STAGE_RAW_READS.out.samples_txt
@@ -153,9 +164,11 @@ workflow STAR_WORKFLOW {
         | set { max_read_length }
         //max_read_length.view { "Max read length: $it" }
 
+        // Trim raw reads
         TRIMGALORE( raw_reads )
         trimmed_reads = TRIMGALORE.out.reads
 
+        // Run FastQC on trimmed reads
         TRIMMED_FASTQC( trimmed_reads )
         TRIMMED_FASTQC.out.fastqc | map { it -> [ it[1], it[2] ] } \
                               | flatten \
@@ -164,11 +177,14 @@ workflow STAR_WORKFLOW {
                               | set { trim_fastqc_zip }
 
 
-        // BUILD STEP : STAR INDEX // TODO TEST
+        // Build STAR genome index
         BUILD_STAR_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta, max_read_length)
         index_dir = BUILD_STAR_INDEX.out.index_dir
+
         // Align trimmed reads to STAR index
         ALIGN_STAR( trimmed_reads, index_dir )
+        ALIGN_STAR.out.alignment_logs | collect
+                                      | set { star_alignment_logs } 
 
 
         // Sort and index coordinate-aligned bam files
@@ -187,9 +203,21 @@ workflow STAR_WORKFLOW {
         ASSESS_STRANDEDNESS( infer_expt_out )
         strandedness = ASSESS_STRANDEDNESS.out | map { it.text.split(":")[0] }
 
+        // Build RSEM genome index, to do: finish alignment steps 
         BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
 
+        // MultiQC
+        ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
+        RAW_READS_MULTIQC( samples_txt, raw_fastqc_zip, ch_multiqc_config )
+        TRIMMING_MULTIQC( samples_txt, TRIMGALORE.out.reports | collect, ch_multiqc_config )
+        TRIMMED_READS_MULTIQC( samples_txt, trim_fastqc_zip, ch_multiqc_config )
+        ALIGN_MULTIQC( samples_txt, star_alignment_logs, ch_multiqc_config )
+        INFER_EXPERIMENT_MULTIQC( samples_txt, INFER_EXPERIMENT.out.log | map { it[1] } | collect, ch_multiqc_config )
+        GENEBODY_COVERAGE_MULTIQC( samples_txt, GENEBODY_COVERAGE.out.log | map { it[1] } | collect, ch_multiqc_config )
+        INNER_DISTANCE_MULTIQC( samples_txt, INNER_DISTANCE.out.log | map { it[1] } | collect, ch_multiqc_config )
+        READ_DISTRIBUTION_MULTIQC( samples_txt, READ_DISTRIBUTION.out.log | map { it[1] } | collect, ch_multiqc_config )
+        
 
     emit:
-        BUILD_RSEM_INDEX.out.build
+        TRIMMED_READS_MULTIQC.out.versions
 }
