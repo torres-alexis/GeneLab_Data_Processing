@@ -1,6 +1,6 @@
 process BUILD_STAR_INDEX {
   // Builds STAR index, this is ercc-spike-in, organism, read length and ensembl version specific
-  tag "Refs: ${ genome_fasta }, ${ genome_gtf }, Source: ${reference_source}${reference_source.toLowerCase().contains('ensembl') ? ', Version: ' + reference_version : ''}, MaxReadLength: ${ max_read_length }${ genome_subsample ? ', GenomeSubsample: ' + genome_subsample : ''}"
+  tag "Refs: ${ genome_fasta }, ${ genome_gtf }, Source: ${reference_source}${reference_source.toLowerCase().contains('ensembl') ? ', Version: ' + reference_version : ''}, MaxReadLength: ${ max_read_length }${ params.genome_subsample ? ', GenomeSubsample: ' + params.genome_subsample : ''}"
   storeDir "${ derived_store_path }/STAR_Indices/${ reference_source }/${reference_source.toLowerCase().contains('ensembl') ? reference_version + '/' : ''}${ meta.organism_sci }/RL-${ max_read_length.toInteger() }"
 
   input:

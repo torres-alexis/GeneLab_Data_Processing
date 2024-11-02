@@ -23,6 +23,7 @@ include { GENEBODY_COVERAGE } from '../modules/rseqc.nf'
 include { INNER_DISTANCE } from '../modules/rseqc.nf'
 include { READ_DISTRIBUTION } from '../modules/rseqc.nf'
 include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
+include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -184,8 +185,11 @@ workflow STAR_WORKFLOW {
                                | collect
         
         ASSESS_STRANDEDNESS( infer_expt_out )
-        strandedness = ASSESS_STRANDEDNESS.out
+        strandedness = ASSESS_STRANDEDNESS.out | map { it.text.split(":")[0] }
+
+        BUILD_RSEM_INDEX(derived_store_path, organism_sci, reference_source, reference_version, genome_references, ch_meta)
+
 
     emit:
-        strandedness
+        BUILD_RSEM_INDEX.out.build
 }

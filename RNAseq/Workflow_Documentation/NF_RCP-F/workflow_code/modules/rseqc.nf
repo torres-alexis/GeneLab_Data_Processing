@@ -64,7 +64,7 @@ process INNER_DISTANCE {
   script:
     def log_fname = "${ meta.id }.inner_distance_freq.txt" 
     """    
-    inner_distance.py -r ${ genome_bed } -i ${ bam_file } -k ${ params.quality.rseqc_sample_count } -l -150 -u 350 -o ${ meta.id } 
+    inner_distance.py -r ${ genome_bed } -i ${ bam_file } -k ${ params.rseqc_sample_count } -l -150 -u 350 -o ${ meta.id } 
 
     # VERSIONS
     echo '"${task.process}":' > versions.yml
