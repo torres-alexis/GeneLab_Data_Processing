@@ -1,23 +1,3 @@
-process ASSESS_STRANDEDNESS {
-
-  input:
-    path("infer_out/*") // a collection of infer_experiment stdout files
-
-  output:
-    path("result.txt")
-
-  stub:
-    """
-    assess_strandedness.py infer_out
-    echo "unstranded:0.48595" > result.txt # override original results, this is because heavy truncation and genome subsampling can result in an ambigious strand assignment, which normally is an issue, but should be ignore for stubruns 
-    """
-
-  script:
-    """
-    assess_strandedness.py infer_out
-    """
-}
-
 process GENEBODY_COVERAGE {
   tag "Sample: ${ meta.id }"
 
@@ -67,16 +47,16 @@ process INFER_EXPERIMENT {
 
 process INNER_DISTANCE {
   tag "Sample: ${ meta.id }"
-  label 'big_mem'
 
   input:
-    tuple val(meta), path(bam_file), path(bai_file), path(genome_bed) // bam file sorted by coordinate
+    tuple val(meta), path(bam_file), path(bai_file) // bam file sorted by coordinate
+    path(genome_bed) 
 
   output:
     path("${ meta.id }.inner_distance_freq.txt"), emit: log_only
     path("${ meta.id }.inner_distance*"), emit: all_output
     tuple val(meta), path("${ meta.id }.inner_distance_freq.txt"), emit: log
-    path("versions.txt"), emit: version
+    path("versions.yml"), emit: versions
 
   when:
     meta.paired_end
@@ -87,22 +67,22 @@ process INNER_DISTANCE {
     inner_distance.py -r ${ genome_bed } -i ${ bam_file } -k ${ params.quality.rseqc_sample_count } -l -150 -u 350 -o ${ meta.id } 
 
     # VERSIONS
-    echo "RSeQC inner_distance version below:\n" > versions.txt 
-    inner_distance.py --version >> versions.txt
+    echo '"${task.process}":' > versions.yml
+    echo "    inner_distance.py: \$(inner_distance.py --version | sed -e 's/inner_distance.py //g')" >> versions.yml
     """
 }
 
 process READ_DISTRIBUTION {
-  tag "Sample:${ meta.id }"
-  label 'big_mem'
+  tag "Sample: ${ meta.id }"
 
   input:
-    tuple val(meta), path(bam_file), path(bai_file), path(genome_bed) // bam file sorted by coordinate
+    tuple val(meta), path(bam_file), path(bai_file)  // bam file sorted by coordinate
+    path(genome_bed)
 
   output:
     path("${ meta.id }_read_dist.out"), emit: log_only
     tuple val(meta), path("${ meta.id }_read_dist.out"), emit: log
-    path("versions.txt"), emit: version
+    path("versions.yml"), emit: versions
 
   script:
     def log_fname = "${ meta.id }_read_dist.out"
@@ -110,7 +90,7 @@ process READ_DISTRIBUTION {
     read_distribution.py -r ${ genome_bed } -i ${ bam_file } > ${ meta.id }_read_dist.out
 
     # VERSIONS
-    echo "RSeQC read_distribution version below:\n" > versions.txt 
-    read_distribution.py --version >> versions.txt
+    echo '"${task.process}":' > versions.yml
+    echo "    read_distribution.py: \$(read_distribution.py --version | sed -e 's/read_distribution.py //g')" >> versions.yml
     """
 }

@@ -20,6 +20,9 @@ include { ALIGN_STAR } from '../modules/align_star.nf'
 include { SORT_AND_INDEX_BAM } from '../modules/sort_and_index_bam.nf'
 include { INFER_EXPERIMENT } from '../modules/rseqc.nf'
 include { GENEBODY_COVERAGE } from '../modules/rseqc.nf'
+include { INNER_DISTANCE } from '../modules/rseqc.nf'
+include { READ_DISTRIBUTION } from '../modules/rseqc.nf'
+include { ASSESS_STRANDEDNESS } from '../modules/assess_strandedness.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -174,7 +177,15 @@ workflow STAR_WORKFLOW {
         // RSeQC modules
         INFER_EXPERIMENT( sorted_bam, genome_bed )
         GENEBODY_COVERAGE( sorted_bam, genome_bed )
+        INNER_DISTANCE( sorted_bam, genome_bed )
+        READ_DISTRIBUTION( sorted_bam, genome_bed )
+
+        infer_expt_out = INFER_EXPERIMENT.out.log | map { it[1] }
+                               | collect
+        
+        ASSESS_STRANDEDNESS( infer_expt_out )
+        strandedness = ASSESS_STRANDEDNESS.out
 
     emit:
-        INFER_EXPERIMENT.out.versions
+        strandedness
 }
