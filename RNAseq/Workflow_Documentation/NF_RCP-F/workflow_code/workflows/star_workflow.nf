@@ -170,7 +170,7 @@ workflow STAR_WORKFLOW {
         // Trim raw reads
         TRIMGALORE( raw_reads )
         trimmed_reads = TRIMGALORE.out.reads
-        trimgalore_reports = TRIMGALORE.out.reports
+        trimgalore_reports = TRIMGALORE.out.reports | collect
 
         // Run FastQC on trimmed reads
         TRIMMED_FASTQC( trimmed_reads )
@@ -221,7 +221,7 @@ workflow STAR_WORKFLOW {
         // MultiQC
         ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
         RAW_READS_MULTIQC( samples_txt, raw_fastqc_zip, ch_multiqc_config )
-        TRIMMING_MULTIQC( samples_txt, trimgalore_reports | collect, ch_multiqc_config )
+        TRIMMING_MULTIQC( samples_txt, trimgalore_reports, ch_multiqc_config )
         TRIMMED_READS_MULTIQC( samples_txt, trim_fastqc_zip, ch_multiqc_config )
         ALIGN_MULTIQC( samples_txt, star_alignment_logs, ch_multiqc_config )
         INFER_EXPERIMENT_MULTIQC( samples_txt, INFER_EXPERIMENT.out.log | map { it[1] } | collect, ch_multiqc_config )
@@ -230,7 +230,7 @@ workflow STAR_WORKFLOW {
         READ_DISTRIBUTION_MULTIQC( samples_txt, READ_DISTRIBUTION.out.log | map { it[1] } | collect, ch_multiqc_config )
         COUNT_MULTIQC( samples_txt, rsem_counts, ch_multiqc_config )
         all_multiqc_input = raw_fastqc_zip
-                    | concat(trimgalore_reports | collect)
+                    | concat(trimgalore_reports)
                     | concat(trim_fastqc_zip)
                     | concat(star_alignment_logs)
                     | concat(INFER_EXPERIMENT.out.log | map { it[1] } | collect)

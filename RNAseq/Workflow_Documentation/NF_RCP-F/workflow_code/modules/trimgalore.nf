@@ -10,10 +10,12 @@ process TRIMGALORE {
     path("versions.yml"), emit: versions
 
   script:
+   // see https://github.com/FelixKrueger/TrimGalore/blob/master/Docs/Trim_Galore_User_Guide.md for --cores info
+   def cores = (task.cpus && task.cpus <= 4) ? task.cpus : Math.min(task.cpus, 4)
 
     """
     trim_galore --gzip \
-    --cores $task.cpus \
+    --cores $cores \
     --phred33 \
     ${ meta.paired_end ? '--paired' : '' } \
     $reads \
