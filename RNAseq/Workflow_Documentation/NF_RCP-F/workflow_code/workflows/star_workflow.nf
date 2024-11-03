@@ -36,10 +36,11 @@ include { MULTIQC as GENEBODY_COVERAGE_MULTIQC } from '../modules/multiqc.nf' ad
 include { MULTIQC as INFER_EXPERIMENT_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"infer_exp") //PublishTo: "RSeQC_Analyses/03_infer_experiment", 
 include { MULTIQC as INNER_DISTANCE_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"inner_dist") //PublishTo: "RSeQC_Analyses/04_inner_distance", 
 include { MULTIQC as READ_DISTRIBUTION_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"read_dist") //PublishTo: "RSeQC_Analyses/05_read_distribution",
-include { MULTIQC as COUNT_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"RSEM_count") 
+include { MULTIQC as COUNT_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"RSEM_count")
+include { MULTIQC as QUALIMAP_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"qualimap") 
 include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"all")
 //include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"all")
-
+include { QUALIMAP_BAMQC } from '../modules/qualimap.nf'
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -205,6 +206,10 @@ workflow STAR_WORKFLOW {
         ASSESS_STRANDEDNESS( infer_expt_out )
         strandedness = ASSESS_STRANDEDNESS.out | map { it.text.split(":")[0] }
 
+        // Run Qualimap BAM QC
+        QUALIMAP_BAMQC( sorted_bam, genome_bed, strandedness )
+        qualimap_outputs = QUALIMAP_BAMQC.out.results.toList()
+
         // Quantify STAR gene counts
         QUANTIFY_STAR_GENES( samples_txt, ALIGN_STAR.out.reads_per_gene | toSortedList, strandedness)
 
@@ -228,6 +233,7 @@ workflow STAR_WORKFLOW {
         GENEBODY_COVERAGE_MULTIQC( samples_txt, GENEBODY_COVERAGE.out.log | map { it[1] } | collect, ch_multiqc_config )
         INNER_DISTANCE_MULTIQC( samples_txt, INNER_DISTANCE.out.log | map { it[1] } | collect, ch_multiqc_config )
         READ_DISTRIBUTION_MULTIQC( samples_txt, READ_DISTRIBUTION.out.log | map { it[1] } | collect, ch_multiqc_config )
+        QUALIMAP_MULTIQC ( samples_txt, qualimap_outputs, ch_multiqc_config)
         COUNT_MULTIQC( samples_txt, rsem_counts, ch_multiqc_config )
         all_multiqc_input = raw_fastqc_zip
                     | concat(trimgalore_reports)
@@ -237,13 +243,15 @@ workflow STAR_WORKFLOW {
                     | concat(GENEBODY_COVERAGE.out.log | map { it[1] } | collect)
                     | concat(INNER_DISTANCE.out.log | map { it[1] } | collect)
                     | concat(READ_DISTRIBUTION.out.log | map { it[1] } | collect)
+                    | concat(qualimap_outputs)
                     | concat(rsem_counts)
                     | collect
         ALL_MULTIQC( samples_txt, all_multiqc_input, ch_multiqc_config )
 
 
+
         
 
     emit:
-        ALL_MULTIQC.out.versions
+        QUALIMAP_BAMQC.out.versions
 }
