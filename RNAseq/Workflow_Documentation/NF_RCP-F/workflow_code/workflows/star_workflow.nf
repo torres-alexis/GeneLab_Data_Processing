@@ -41,6 +41,8 @@ include { MULTIQC as QUALIMAP_MULTIQC } from '../modules/multiqc.nf' addParams(M
 include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"all")
 //include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"all")
 include { QUALIMAP_BAMQC } from '../modules/qualimap.nf'
+include { QUALIMAP_RNASEQ } from '../modules/qualimap.nf'
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -206,9 +208,10 @@ workflow STAR_WORKFLOW {
         ASSESS_STRANDEDNESS( infer_expt_out )
         strandedness = ASSESS_STRANDEDNESS.out | map { it.text.split(":")[0] }
 
-        // Run Qualimap BAM QC
-        QUALIMAP_BAMQC( sorted_bam, genome_bed, strandedness )
-        qualimap_outputs = QUALIMAP_BAMQC.out.results.toList()
+        // Run Qualimap BAM QC and rnaseq
+        //QUALIMAP_BAMQC( sorted_bam, genome_bed, strandedness )
+        QUALIMAP_RNASEQ( sorted_bam, genome_references | map { it[1] }, strandedness )
+        qualimap_outputs = QUALIMAP_RNASEQ.out.results.toList()
 
         // Quantify STAR gene counts
         QUANTIFY_STAR_GENES( samples_txt, ALIGN_STAR.out.reads_per_gene | toSortedList, strandedness)
@@ -253,5 +256,5 @@ workflow STAR_WORKFLOW {
         
 
     emit:
-        QUALIMAP_BAMQC.out.versions
+        QUALIMAP_RNASEQ.out.versions
 }
