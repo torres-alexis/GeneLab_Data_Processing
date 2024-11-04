@@ -1,5 +1,5 @@
 // http://qualimap.conesalab.org/doc_html/command_line.html
-process QUALIMAP_BAMQC {
+process QUALIMAP_BAM_QC {
     tag "Sample: ${ meta.id }"
 
     input:
@@ -8,7 +8,7 @@ process QUALIMAP_BAMQC {
     val(strandedness)
 
     output:
-    path("${meta.id}"), emit: results
+    path("${meta.id}_qualimap_bam_qc"), emit: results
     path  "versions.yml"       , emit: versions
 
     script:
@@ -26,7 +26,7 @@ process QUALIMAP_BAMQC {
         --feature-file ${feature_file} \\
         -p ${strandedness_opt_map.get(strandedness)} \\
         $collect_pairs \\
-        -outdir ${meta.id} \\
+        -outdir ${meta.id}_qualimap_bam_qc \\
         -nt ${task.cpus}
 
     # VERSIONS
@@ -35,7 +35,7 @@ process QUALIMAP_BAMQC {
     """
 }
 
-process QUALIMAP_RNASEQ {
+process QUALIMAP_RNASEQ_QC {
     tag "Sample: ${ meta.id }"
 
     input:
@@ -44,7 +44,7 @@ process QUALIMAP_RNASEQ {
     val(strandedness)
 
     output:
-    path("${meta.id}"), emit: results
+    path("${meta.id}_qualimap_rnaseq_qc"), emit: results
     path  "versions.yml"       , emit: versions
 
     script:
@@ -62,7 +62,7 @@ process QUALIMAP_RNASEQ {
         --gtf ${gtf} \\
         -p ${strandedness_opt_map.get(strandedness)} \\
         $paired_end \\
-        -outdir ${meta.id} \\
+        -outdir ${meta.id}_qualimap_rnaseq_qc \\
         -s 
 
     # VERSIONS
