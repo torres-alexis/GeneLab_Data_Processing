@@ -2,7 +2,8 @@
 title: "Differential Gene Expression Analysis"
 output:
   html_document:
-    code_folding: show
+    pandoc_args: ["+RTS", "-K1024m", "-RTS"]
+
 params:
   cpus: 1
   runsheet_path: NULL
@@ -33,8 +34,8 @@ library(tximport)
 library(DESeq2)
 library(stringr)
 library(BiocParallel)
-if (args$cpus > 1) {
-    register(MulticoreParam(args$cpus))
+if (params$cpus > 1) {
+    register(MulticoreParam(params$cpus))
 }
 if (!is.null(params$technical_replicates_path) && file.exists(params$technical_replicates_path)) {
   tech_reps <- read.csv(params$technical_replicates_path, header = FALSE, col.names = c("SampleWithReps", "CollapsedSampleName"))
@@ -164,7 +165,9 @@ if (params$microbes) {
         full.names = TRUE
     )
     samples = rownames(study)
-    reordering <- sapply(samples, function(x) grep(paste0("Rsem_gene_counts/", x, ".genes.results$"), files, value = FALSE))
+    # Reorder files based on sample names without specifying "Rsem_gene_counts/" folder
+    reordering <- sapply(samples, function(x) grep(paste0(x, ".genes.results$"), files, value = FALSE))
+
     files <- files[reordering]
     names(files) <- samples
     txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
@@ -187,26 +190,8 @@ if (params$DEBUG_MODE_ADD_DUMMY_COUNTS) {
     print(sprintf("DEBUG: %s: Replacing original counts with random values from 0 to 5000", Sys.time()))
 }
 
-print(sprintf("DEBUG: %s Printing: '%s' below", Sys.time(), 'txi.rsem'))
-print(txi.rsem, quote = TRUE)
-```
-
-```{r output-counts-related-files}
-normCounts <- as.data.frame(counts(dds_1, normalized = TRUE))
-unnormalized_counts_filename <- if (params$microbes) {
-    "FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv"
-} else {
-    "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"
-}
-normalized_counts_filename <- "Normalized_Counts_GLbulkRNAseq.csv"
-write.csv(
-    txi.rsem$counts,
-    file = paste0(unnormalized_counts_filename)
-    )
-write.csv(
-    normCounts,
-    file =  paste0(normalized_counts_filename)
-    )
+#print(sprintf("DEBUG: %s Printing: '%s' below", Sys.time(), 'txi.rsem'))
+#print(txi.rsem, quote = TRUE)
 ```
 
 ```{r create-sample-table}
@@ -252,6 +237,24 @@ if (length(grep("ERCC-", rownames(dds))) != 0) {
     dds <- dds[-c(grep("ERCC-", rownames(dds))), ]
 }
 dds_1 <- DESeq(dds, parallel = (params$cpus > 1))
+```
+
+```{r output-counts-related-files}
+normCounts <- as.data.frame(counts(dds_1, normalized = TRUE))
+unnormalized_counts_filename <- if (params$microbes) {
+    "FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv"
+} else {
+    "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"
+}
+normalized_counts_filename <- "Normalized_Counts_GLbulkRNAseq.csv"
+write.csv(
+    txi.rsem$counts,
+    file = paste0(unnormalized_counts_filename)
+    )
+write.csv(
+    normCounts,
+    file =  paste0(normalized_counts_filename)
+    )
 ```
 
 ```{r prep-counts-for-dge}
