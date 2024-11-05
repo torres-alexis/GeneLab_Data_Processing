@@ -10,8 +10,42 @@ def colorCodes = [
 // Function to get list of [ meta, [ fastq_1_path, fastq_2_path ] ]
 def get_runsheet_paths(LinkedHashMap row) {
     def meta = [:]
+    def GENE_ID_TYPES = [
+        // Mammals
+        "homo_sapiens": "ENSEMBL",
+        "mus_musculus": "ENSEMBL",
+        "rattus_norvegicus": "ENSEMBL",
+
+        // Other Vertebrates
+        "danio_rerio": "ENSEMBL",
+        "oryzias_latipes": "ENSEMBL",
+
+        // Invertebrates
+        "caenorhabditis_elegans": "ENSEMBL",
+        "drosophila_melanogaster": "ENSEMBL",
+
+        // Plants
+        "arabidopsis_thaliana": "TAIR",
+        "brachypodium_distachyon": "ENSEMBL",
+        "oryza_sativa": "ENSEMBL",
+
+        // Microbes
+        "bacillus_subtilis": "ENSEMBL",
+        "escherichia_coli": "ENSEMBL",
+        "lactobacillus_acidophilus": "LOCUS",
+        "mycobacterium_marinum": "LOCUS",
+        "pseudomonas_aeruginosa": "LOCUS",
+        "salmonella_enterica": "ENSEMBL",
+        "saccharomyces_cerevisiae": "ENSEMBL",
+        "serratia_liquefaciens": "LOCUS",
+        "staphylococcus_aureus": "LOCUS",
+        "streptococcus_mutans": "LOCUS",
+        "vibrio_fischeri": "LOCUS"
+    ]
+
     meta.id = row["Sample Name"]
     meta.organism_sci = row.organism.replaceAll(" ","_").toLowerCase()
+    meta.gene_id_type = GENE_ID_TYPES.get(meta.organism_sci, "gene_id")
     meta.paired_end = row.paired_end.toBoolean()
     meta.has_ercc = row.has_ERCC.toBoolean()
 
@@ -76,7 +110,8 @@ workflow PARSE_RUNSHEET {
             """${colorCodes.c_blue}Autodetected Processing Metadata:${colorCodes.c_bright_green}
             Has ERCC: ${meta.has_ercc}
             Paired End: ${meta.paired_end}
-            Organism: ${meta.organism_sci}${colorCodes.c_reset}"""
+            Organism: ${meta.organism_sci}
+            Gene ID Type: ${meta.gene_id_type}${colorCodes.c_reset}"""
         }
         // Check that all read file paths are unique
         ch_samples

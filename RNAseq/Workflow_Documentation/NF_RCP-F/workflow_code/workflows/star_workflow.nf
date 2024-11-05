@@ -42,6 +42,8 @@ include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLab
 //include { QUALIMAP_BAM_QC } from '../modules/qualimap.nf' not implemented
 //include { QUALIMAP_RNASEQ_QC } from '../modules/qualimap.nf' not implemented
 
+include { DESEQ2_DGE } from '../modules/r.nf'
+
 def colorCodes = [
     c_line: "┅" * 70,
     c_back_bright_red: "\u001b[41;1m",
@@ -252,11 +254,22 @@ workflow STAR_WORKFLOW {
                     | concat(rsem_counts)
                     | collect
         ALL_MULTIQC( samples_txt, all_multiqc_input, ch_multiqc_config )
+        
+
+        runsheet_path | view
+        println "Type of runsheet_path: ${runsheet_path.class}"
+
+        // Normalize counts, DGE 
+        DESEQ2_DGE( runsheet_path, COUNT_ALIGNED.out.gene_counts | toSortedList, ch_meta )
+
+        // Add annotations (optional)
+
+        // 
 
 
 
         
 
     emit:
-        ALL_MULTIQC.out.versions
+        DESEQ2_DGE.out.versions_txt
 }
