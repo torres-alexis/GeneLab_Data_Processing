@@ -256,9 +256,6 @@ workflow STAR_WORKFLOW {
         ALL_MULTIQC( samples_txt, all_multiqc_input, ch_multiqc_config )
         
 
-        runsheet_path | view
-        println "Type of runsheet_path: ${runsheet_path.class}"
-
         // Normalize counts, DGE 
         DESEQ2_DGE( runsheet_path, COUNT_ALIGNED.out.gene_counts | toSortedList, ch_meta )
 
