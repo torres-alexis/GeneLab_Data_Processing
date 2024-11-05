@@ -18,7 +18,7 @@ process PARSE_ANNOTATIONS_TABLE {
   output:
     val(fasta_url), emit: reference_fasta_url
     val(gtf_url), emit: reference_gtf_url
-    val(annotations_db_url), emit: annotations_db_url
+    val(gene_annotations_url), emit: gene_annotations_url
     val(reference_source), emit: reference_source
     val(reference_version), emit: reference_version
   
@@ -34,13 +34,13 @@ process PARSE_ANNOTATIONS_TABLE {
     organism_key = organism_sci.capitalize().replace("_"," ")
     fasta_url = organisms[organism_key][5]
     gtf_url = organisms[organism_key][6]
-    annotations_db_url = organisms[organism_key][9]
+    gene_annotations_url = organisms[organism_key][10]
     reference_version = organisms[organism_key][3]
     reference_source = organisms[organism_key][4]
     println "${colorCodes.c_blue}Annotation table values parsed for '${organism_key}':${colorCodes.c_bright_green}"
     println "            Reference Fasta URL: ${fasta_url}"
     println "            Reference GTF URL: ${gtf_url}" 
-    println "            Annotations Database URL: ${annotations_db_url}"
+    println "            Gene Annotations URL: ${gene_annotations_url}"
     println "            Reference Source: ${reference_source}${colorCodes.c_reset}"
     if (reference_source.toLowerCase().contains('ensembl')) {
         println "${colorCodes.c_bright_green}            Reference Version: ${reference_version}${colorCodes.c_reset}"

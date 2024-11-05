@@ -104,7 +104,7 @@ workflow STAR_WORKFLOW {
         | set { organism_sci }
 
         PARSE_ANNOTATIONS_TABLE(annotations_csv_url_string, organism_sci)
-        gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.annotations_db_url
+        gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url
 
         // Use manually provided reference genome files if provided. Reference source and version are optional.
         if (params.reference_fasta && params.reference_gtf) {
@@ -259,8 +259,10 @@ workflow STAR_WORKFLOW {
 
         // Normalize counts, DGE 
         DESEQ2_DGE( runsheet_path, COUNT_ALIGNED.out.gene_counts | toSortedList, ch_meta )
-
-        // Add annotations (optional)
+        // Add annotations to DGE table
+        plain_dge_table = DESEQ2_DGE.out.dge | map { it[2] } 
+        //ADD_DGE_ANNOTATIONS( ch_meta, gene_annotations_url, plain_dge_table )
+        
 
         // 
 
@@ -284,5 +286,5 @@ workflow STAR_WORKFLOW {
         )
 
     emit:
-        DESEQ2_DGE.out.versions_txt
+        plain_dge_table
 }
