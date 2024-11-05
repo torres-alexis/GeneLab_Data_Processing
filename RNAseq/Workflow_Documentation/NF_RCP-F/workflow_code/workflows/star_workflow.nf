@@ -27,6 +27,7 @@ include { BUILD_RSEM_INDEX } from '../modules/build_rsem_index.nf'
 include { QUANTIFY_STAR_GENES } from '../modules/quantify_star_genes.nf'
 include { COUNT_ALIGNED } from '../modules/count_aligned.nf' 
 include { QUANTIFY_RSEM_GENES } from '../modules/quantify_rsem_genes.nf'
+include { PARSE_QC_METRICS } from '../modules/parse_qc_metrics.nf'
 
 include { MULTIQC as RAW_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"raw")
 include { MULTIQC as TRIMMED_READS_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLabel:"trimmed")
@@ -263,9 +264,24 @@ workflow STAR_WORKFLOW {
 
         // 
 
+        all_multiqc_output = RAW_READS_MULTIQC.out.data
+            | concat(TRIMMED_READS_MULTIQC.out.data)
+            | concat(ALIGN_MULTIQC.out.data)
+            | concat(GENEBODY_COVERAGE_MULTIQC.out.data)
+            | concat(INFER_EXPERIMENT_MULTIQC.out.data)
+            | concat(INNER_DISTANCE_MULTIQC.out.data)
+            | concat(READ_DISTRIBUTION_MULTIQC.out.data)
+            | concat(COUNT_MULTIQC.out.data)
+            | collect
 
-
-        
+        PARSE_QC_METRICS(
+            publishdir,
+            osd_accession,
+            ch_meta,
+            isa_archive,
+            all_multiqc_output,
+            QUANTIFY_RSEM_GENES.out.publishables
+        )
 
     emit:
         DESEQ2_DGE.out.versions_txt
