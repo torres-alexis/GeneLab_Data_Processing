@@ -42,7 +42,7 @@ include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLab
 //include { QUALIMAP_BAM_QC } from '../modules/qualimap.nf' not implemented
 //include { QUALIMAP_RNASEQ_QC } from '../modules/qualimap.nf' not implemented
 
-include { DESEQ2_DGE } from '../modules/r.nf'
+include { DESEQ2_DGE } from '../modules/deseq2_dge.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
