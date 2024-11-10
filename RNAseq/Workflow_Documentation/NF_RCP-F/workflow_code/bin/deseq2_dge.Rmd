@@ -8,58 +8,52 @@ params:
   cpus: 1
   runsheet_path: NULL
   input_gene_results_dir: NULL
-  gene_id_type: "" # Denotes the name of the indentifier column (e.g. ENSEMBL, TAIR)
+  gene_id_type: "" # Denotes the name of the identifier column (e.g. ENSEMBL, TAIR)
   microbes: FALSE # Set this to true to use Bowtie2 input
-  normalization: "default"
   work_dir: "."
-  SUMMARY_FILE_PATH: "summary.txt"
+  output_directory: "." # Directory for output files
   DEBUG_MODE_LIMIT_GENES: FALSE
   DEBUG_MODE_ADD_DUMMY_COUNTS: FALSE
+  output_filename_suffix: ""
 ---
 
 ## Substeps {.tabset}
 
-### 1. Setup
-<!---  START:NON_DPPD --->
+### 1. Setup<!---  START:NON_DPPD --->
 ```{r, setup, include=FALSE}
 knitr::opts_knit$set(root.dir = params$work_dir)
-library(knitr)
 ```
 
-```{r libary-loading}
+### 2. Load Libraries and Parameters
+```{r library-loading}
 options(timeout=600)
 
-# Load necessary processing libraries
-library(tximport)
-library(DESeq2)
-library(stringr)
-library(BiocParallel)
+# Load all required libraries
+required_packages <- c("tximport", "DESeq2", "stringr", "BiocParallel", "knitr")
+for (pkg in required_packages) {
+    if (!require(pkg, character.only = TRUE)) {
+        stop(paste("Package", pkg, "is required but not installed"))
+    }
+}
+
+# Set up parallel processing if multiple CPUs available
 if (params$cpus > 1) {
     register(MulticoreParam(params$cpus))
 }
-if (!is.null(params$technical_replicates_path) && file.exists(params$technical_replicates_path)) {
-  tech_reps <- read.csv(params$technical_replicates_path, header = FALSE, col.names = c("SampleWithReps", "CollapsedSampleName"))
-} else {
-  tech_reps <- NULL
-}
 
-params
-SUMMARY_FILE_PATH <- params$SUMMARY_FILE_PATH
-yaml::write_yaml(params, "last_params.yml")
-#  END:NON_DPPD
+# Technical replicates handling not yet implemented
+# if (!is.null(params$technical_replicates_path) && file.exists(params$technical_replicates_path)) {
+#   tech_reps <- read.csv(params$technical_replicates_path, header = FALSE, 
+#                        col.names = c("SampleWithReps", "CollapsedSampleName"))
+# } else {
+#   tech_reps <- NULL
+# }
 
-# START:ONLY_DPPD
-# params <- c(
-#     cpus = 1, # Used for multithreading
-#     runsheet_path = "/path/to/runsheet", # Used for downloading
-#     gene_id_type = "" # Denotes the name of the gene indentifier column (e.g. ENSEMBL, TAIR)
-#     input_gene_results_dir = "/path/to/genes_results_files", # Location of the gene results files
-#     normalization = "", # ENUM like, supports "ERCC-groupB" and "default"
-# )
-# END:ONLY_DPPD
+# Save parameters for reproducibility
+yaml::write_yaml(params, file.path(params$output_directory, "last_params.yml"))
 ```
 
-### 2. Load Study Metadata
+### 3. Load Study Metadata
 ```{r runsheet-to-compare_df}
 compare_csv_from_runsheet <- function(runsheet_path) {
     df = read.csv(runsheet_path)
@@ -111,7 +105,7 @@ rm(contrast.names)
 #   ))
 ```
 
-### 3. Load Gene Counts
+### 4. Load Gene Counts
 ```{r load-gene-counts }
 ##### Import Bowtie2 or RSEM raw (gene) count data #####
 if (params$microbes) {
@@ -246,15 +240,19 @@ unnormalized_counts_filename <- if (params$microbes) {
 } else {
     "RSEM_Unnormalized_Counts_GLbulkRNAseq.csv"
 }
-normalized_counts_filename <- "Normalized_Counts_GLbulkRNAseq.csv"
+normalized_counts_filename <- paste0("Normalized_Counts", params$output_filename_suffix, ".csv")
 write.csv(
     txi.rsem$counts,
-    file = paste0(unnormalized_counts_filename)
-    )
+    file = file.path(params$output_directory,
+                     paste0(if(params$microbes) "FeatureCounts_Unnormalized_Counts" 
+                           else "RSEM_Unnormalized_Counts",
+                           params$output_filename_suffix, ".csv"))
+)
 write.csv(
     normCounts,
-    file =  paste0(normalized_counts_filename)
-    )
+    file = file.path(params$output_directory,
+                     paste0("Normalized_Counts", params$output_filename_suffix, ".csv"))
+)
 ```
 
 ```{r prep-counts-for-dge}
@@ -324,46 +322,42 @@ rm(group_stdev,group_means,tcounts)
 # note: the paste0 here is ensure no string file name prefixes still create their directories
 # e.g. dge_output/
 dir.create(dirname(paste0(params$dge_output_prefix,"_")), recursive = TRUE)
-write.csv(contrasts, paste0(params$dge_output_prefix, "contrasts_GLbulkRNAseq.csv"))
-write.csv(output_table_1,
-          row.names = FALSE,
-          paste0(params$dge_output_prefix, "differential_expression_no_annotations_GLbulkRNAseq.csv")
-         )
+write.csv(
+    contrasts,
+    file = file.path(params$output_directory, 
+                     paste0("contrasts", params$output_filename_suffix, ".csv"))
+)
+write.csv(
+    output_table_1,
+    row.names = FALSE,
+    file = file.path(params$output_directory, 
+                     paste0("differential_expression_no_annotations", params$output_filename_suffix, ".csv"))
+)
 write.csv(
     sampleTable,
-    file =  paste0(params$dge_output_prefix, "SampleTable_GLbulkRNAseq.csv")
+    file = file.path(params$output_directory, 
+                     paste0("SampleTable", params$output_filename_suffix, ".csv"))
 )
 
 # Create summary file based on output_table_1
 output <- capture.output(summary(output_table_1))
 
-# Open file connection
-conn <- file(paste0(params$dge_output_prefix, "summary.txt"), "w")
-
-# Write the captured output to the file
+# Write summary file
+conn <- file(file.path(params$output_directory, "summary.txt"), "w")
 writeLines(output, conn)
+close(conn)
 
-# DT::datatable(head(output_table_1, n = 30),
-#   caption = "First 30 rows of differential gene expression table",
-#   extensions = "FixedColumns",
-#   options = list(
-#     dom = "t",
-#     scrollX = TRUE,
-#     fixedColumns = TRUE
-#   )
-# )
 ```
 
 ```{r version-reporting}
 ## print session info ##
 session_info_output <- capture.output(sessionInfo())
 
-#Log same info into versions.txt file
-version_output_fn <- "versions.txt"
+# Write versions file
 cat(session_info_output,
     "BioC_version_associated_with_R_version",
     toString(BiocManager::version()),
-    file = version_output_fn,
+    file = file.path(params$output_directory, "versions.txt"),
     append = TRUE,
     sep = "\n")
 ```
