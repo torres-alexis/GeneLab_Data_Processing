@@ -252,7 +252,8 @@ dds_1 <- DESeq(dds, parallel = TRUE, BPPARAM = BPPARAM)
 ```
 
 ```{r output-counts-related-files}
-normCounts <- as.data.frame(assay(vst(dds_1)))
+normCounts <- as.data.frame(counts(dds_1, normalized = TRUE))
+VSTNormCounts <- as.data.frame(assay(vst(dds_1)))
 unnormalized_counts_filename <- if (params$microbes) {
     "FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv"
 } else {
@@ -271,15 +272,19 @@ write.csv(
     file = file.path(params$output_directory,
                      paste0("Normalized_Counts", params$output_filename_suffix, ".csv"))
 )
+write.csv(
+    VSTNormCounts,
+    file = file.path(params$output_directory,
+                     paste0("VST_Normalized_Counts", params$output_filename_suffix, ".csv"))
+)
 ```
 
 ```{r prep-counts-for-dge}
 ## Add 1 to all counts to avoid issues with log transformation
 print(sprintf("DEBUG: %s Printing head of: '%s' below", Sys.time(), 'normCounts'))
 print(head(normCounts), quote = TRUE)
-#print(sprintf("DEBUG: %s: Adding 1 to all normalized counts to avoid issues with log transformation", Sys.time()))
-#normCounts <- normCounts + 1
-# CHANGED TO VST FROM NORMCOUNTS + 1. TO DO: VERIFY DOWNSTREAM FUNCTIONALITY 
+print(sprintf("DEBUG: %s: Adding 1 to all normalized counts to avoid issues with log transformation", Sys.time()))
+normCounts <- normCounts + 1
 print(sprintf("DEBUG: %s Printing head of: '%s' below", Sys.time(), 'normCounts'))
 print(head(normCounts), quote = TRUE)
 

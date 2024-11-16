@@ -18,9 +18,10 @@ process DESEQ2_DGE {
         tuple path("contrasts${params.output_suffix}.csv"),
               path("SampleTable${params.output_suffix}.csv"),
               path("differential_expression_no_annotations${params.output_suffix}.csv"),  emit: dge
-        path("summary.txt"),                                                       emit: summary
-        path("DESeq2_DGE.html"),                                                   emit: dge_html
-        path("versions.txt"),                                                      emit: versions_txt
+        path("VST_Normalized_Counts${params.output_suffix}.csv"),                         emit: vst_norm_counts
+        path("summary.txt"),                                                              emit: summary
+        path("DESeq2_DGE.html"),                                                          emit: dge_html
+        path("versions.txt"),                                                             emit: versions_txt
 
     script:
         def dge_rmd_file = "${projectDir}/bin/deseq2_dge.Rmd"
