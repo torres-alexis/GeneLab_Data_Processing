@@ -6,15 +6,15 @@ output:
 
 params:
   cpus: 1
-  runsheet_path: NULL
-  input_gene_results_dir: NULL
-  gene_id_type: "" # Denotes the name of the identifier column (e.g. ENSEMBL, TAIR)
-  microbes: FALSE # Set this to true to use Bowtie2 input
-  work_dir: "."
+  work_dir: "." # Directory where the script will run
   output_directory: "." # Directory for output files
-  DEBUG_MODE_LIMIT_GENES: FALSE
-  DEBUG_MODE_ADD_DUMMY_COUNTS: FALSE
-  output_filename_suffix: ""
+  output_filename_suffix: "" # Suffix for output file names
+  runsheet_path: NULL # Path to the runsheet file
+  input_gene_results_dir: NULL # Directory containing gene results
+  gene_id_type: "" # Denotes the name of the identifier column (e.g. ENSEMBL, TAIR)
+  microbes: FALSE # Set this to TRUE to use Bowtie2 input
+  DEBUG_MODE_LIMIT_GENES: FALSE # Debugging option to limit the number of genes
+  DEBUG_MODE_ADD_DUMMY_COUNTS: FALSE # Debugging option to add dummy counts
 ---
 
 ## Substeps {.tabset}
@@ -363,7 +363,7 @@ rm(group_stdev,group_means,tcounts)
 ```{r output-dge-related-files}
 # note: the paste0 here is ensure no string file name prefixes still create their directories
 # e.g. dge_output/
-dir.create(dirname(paste0(params$dge_output_prefix,"_")), recursive = TRUE)
+dir.create(dirname(paste0(params$output_directory)), recursive = TRUE)
 write.csv(
     contrasts,
     file = file.path(params$output_directory, 

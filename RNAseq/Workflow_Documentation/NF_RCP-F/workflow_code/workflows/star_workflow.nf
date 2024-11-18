@@ -44,6 +44,8 @@ include { MULTIQC as ALL_MULTIQC } from '../modules/multiqc.nf' addParams(MQCLab
 //include { QUALIMAP_RNASEQ_QC } from '../modules/qualimap.nf' not implemented
 
 include { DESEQ2_DGE } from '../modules/deseq2_dge.nf'
+include { ADD_GENE_ANNOTATIONS } from '../modules/add_gene_annotations.nf'
+include { EXTEND_DGE_TABLE } from '../modules/extend_dge_table.nf'
 
 def colorCodes = [
     c_line: "┅" * 70,
@@ -258,14 +260,15 @@ workflow STAR_WORKFLOW {
         
 
         // Normalize counts, DGE 
-        DESEQ2_DGE( runsheet_path, COUNT_ALIGNED.out.gene_counts | toSortedList, ch_meta )
+        DESEQ2_DGE( ch_meta, runsheet_path, COUNT_ALIGNED.out.gene_counts | toSortedList )
+        dge_table = DESEQ2_DGE.out.dge | map { it[2] }
         // Add annotations to DGE table
-        plain_dge_table = DESEQ2_DGE.out.dge | map { it[2] } 
-        //ADD_DGE_ANNOTATIONS( ch_meta, gene_annotations_url, plain_dge_table )
-        
+        ADD_GENE_ANNOTATIONS( ch_meta, gene_annotations_url, dge_table )
+        annotated_dge_table = ADD_GENE_ANNOTATIONS.out.annotated_dge_table
+        // Extend DGE table to generate visualization table
+        EXTEND_DGE_TABLE( annotated_dge_table )
 
-        // 
-
+        // Parse QC metrics
         all_multiqc_output = RAW_READS_MULTIQC.out.data
             | concat(TRIMMED_READS_MULTIQC.out.data)
             | concat(ALIGN_MULTIQC.out.data)
@@ -286,5 +289,5 @@ workflow STAR_WORKFLOW {
         )
 
     emit:
-        plain_dge_table
+        annotated_dge_table
 }
