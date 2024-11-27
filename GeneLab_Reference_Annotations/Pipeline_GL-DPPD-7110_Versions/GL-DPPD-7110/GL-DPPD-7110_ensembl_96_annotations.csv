@@ -1,0 +1,2 @@
+name,species,strain,ensemblVersion,ref_source,fasta,gtf,taxon,annotations,genelab_annots_link,genelab_annots_info_link
+MOUSE,Mus musculus,,107,ensembl,https://ftp.ensembl.org/pub/release-96/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.primary_assembly.fa.gz,https://ftp.ensembl.org/pub/release-96/gtf/mus_musculus/Mus_musculus.GRCm38.96.gtf.gz,10090,org.Mm.eg.db,https://figshare.com/ndownloader/files/50851578,https://figshare.com/ndownloader/files/50851581
