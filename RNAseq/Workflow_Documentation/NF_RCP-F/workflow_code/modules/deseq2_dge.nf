@@ -15,9 +15,9 @@ process DESEQ2_DGE {
         tuple path("Normalized_Counts${params.output_suffix}.csv"),
               path(params.mode == "microbes" ? "FeatureCounts_Unnormalized_Counts${params.output_suffix}.csv" : 
                    "RSEM_Unnormalized_Counts${params.output_suffix}.csv"),                emit: norm_counts
-        tuple path("contrasts${params.output_suffix}.csv"),
-              path("SampleTable${params.output_suffix}.csv"),
-              path("differential_expression_no_annotations${params.output_suffix}.csv"),  emit: dge
+        path("contrasts${params.output_suffix}.csv"),                                     emit: contrasts
+        path("SampleTable${params.output_suffix}.csv"),                                   emit: sample_table      
+        path("differential_expression_no_annotations${params.output_suffix}.csv"),        emit: dge_table
         path("VST_Normalized_Counts${params.output_suffix}.csv"),                         emit: vst_norm_counts
         path("summary.txt"),                                                              emit: summary
         path("versions.txt"),                                                             emit: versions_txt

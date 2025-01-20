@@ -50,7 +50,8 @@ process INNER_DISTANCE {
 
   input:
     tuple val(meta), path(bam_file), path(bai_file) // bam file sorted by coordinate
-    path(genome_bed) 
+    path(genome_bed)
+    val(max_read_length)
 
   output:
     path("${ meta.id }.inner_distance_freq.txt"), emit: log_only
@@ -64,7 +65,7 @@ process INNER_DISTANCE {
   script:
     def log_fname = "${ meta.id }.inner_distance_freq.txt" 
     """    
-    inner_distance.py -r ${ genome_bed } -i ${ bam_file } -k ${ params.rseqc_sample_count } -l -150 -u 350 -o ${ meta.id } 
+    inner_distance.py -r ${ genome_bed } -i ${ bam_file } -k ${ params.rseqc_sample_count } -l -${ max_read_length_ch } -u 350 -o ${ meta.id } 
 
     # VERSIONS
     echo '"${task.process}":' > versions.yml

@@ -10,7 +10,7 @@ process COUNT_ALIGNED {
   output:
     tuple val(meta), path("${ meta.id }*"), emit: counts
     path("${ meta.id }*"), emit: only_counts
-    path("${ meta.id }.genes.results"), emit: gene_counts
+    path("${ meta.id }.genes.results"), emit: genes_results
     path("versions.yml"), emit: versions
 
   script:
