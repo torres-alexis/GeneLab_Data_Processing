@@ -3,6 +3,7 @@ include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
+include { GENERATE_METADATA_TABLE } from '../modules/generate_metadata_table.nf'
 // include { PREPARE_REFERENCES } from './prepare_references.nf'
 include { DOWNLOAD_REFERENCES } from '../modules/download_references.nf'
 include { SUBSAMPLE_GENOME } from '../modules/subsample_genome.nf'
@@ -127,6 +128,9 @@ workflow RNASEQ_MICROBES {
             }
             ISA_TO_RUNSHEET( ch_outdir, osd_accession, glds_accession, isa_archive, dp_tools_plugin )
             runsheet_path = ISA_TO_RUNSHEET.out.runsheet
+
+            // Generate metadata table
+            GENERATE_METADATA_TABLE( ch_outdir, glds_accession, isa_archive, runsheet_path )
         }
 
         // Validate input parameters and runsheet
