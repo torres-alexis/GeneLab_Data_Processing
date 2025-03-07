@@ -1252,7 +1252,7 @@ setwd(file.path(work_dir))
 
 <br>
 
-### 9c. Configure Metadata, Sample Grouping, and Group Comparisons
+### 9d. Configure Metadata, Sample Grouping, and Group Comparisons
 
 ```R
 ### Pull all factors for each sample in the study from the runsheet created in Step 9a ###
@@ -1309,7 +1309,7 @@ rm(contrast.names)
 
 <br>
 
-### 9d. Import RSEM GeneCounts
+### 9e. Import RSEM GeneCounts
 
 ```R
 ### Import RSEM gene count data ###
@@ -1343,7 +1343,7 @@ txi.rsem$length[txi.rsem$length == 0] <- 1
 **Input Data:**
 
 * *genes.results (RSEM counts per gene, output from [Step 8a](#8a-count-aligned-reads-with-rsem) or from [Step 8dii](#8dii-filter-rrna-genes-from-rsem-genes-results) when using rRNA-removed count data)
-* `study` (data frame containing sample condition values, output from [Step 9c](#9c-create-study-group-and-contrasts))
+* `study` (data frame containing sample condition values, output from [Step 9d](#9d-create-study-group-and-contrasts))
 
 **Output Data:**
 
@@ -1352,7 +1352,7 @@ txi.rsem$length[txi.rsem$length == 0] <- 1
 
 <br>
 
-### 9e. Perform DGE Analysis
+### 9f. Perform DGE Analysis
 
 ```R
 ### Create sample table ###
@@ -1456,9 +1456,9 @@ res_lrt <- results(dds_lrt)
 
 **Input Data:**
 
-* `group` (named vector specifying the group or set of factor levels for each sample, output from [Step 9c](#9c-configure-metadata-sample-grouping-and-group-comparisons))
-* `txi.rsem` (imported RSEM data containing counts matrix, output from [Step 9d](#9d-import-rsem-genecounts))
-- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 9b](#9b-environment-set-up))
+* `group` (named vector specifying the group or set of factor levels for each sample, output from [Step 9d](#9d-configure-metadata-sample-grouping-and-group-comparisons))
+* `txi.rsem` (imported RSEM data containing counts matrix, output from [Step 9e](#9e-import-rsem-genecounts))
+- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 9c](#9c-environment-set-up))
 
 **Output Data:**
 
@@ -1472,7 +1472,7 @@ res_lrt <- results(dds_lrt)
 
 <br>
 
-### 9f. Add Statistics and Gene Annotations to DGE Results
+### 9g. Add Statistics and Gene Annotations to DGE Results
 
 ```R
 ### Initialize output table with normalized counts ###
@@ -1595,7 +1595,7 @@ if (!(gene_id_type %in% colnames(annot)) || !(gene_id_type %in% colnames(output_
 
 <br>
 
-### 9g. Export DGE Tables
+### 9h. Export DGE Tables
 
 ```R
 ### Export unnormalized and normalized counts tables ###
@@ -1630,12 +1630,12 @@ sessionInfo()
 
 **Input Data:**
 
-* `contrasts` (matrix defining pairwise comparisons between groups, output from [Step 9c](#9c-configure-metadata-sample-grouping-and-group-comparisons))
-* `txi.rsem` (imported RSEM count data, output from [Step 9d](#9d-import-rsem-genecounts))
-* `sampleTable` (data frame mapping samples to groups, output from [Step 9e](#9e-perform-dge-analysis))
-* `normCounts` (normalized counts, output from [Step 9e](#9e-perform-dge-analysis))
-* `VSTCounts` (variance stabilized transformed counts, output from [Step 9e](#9e-perform-dge-analysis)) 
-* `output_table` (DGE output table, output from [Step 9f](#9f-add-statistics-and-gene-annotations-to-dge-results))
+* `contrasts` (matrix defining pairwise comparisons between groups, output from [Step 9d](#9d-configure-metadata-sample-grouping-and-group-comparisons))
+* `txi.rsem` (imported RSEM count data, output from [Step 9e](#9e-import-rsem-genecounts))
+* `sampleTable` (data frame mapping samples to groups, output from [Step 9f](#9f-perform-dge-analysis))
+* `normCounts` (normalized counts, output from [Step 9f](#9f-perform-dge-analysis))
+* `VSTCounts` (variance stabilized transformed counts, output from [Step 9f](#9f-perform-dge-analysis)) 
+* `output_table` (DGE output table, output from [Step 9g](#9g-add-statistics-and-gene-annotations-to-dge-results))
 
 **Output Data:**
 
@@ -2159,7 +2159,7 @@ ERCCcounts.to_csv('ERCC_analysis/ERCCcounts_GLbulkRNAseq.csv')
 **Input Data:**
 
 - *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, output from [Step 9a](#9a-create-sample-runsheet))
-- RSEM_Unnormalized_Counts.csv (RSEM raw counts table, output from [Step 9](#ERCCspikeOut))
+- RSEM_Unnormalized_Counts_GLbulkRNAseq.csv (RSEM raw counts table, output from [Step 9h](#9h-export-dge-tables))
 
 **Output Data:**
 

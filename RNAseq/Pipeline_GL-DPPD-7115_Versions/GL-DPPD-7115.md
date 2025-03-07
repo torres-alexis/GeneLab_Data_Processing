@@ -1449,10 +1449,10 @@ sessionInfo()
 **Input Data:**
 
 - `contrasts` (matrix defining pairwise comparisons between groups, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
-- `counts` (data frame of gene counts, output from [Step 8d](#8d-import-featurecounts-data))
-- `sampleTable` (data frame mapping samples to groups, output from [Step 8e](#8e-perform-dge-analysis))
-- `normCounts` (normalized counts, output from [Step 8e](#8e-perform-dge-analysis))
-- `VSTCounts` (variance stabilized transformed counts, output from [Step 8e](#8e-perform-dge-analysis)) 
+- `counts` (data frame of gene counts, output from [Step 8e](#8e-import-featurecounts-data))
+- `sampleTable` (data frame mapping samples to groups, output from [Step 8f](#8f-perform-dge-analysis))
+- `normCounts` (normalized counts, output from [Step 8f](#8f-perform-dge-analysis))
+- `VSTCounts` (variance stabilized transformed counts, output from [Step 8f](#8f-perform-dge-analysis)) 
 - `output_table` (DGE output table, output from [Step 8g](#8g-add-statistics-and-gene-annotations-to-dge-results))
 
 **Output Data:**
