@@ -136,12 +136,13 @@ DESeq2 Analysis Workflow
       - [8dii. Filter rRNA Genes from RSEM Genes Results](#8dii-filter-rrna-genes-from-rsem-genes-results)
   - [**9. Normalize Read Counts and Perform Differential Gene Expression Analysis**](#9-normalize-read-counts-and-perform-differential-gene-expression-analysis)
     - [9a. Create Sample RunSheet](#9a-create-sample-runsheet)
-    - [9b. Environment Set Up](#9b-environment-set-up)
-    - [9c. Configure Metadata, Sample Grouping, and Group Comparisons](#9c-configure-metadata-sample-grouping-and-group-comparisons)
-    - [9d. Import RSEM GeneCounts](#9d-import-rsem-genecounts)
-    - [9e. Perform DGE Analysis](#9e-perform-dge-analysis)
-    - [9f. Add Statistics and Gene Annotations to DGE Results](#9f-add-statistics-and-gene-annotations-to-dge-results)
-    - [9g. Export DGE Tables](#9g-export-dge-tables)
+    - [9b. Generate Metadata Table](#9b-generate-metadata-table)
+    - [9c. Environment Set Up](#9c-environment-set-up)
+    - [9d. Configure Metadata, Sample Grouping, and Group Comparisons](#9d-configure-metadata-sample-grouping-and-group-comparisons)
+    - [9e. Import RSEM GeneCounts](#9e-import-rsem-genecounts)
+    - [9f. Perform DGE Analysis](#9f-perform-dge-analysis)
+    - [9g. Add Statistics and Gene Annotations to DGE Results](#9g-add-statistics-and-gene-annotations-to-dge-results)
+    - [9h. Export DGE Tables](#9h-export-dge-tables)
 
   - [**10. Evaluate ERCC Spike-In Data**](#10-evaluate-ercc-spike-in-data)
     - [10a. Evaluate ERCC Count Data in Python](#10a-evaluate-ercc-count-data-in-python)
@@ -1150,7 +1151,36 @@ dpt-isa-to-runsheet --accession GLDS-### \
 
 <br>
 
-### 9b. Environment Set Up
+### 9b. Generate Metadata Table
+
+```bash
+### Generate a metadata table from the ISA archive and runsheet ###
+
+create_table_v2.py --accession GLDS-### \
+ --isa-zip *ISA.zip \
+ --runsheet {GLDS-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv\
+ --output-dir . 
+```
+
+**Parameter Definitions:**
+
+- `--accession GLDS-###` – GLDS accession ID (replace ### with the GLDS number being processed)
+- `--isa-zip` – path to the *ISA.zip file for the respective GLDS dataset
+- `--runsheet` – path to the runsheet 
+- `--output-dir` – the output directory to store results
+
+**Input Data:**
+
+- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, output from [Step 9a](#9a-create-sample-runsheet))
+- {GLDS-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv (runsheet, output from [Step 9a](#9a-create-sample-runsheet))
+
+**Output Data:**
+
+- **{GLDS-Accession-ID}_metadata_table.txt** (table that includes additional information about the OSD dataset)
+
+<br>
+
+### 9c. Environment Set Up
 
 ```R
 ### Install and load required packages ###

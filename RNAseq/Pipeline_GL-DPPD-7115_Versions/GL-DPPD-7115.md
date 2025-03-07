@@ -74,12 +74,13 @@ Differences from the [eukaryotic pipeline, GL-DPPD-7101-G](../Pipeline_GL-DPPD-7
       - [7dii. Filter rRNA Genes from Gene Counts](#7d2-filter-rrna-genes-from-gene-counts)
   - [**8. Normalize Read Counts and Perform Differential Gene Expression Analysis**](#8-normalize-read-counts-and-perform-differential-gene-expression-analysis)
     - [8a. Create Sample RunSheet](#8a-create-sample-runsheet)
-    - [8b. Environment Set Up](#8b-environment-set-up)
-    - [8c. Configure Metadata, Sample Grouping, and Group Comparisons](#8c-configure-metadata-sample-grouping-and-group-comparisons)
-    - [8d. Import FeatureCounts Data](#8d-import-featurecounts-data)
-    - [8e. Perform DGE Analysis](#8e-perform-dge-analysis)
-    - [8f. Add Statistics and Gene Annotations to DGE Results](#8f-add-statistics-and-gene-annotations-to-dge-results)
-    - [8g. Export DGE Tables](#8g-export-dge-tables)
+    - [8b. Generate Metadata Table](#8b-generate-metadata-table)
+    - [8c. Environment Set Up](#8c-environment-set-up)
+    - [8d. Configure Metadata, Sample Grouping, and Group Comparisons](#8d-configure-metadata-sample-grouping-and-group-comparisons)
+    - [8e. Import FeatureCounts Data](#8e-import-featurecounts-data)
+    - [8f. Perform DGE Analysis](#8f-perform-dge-analysis)
+    - [8g. Add Statistics and Gene Annotations to DGE Results](#8g-add-statistics-and-gene-annotations-to-dge-results)
+    - [8h. Export DGE Tables](#8h-export-dge-tables)
 
   - [**9. Evaluate ERCC Spike-In Data**](#9-evaluate-ercc-spike-in-data)
     - [9a. Evaluate ERCC Count Data in Python](#9a-evaluate-ercc-count-data-in-python)
@@ -986,7 +987,36 @@ dpt-isa-to-runsheet --accession GLDS-### \
 
 <br>
 
-### 8b. Environment Set Up
+### 8b. Generate Metadata Table
+
+```bash
+### Generate a metadata table from the ISA archive and runsheet ###
+
+create_table_v2.py --accession GLDS-### \
+ --isa-zip *ISA.zip \
+ --runsheet {GLDS-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv\
+ --output-dir . 
+```
+
+**Parameter Definitions:**
+
+- `--accession GLDS-###` – GLDS accession ID (replace ### with the GLDS number being processed)
+- `--isa-zip` – path to the *ISA.zip file for the respective GLDS dataset
+- `--runsheet` – path to the runsheet 
+- `--output-dir` – the output directory to store results
+
+**Input Data:**
+
+- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, output from [Step 8a](#8a-create-sample-runsheet))
+- {GLDS-Accession-ID}_bulkRNASeq_v{version}_runsheet.csv (runsheet, output from [Step 8a](#8a-create-sample-runsheet))
+
+**Output Data:**
+
+- **{GLDS-Accession-ID}_metadata_table.txt** (table that includes additional information about the OSD dataset)
+
+<br>
+
+### 8c. Environment Set Up
 
 ```R
 ### Install and load required packages ###
@@ -1055,7 +1085,7 @@ setwd(file.path(work_dir))
 
 <br>
 
-### 8c. Configure Metadata, Sample Grouping, and Group Comparisons
+### 8d. Configure Metadata, Sample Grouping, and Group Comparisons
 
 ```R
 ### Pull all factors for each sample in the study from the runsheet created in Step 9a ###
@@ -1111,7 +1141,7 @@ rm(contrast.names)
 
 <br>
 
-### 8d. Import FeatureCounts Data
+### 8e. Import FeatureCounts Data
 
 ```R
 ### Import FeatureCounts data ###
@@ -1132,7 +1162,7 @@ counts <- counts[, rownames(study)]
 **Input Data:**
 
 - FeatureCounts_GLbulkRNAseq.tsv (table containing raw read counts per gene for each sample, output from [Step 7a](#7a-count-aligned-reads-with-featurecounts) or from [Step 7dii](#7dii-filter-rrna-genes-from-gene-counts) when using rRNA-removed count data)
-- `study` (data frame containing sample condition values, output from [Step 8c](#8c-configure-metadata-sample-grouping-and-group-comparisons))
+- `study` (data frame containing sample condition values, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
 
 **Output Data:**
 
@@ -1141,7 +1171,7 @@ counts <- counts[, rownames(study)]
 
 <br>
 
-### 8e. Perform DGE Analysis
+### 8f. Perform DGE Analysis
 
 ```R
 ### Create sample table ###
@@ -1245,9 +1275,9 @@ res_lrt <- results(dds_lrt)
 
 **Input Data:**
 
-- `group` (named vector specifying the group or set of factor levels for each sample, output from [Step 8c](#8c-configure-metadata-sample-grouping-and-group-comparisons))
-- `counts` (data frame of gene counts, output from [Step 8c](#8c-configure-metadata-sample-grouping-and-group-comparisons))
-- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 8b](#8b-environment-set-up))
+- `group` (named vector specifying the group or set of factor levels for each sample, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
+- `counts` (data frame of gene counts, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
+- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 8c](#8c-environment-set-up))
 
 **Output Data:**
 
@@ -1261,7 +1291,7 @@ res_lrt <- results(dds_lrt)
 
 <br>
 
-### 8f. Add Statistics and Gene Annotations to DGE Results
+### 8g. Add Statistics and Gene Annotations to DGE Results
 
 ```R
 ### Initialize output table with normalized counts ###
@@ -1357,12 +1387,12 @@ if (!(gene_id_type %in% colnames(annot)) || !(gene_id_type %in% colnames(output_
 **Input Data:**
 
 - `gene_id_type` (Gene identifier type, e.g. ENSEMBL, used to merge the annotations with the DGE results)
-- `normCounts` (data frame of normalized counts, output from [Step 8e](#8e-perform-dge-analysis))
-- `res_lrt` (results object from likelihood ratio test, output from [Step 8e](#8e-perform-dge-analysis))
-- `contrasts` (matrix defining pairwise comparisons, output from [Step 8c](#8c-configure-metadata-sample-grouping-and-group-comparisons))
-- `dds` (DESeq2 data object containing normalized counts, experimental design, and differential expression results, output from [Step 8e](#8e-perform-dge-analysis))
-- `annotations_link` (variable containing URL to GeneLab gene annotation table, output from [Step 8b](#8b-environment-set-up))
-- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 8b](#8b-environment-set-up))
+- `normCounts` (data frame of normalized counts, output from [Step 8f](#8f-perform-dge-analysis))
+- `res_lrt` (results object from likelihood ratio test, output from [Step 8f](#8f-perform-dge-analysis))
+- `contrasts` (matrix defining pairwise comparisons, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
+- `dds` (DESeq2 data object containing normalized counts, experimental design, and differential expression results, output from [Step 8f](#8f-perform-dge-analysis))
+- `annotations_link` (variable containing URL to GeneLab gene annotation table, output from [Step 8c](#8c-environment-set-up))
+- `BPPARAM` (system-specific BiocParallelParam object for parallel processing configuration, output from [Step 8c](#8c-environment-set-up))
 
 **Output Data:**
 
@@ -1384,7 +1414,7 @@ if (!(gene_id_type %in% colnames(annot)) || !(gene_id_type %in% colnames(output_
 
 <br>
 
-### 8g. Export DGE Tables
+### 8h. Export DGE Tables
 
 ```R
 ### Export unnormalized and normalized counts tables ###
@@ -1418,12 +1448,12 @@ sessionInfo()
 
 **Input Data:**
 
-- `contrasts` (matrix defining pairwise comparisons between groups, output from [Step 8c](#8c-configure-metadata-sample-grouping-and-group-comparisons))
+- `contrasts` (matrix defining pairwise comparisons between groups, output from [Step 8d](#8d-configure-metadata-sample-grouping-and-group-comparisons))
 - `counts` (data frame of gene counts, output from [Step 8d](#8d-import-featurecounts-data))
 - `sampleTable` (data frame mapping samples to groups, output from [Step 8e](#8e-perform-dge-analysis))
 - `normCounts` (normalized counts, output from [Step 8e](#8e-perform-dge-analysis))
 - `VSTCounts` (variance stabilized transformed counts, output from [Step 8e](#8e-perform-dge-analysis)) 
-- `output_table` (DGE output table, output from [Step 8f](#8f-add-statistics-and-gene-annotations-to-dge-results))
+- `output_table` (DGE output table, output from [Step 8g](#8g-add-statistics-and-gene-annotations-to-dge-results))
 
 **Output Data:**
 
@@ -1947,7 +1977,7 @@ ERCCcounts.to_csv('ERCC_analysis/ERCCcounts_GLbulkRNAseq.csv')
 **Input Data:**
 
 - *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective GLDS dataset, output from [Step 8a](#8a-create-sample-runsheet))
-- FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv (Raw gene counts table, output from [Step 8g](#8g-export-dge-tables))
+- FeatureCounts_Unnormalized_Counts_GLbulkRNAseq.csv (Raw gene counts table, output from [Step 8h](#8h-export-dge-tables))
 
 **Output Data:**
 
