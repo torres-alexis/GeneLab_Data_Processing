@@ -1176,7 +1176,7 @@ create_table_v2.py --accession GLDS-### \
 
 **Output Data:**
 
-- **{GLDS-Accession-ID}_metadata_table.txt** (table that includes additional information about the OSD dataset)
+- {GLDS-Accession-ID}_metadata_table.txt (table that includes additional information about the OSD dataset)
 
 <br>
 
