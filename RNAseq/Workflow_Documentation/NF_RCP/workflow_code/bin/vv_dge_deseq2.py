@@ -65,6 +65,8 @@ def parse_runsheet(runsheet_path):
     try:
         # Try to read the runsheet using pandas
         df = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df.columns = df.columns.astype(str)
         df['Sample Name'] = df['Sample Name'].astype(str)
         
         # Check for required columns
@@ -337,9 +339,8 @@ def check_sample_table_against_runsheet(outdir, runsheet_path, log_path, assay_s
     try:
         # Data specific preprocess
         df_rs = pd.read_csv(runsheet_path)
-        
-        # Convert Sample Name to string to ensure compatibility with numeric sample names
-        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -466,9 +467,13 @@ def check_sample_table_for_correct_group_assignments(outdir, runsheet_path, log_
     try:
         # Data specific preprocess
         df_sample = pd.read_csv(sample_table_path, index_col=0).sort_index()
+        # Convert all column names to strings to handle numeric columns
+        df_sample.columns = df_sample.columns.astype(str)
         
         # Get factor values from runsheet
         df_rs = pd.read_csv(runsheet_path, dtype=str)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -825,6 +830,9 @@ def check_contrasts_table_headers(outdir, runsheet_path, log_path, assay_suffix=
     try:
         # Get expected groups from runsheet
         df_rs = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
+            
         df_rs_factor_cols = df_rs[[col for col in df_rs.columns if col.startswith("Factor Value[")]]
         
         # Filter runsheet by stratum if needed
@@ -933,6 +941,8 @@ def check_contrasts_table_rows(outdir, log_path, assay_suffix="_GLbulkRNAseq",
     try:
         # Read the contrasts table
         df_contrasts = pd.read_csv(contrasts_table_path, index_col=0)
+        # Convert all column names to strings to handle numeric columns
+        df_contrasts.columns = df_contrasts.columns.astype(str)
         
         def _get_groups_from_comparisons(s: str) -> set:
             """Extracts group names from a comparison string like 'G1vG2'.
@@ -1057,6 +1067,8 @@ def check_dge_table_annotation_columns_exist(outdir, runsheet_path, log_path, as
     # First get sample names from runsheet to identify which columns are samples
     try:
         df_rs = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1172,9 +1184,8 @@ def check_dge_table_sample_columns_exist(outdir, runsheet_path, log_path, assay_
     # First get sample names from runsheet
     try:
         df_rs = pd.read_csv(runsheet_path)
-        
-        # Convert Sample Name to string to ensure compatibility with numeric sample names
-        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1304,9 +1315,8 @@ def check_dge_table_sample_columns_constraints(outdir, runsheet_path, log_path, 
     # First get sample names from runsheet
     try:
         df_rs = pd.read_csv(runsheet_path)
-        
-        # Convert Sample Name to string to ensure compatibility with numeric sample names
-        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1455,6 +1465,8 @@ def check_dge_table_group_columns_exist(outdir, runsheet_path, log_path, assay_s
     try:
         # First get expected groups from runsheet
         df_rs = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1565,9 +1577,8 @@ def check_dge_table_group_columns_constraints(outdir, runsheet_path, log_path, a
     # First get sample names from runsheet
     try:
         df_rs = pd.read_csv(runsheet_path)
-        
-        # Convert Sample Name to string to ensure compatibility with numeric sample names
-        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1816,6 +1827,8 @@ def check_dge_table_comparison_statistical_columns_exist(outdir, runsheet_path, 
     try:
         # First get expected groups from runsheet
         df_rs = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -2013,6 +2026,8 @@ def check_dge_table_group_statistical_columns_constraints(outdir, runsheet_path,
     try:
         # First get expected groups from runsheet
         df_rs = pd.read_csv(runsheet_path)
+        # Convert all column names to strings to handle numeric columns
+        df_rs.columns = df_rs.columns.astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -2141,10 +2156,11 @@ def check_dge_table_fixed_statistical_columns_exist(outdir, log_path, assay_suff
     try:
         # Read DGE table and check for expected columns
         df_dge = pd.read_csv(dge_table_path)
-        df_dge_columns = set(df_dge.columns)
+        # Convert all column names to strings to handle numeric columns
+        df_dge.columns = df_dge.columns.astype(str)
         
         # Find missing columns
-        missing_columns = expected_columns - df_dge_columns
+        missing_columns = expected_columns - set(df_dge.columns)
         
         if not missing_columns:
             status = "GREEN"
@@ -2212,6 +2228,8 @@ def check_dge_table_fixed_statistical_columns_constraints(outdir, log_path, assa
         
         # Read DGE table
         df_dge = pd.read_csv(dge_table_path)
+        # Convert all column names to strings to handle numeric columns
+        df_dge.columns = df_dge.columns.astype(str)
         
         # Apply constraints
         issues = utils_common_constraints_on_dataframe(df_dge, constraints)
@@ -2279,6 +2297,10 @@ def check_dge_table_log2fc_within_reason(outdir, runsheet_path, log_path, assay_
 
     try:
         df_dge = pd.read_csv(dge_table_path)
+        
+        # Ensure column names are treated as strings if they are used in comparisons
+        df_dge.columns = df_dge.columns.astype(str)
+        
         group_mean_cols = [col for col in df_dge.columns if col.startswith("Group.Mean_")]
         if not group_mean_cols:
             log_check_result(log_path, component_name, "all", check_name, "RED",
@@ -2393,10 +2415,8 @@ def check_ercc_presence(outdir, runsheet_path, log_path, assay_suffix="_GLbulkRN
     try:
         # Read runsheet to check for has_ercc flag
         runsheet_df = pd.read_csv(runsheet_path)
-        
-        # Convert Sample Name to string to ensure compatibility with numeric sample names
-        if 'Sample Name' in runsheet_df.columns:
-            runsheet_df['Sample Name'] = runsheet_df['Sample Name'].astype(str)
+        # Convert all column names to strings to handle numeric columns
+        runsheet_df.columns = runsheet_df.columns.astype(str)
         
         # Find has_ercc column - could be capitalized in different ways
         ercc_col = None
