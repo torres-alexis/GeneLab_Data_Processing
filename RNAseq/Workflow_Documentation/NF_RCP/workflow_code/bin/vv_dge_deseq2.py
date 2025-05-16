@@ -338,6 +338,9 @@ def check_sample_table_against_runsheet(outdir, runsheet_path, log_path, assay_s
         # Data specific preprocess
         df_rs = pd.read_csv(runsheet_path)
         
+        # Convert Sample Name to string to ensure compatibility with numeric sample names
+        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
             factor_col = f"Factor Value[{stratum_factor}]"
@@ -1170,6 +1173,9 @@ def check_dge_table_sample_columns_exist(outdir, runsheet_path, log_path, assay_
     try:
         df_rs = pd.read_csv(runsheet_path)
         
+        # Convert Sample Name to string to ensure compatibility with numeric sample names
+        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
+        
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
             factor_col = f"Factor Value[{stratum_factor}]"
@@ -1298,6 +1304,9 @@ def check_dge_table_sample_columns_constraints(outdir, runsheet_path, log_path, 
     # First get sample names from runsheet
     try:
         df_rs = pd.read_csv(runsheet_path)
+        
+        # Convert Sample Name to string to ensure compatibility with numeric sample names
+        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -1556,6 +1565,9 @@ def check_dge_table_group_columns_constraints(outdir, runsheet_path, log_path, a
     # First get sample names from runsheet
     try:
         df_rs = pd.read_csv(runsheet_path)
+        
+        # Convert Sample Name to string to ensure compatibility with numeric sample names
+        df_rs['Sample Name'] = df_rs['Sample Name'].astype(str)
         
         # Filter runsheet by stratum if needed
         if stratum_factor and stratum_value:
@@ -2381,6 +2393,10 @@ def check_ercc_presence(outdir, runsheet_path, log_path, assay_suffix="_GLbulkRN
     try:
         # Read runsheet to check for has_ercc flag
         runsheet_df = pd.read_csv(runsheet_path)
+        
+        # Convert Sample Name to string to ensure compatibility with numeric sample names
+        if 'Sample Name' in runsheet_df.columns:
+            runsheet_df['Sample Name'] = runsheet_df['Sample Name'].astype(str)
         
         # Find has_ercc column - could be capitalized in different ways
         ercc_col = None
