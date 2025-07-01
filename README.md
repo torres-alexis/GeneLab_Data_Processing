@@ -19,12 +19,13 @@ Click on an assay type below for data processing information.
   - [Remove human reads](Metagenomics/Remove_human_reads_from_raw_data)
   - [Estimate host reads](Metagenomics/Estimate_host_reads_in_raw_data)
   - [Illumina](Metagenomics/Illumina)  
-- [(bulk) RNAseq](RNAseq)  
-- [single cell RNAseq](scRNAseq)  
 - [Methylation Sequencing](Methyl-Seq)
 - [Microarray](Microarray)
   - [Agilent 1-channel](Microarray/Agilent_1-channel)
   - [Affymetrix](Microarray/Affymetrix)
+- [Proteomics](Proteomics)
+- [(bulk) RNAseq](RNAseq)  
+- [single cell RNAseq](scRNAseq)  
 
 ---
 
