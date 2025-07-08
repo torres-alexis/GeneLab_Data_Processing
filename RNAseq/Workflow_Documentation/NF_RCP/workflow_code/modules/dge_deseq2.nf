@@ -7,6 +7,7 @@ process DGE_DESEQ2 {
 
     input:
         val(meta)
+        val(gene_annotations_url)
         path(runsheet_path)
         path(gene_counts)
         path("dge_deseq2.Rmd")
@@ -15,11 +16,11 @@ process DGE_DESEQ2 {
     output:
         tuple path("Normalized_Counts${output_label}${params.assay_suffix}.csv"),
               path(params.mode == "microbes" ? "FeatureCounts_Unnormalized_Counts${output_label}${params.assay_suffix}.csv" : 
-                   "RSEM_Unnormalized_Counts${output_label}${params.assay_suffix}.csv"),                               emit: norm_counts
-        path("contrasts${output_label}${params.assay_suffix}.csv"),                                                    emit: contrasts
-        path("SampleTable${output_label}${params.assay_suffix}.csv"),                                                  emit: sample_table      
-        path("differential_expression_no_annotations${output_label}${params.assay_suffix}.csv"),                       emit: dge_table
-        path("VST_Counts${output_label}${params.assay_suffix}.csv"),                                        emit: vst_norm_counts
+                   "RSEM_Unnormalized_Counts${output_label}${params.assay_suffix}.csv"),                emit: norm_counts
+        path("contrasts${output_label}${params.assay_suffix}.csv"),                                     emit: contrasts
+        path("SampleTable${output_label}${params.assay_suffix}.csv"),                                   emit: sample_table      
+        path("differential_expression${output_label}${params.assay_suffix}.csv"),                       emit: dge_table
+        path("VST_Counts${output_label}${params.assay_suffix}.csv"),                                    emit: vst_norm_counts
         path("summary.txt"),                                                                            emit: summary
         path("versions2.txt"),                                                                          emit: versions
 
@@ -45,6 +46,7 @@ process DGE_DESEQ2 {
                 output_directory = '\${PWD}',
                 output_filename_label = '${output_filename_label}',
                 output_filename_suffix = '${output_filename_suffix}',
+                annotation_file_path = '${gene_annotations_url}',
                 runsheet_path = '${runsheet_path}',
                 microbes = ${microbes},
                 gene_id_type = '${meta.gene_id_type}',

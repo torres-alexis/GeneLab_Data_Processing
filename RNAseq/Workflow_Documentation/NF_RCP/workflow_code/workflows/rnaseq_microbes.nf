@@ -30,8 +30,6 @@ include { EXTRACT_RRNA } from '../modules/extract_rrna.nf'
 include { REMOVE_RRNA_FEATURECOUNTS } from '../modules/remove_rrna_featurecounts.nf'
 include { DGE_DESEQ2 } from '../modules/dge_deseq2.nf'
 include { DGE_DESEQ2 as DGE_DESEQ2_RRNA_RM } from '../modules/dge_deseq2.nf'
-include { ADD_GENE_ANNOTATIONS } from '../modules/add_gene_annotations.nf'
-include { ADD_GENE_ANNOTATIONS as ADD_GENE_ANNOTATIONS_RRNA_RM } from '../modules/add_gene_annotations.nf'
 include { 
     MULTIQC as RAW_READS_MULTIQC;
     MULTIQC as TRIMMED_READS_MULTIQC;
@@ -233,15 +231,12 @@ workflow RNASEQ_MICROBES {
         REMOVE_RRNA_FEATURECOUNTS ( counts, EXTRACT_RRNA.out.rrna_ids )
 
         dge_script = "${projectDir}/bin/dge_deseq2.Rmd"
-        dge_annotations_script = "${projectDir}/bin/add_gene_annotations.Rmd"
 
         // Normalize counts, DGE, Add annotations to DGE table
-        DGE_DESEQ2( ch_meta, runsheet_path, counts, dge_script, "" )
-        ADD_GENE_ANNOTATIONS( ch_meta, PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url, DGE_DESEQ2.out.dge_table, dge_annotations_script, "" )        
+        DGE_DESEQ2( ch_meta, PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url, runsheet_path, counts, dge_script, "" )   
         // For rRNArm counts: Normalize counts, DGE, Add annotations to DGE table
-        DGE_DESEQ2_RRNA_RM( ch_meta, runsheet_path, REMOVE_RRNA_FEATURECOUNTS.out.counts_rrnarm, dge_script, "_rRNArm" )
-        ADD_GENE_ANNOTATIONS_RRNA_RM( ch_meta, PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url, DGE_DESEQ2_RRNA_RM.out.dge_table, dge_annotations_script, "_rRNArm" )
-        
+        DGE_DESEQ2_RRNA_RM( ch_meta, PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url, runsheet_path, REMOVE_RRNA_FEATURECOUNTS.out.counts_rrnarm, dge_script, "_rRNArm" )
+
         // MultiQC
         ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
         RAW_READS_MULTIQC(samples_txt, raw_fastqc_zip, ch_multiqc_config, "raw_")
@@ -355,10 +350,10 @@ workflow RNASEQ_MICROBES {
             DGE_DESEQ2.out.vst_norm_counts,
             DGE_DESEQ2.out.sample_table,
             DGE_DESEQ2.out.contrasts,
-            ADD_GENE_ANNOTATIONS.out.annotated_dge_table,
+            DGE_DESEQ2.out.dge_table,
             DGE_DESEQ2_RRNA_RM.out.norm_counts,
             DGE_DESEQ2_RRNA_RM.out.vst_norm_counts,
-            ADD_GENE_ANNOTATIONS_RRNA_RM.out.annotated_dge_table
+            DGE_DESEQ2_RRNA_RM.out.dge_table
         )
         VV_CONCAT_FILTER( ch_outdir, VV_RAW_READS.out.log | mix( VV_TRIMMED_READS.out.log, // Concatenate and filter V&V logs
                                                     VV_BOWTIE2_ALIGNMENT.out.log,

@@ -11,6 +11,7 @@ params:
   output_filename_label: "" # label for output file names
   output_filename_suffix: "" # suffix for output file names
   runsheet_path: NULL # path to the runsheet file
+  annotation_file_path: NULL # path to the annotation file
   input_counts: NULL # directory containing RSEM gene results OR FeatureCounts table for microbes mode
   gene_id_type: "" # denotes the name of the identifier column (e.g. ENSEMBL, TAIR)
   microbes: FALSE # set this to TRUE to use Bowtie 2 input
@@ -490,6 +491,51 @@ for (i in seq_along(group_ids)) {
 output_table <- cbind(output_table, group_stats)
 ```
 
+```{r, load-annotation-table-and-join}
+### Read in annotation table and join with DGE results ###
+
+annotation_file_path <- params$annotation_file_path
+
+if (!is.null(annotation_file_path) && annotation_file_path != "" && annotation_file_path != "null") {
+    # Download or read annotation file
+    tryCatch({
+        if (startsWith(annotation_file_path, "http")) {
+            # Download with user-agent
+            local_file <- "gene_annotations.tsv"
+            print(sprintf("DEBUG: %s: Downloading annotation file from %s", Sys.time(), annotation_file_path))
+            download.file(url = annotation_file_path, 
+                         destfile = local_file, 
+                         method = "libcurl", 
+                         headers = c("User-Agent" = "Mozilla/5.0"))
+            annot <- read.table(local_file, sep = "\t", header = TRUE, quote = "", comment.char = "")
+        } else {
+            # Local file
+            print(sprintf("DEBUG: %s: Reading annotation file from %s", Sys.time(), annotation_file_path))
+            annot <- read.table(annotation_file_path, sep = "\t", header = TRUE, quote = "", comment.char = "")
+        }
+        
+        print(sprintf("DEBUG: %s: Joining DGE table with annotations using column: %s", 
+                     Sys.time(), params$gene_id_type))
+        
+        # Join annotations with DGE table
+        output_table <- annot %>%
+            merge(output_table,
+                by = params$gene_id_type,
+                all.y = TRUE 
+            ) %>%
+            select(all_of(params$gene_id_type), everything())  # Make sure main gene ID is first column
+            
+        print(sprintf("DEBUG: %s: Successfully joined %d genes with annotations", 
+                     Sys.time(), nrow(output_table)))
+        
+    }, error = function(e) {
+        warning(paste("Could not load or join annotation file:", e$message))
+        print(sprintf("DEBUG: %s: Annotation joining failed, proceeding without annotations", Sys.time()))
+    })
+} else {
+    print(sprintf("DEBUG: %s: No annotation file provided, proceeding without annotations", Sys.time()))
+}
+
 ```{r output-dge-related-files}
 # note: the paste0 here is ensure no string file name prefixes still create their directories
 # e.g. dge_output/
@@ -502,7 +548,7 @@ write.csv(
     output_table,
     row.names = FALSE,
     file = file.path(params$output_directory, 
-                     paste0("differential_expression_no_annotations", params$output_filename_label, params$output_filename_suffix, ".csv"))
+                     paste0("differential_expression", params$output_filename_label, params$output_filename_suffix, ".csv"))
 )
 write.csv(
     sampleTable,
