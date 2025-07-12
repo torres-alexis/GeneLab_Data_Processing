@@ -335,7 +335,7 @@ def parse_isa():
             with z.open([i for i in z.namelist() if i.startswith('s_')][0]) as f:
                 s = list(csv.DictReader(TextIOWrapper(f, 'utf-8'), delimiter='\t'))
 
-            with z.open([i for i in z.namelist() if i.startswith('a_') and 'rna-seq' in i.lower().replace('_', '-') and 'mirna' not in i.lower()][0]) as f:
+            with z.open([i for i in z.namelist() if i.startswith('a_') and 'rna-seq' in i.lower().replace('_', '-') and 'mirna' not in i.lower() and 'single-cell' not in i.lower()][0]) as f:
                 a = list(csv.DictReader(TextIOWrapper(f, 'utf-8'), delimiter='\t'))
 
         data = {}
