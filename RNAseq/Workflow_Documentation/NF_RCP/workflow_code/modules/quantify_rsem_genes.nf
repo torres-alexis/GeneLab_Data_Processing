@@ -11,7 +11,7 @@ process QUANTIFY_RSEM_GENES {
 
   script:
     """
-    Quantitate_non-zero_genes_per_sample_RSEM.R
+    Quantitate_non-zero_genes_per_sample_RSEM.R "${params.assay_suffix}"
     """
 
 }

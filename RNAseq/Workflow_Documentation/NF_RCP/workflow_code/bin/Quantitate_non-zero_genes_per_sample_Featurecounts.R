@@ -10,8 +10,9 @@ suppressPackageStartupMessages({
   library(readr)
 })
 
-# Get the assay suffix from environment if set, otherwise use default
-assay_suffix <- Sys.getenv("assay_suffix", "_GLbulkRNAseq")
+# Get command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+output_suffix <- if (length(args) > 0) args[1] else ""
 
 # Log function
 log_message <- function(message) {
@@ -92,7 +93,7 @@ NumNonZeroGenes <- data.frame(
 )
 
 # Set output file name
-output_file <- paste0("NumNonZeroGenes", assay_suffix, ".csv")
+output_file <- paste0("NumNonZeroGenes", output_suffix, ".csv")
 log_message(paste("Writing results to", output_file))
 
 # Export results

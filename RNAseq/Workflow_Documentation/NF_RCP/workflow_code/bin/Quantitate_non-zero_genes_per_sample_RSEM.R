@@ -2,6 +2,10 @@
 library(tximport)
 library(tidyverse)
 
+# Get command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+output_suffix <- if (length(args) > 0) args[1] else ""
+
 #work_dir=""
 counts_dir="03-RSEM_Counts"
 
@@ -20,7 +24,7 @@ txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
 
 ##### Export unnormalized gene counts table
 #setwd(file.path(counts_dir))
-write.csv(txi.rsem$counts,file='RSEM_Unnormalized_Counts_GLbulkRNAseq.csv')
+write.csv(txi.rsem$counts,file=paste0('RSEM_Unnormalized_Counts', output_suffix, '.csv'))
 
 ##### Count the number of genes with non-zero counts for each sample
 rawCounts <- txi.rsem$counts
@@ -29,7 +33,7 @@ colnames(NumNonZeroGenes) <- c("Number of genes with non-zero counts")
 
 ##### Export the number of genes with non-zero counts for each sample
 #setwd(file.path(counts_dir))
-write.csv(NumNonZeroGenes,file='RSEM_NumNonZeroGenes_GLbulkRNAseq.csv')
+write.csv(NumNonZeroGenes,file=paste0('RSEM_NumNonZeroGenes', output_suffix, '.csv'))
 
 ## print session info ##
 print("Session Info below: ")

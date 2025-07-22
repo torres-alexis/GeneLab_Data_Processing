@@ -10,7 +10,7 @@ process QUANTIFY_FEATURECOUNTS_GENES {
 
   script:
     """
-    Quantitate_non-zero_genes_per_sample_Featurecounts.R
+    Quantitate_non-zero_genes_per_sample_Featurecounts.R "${params.assay_suffix}"
     """
 
 }

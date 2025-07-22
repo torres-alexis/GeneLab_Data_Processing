@@ -10,8 +10,11 @@ library(tidyverse)
 
 # work_dir=""
 counts_dir <- "02-STAR_Alignment"
+# Get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 strandedness <- args[1]
+output_suffix <- if (length(args) > 1) args[2] else ""
+
 # map to column names
 column_target_name <- list(unstranded = "V2", sense = "V3", antisense = "V4")[[strandedness]]
 if (is.null(column_target_name)) {
@@ -55,7 +58,7 @@ load_star_table <- function(file, target_column, remove_aggregation_rows = TRUE)
 }
 
 # here this is just the initial dataframe to be extended
-# by subsequenct sample wise files
+# by subsequent sample wise files
 df_full <- load_star_table(files[1], column_target_name)
 
 # Note: we skip 1 because that is already loaded
@@ -67,7 +70,7 @@ for (i in 2:length(files)) {
 
 ##### Export unnormalized gene counts table
 # setwd(file.path(counts_dir))
-write.csv(df_full, file = "STAR_Unnormalized_Counts_GLbulkRNAseq.csv")
+write.csv(df_full, file = paste0("STAR_Unnormalized_Counts", output_suffix, ".csv"))
 
 ##### Count the number of genes with non-zero counts for each sample
 num_nonzero_genes <- (as.matrix(colSums(df_full > 0), row.names = 1))
@@ -75,7 +78,7 @@ colnames(num_nonzero_genes) <- c("Number of genes with non-zero counts")
 
 ##### Export the number of genes with non-zero counts for each sample
 # setwd(file.path(counts_dir))
-write.csv(num_nonzero_genes, file = "STAR_NumNonZeroGenes_GLbulkRNAseq.csv")
+write.csv(num_nonzero_genes, file = paste0("STAR_NumNonZeroGenes", output_suffix, ".csv"))
 
 ## print session info ##
 print("Session Info below: ")
