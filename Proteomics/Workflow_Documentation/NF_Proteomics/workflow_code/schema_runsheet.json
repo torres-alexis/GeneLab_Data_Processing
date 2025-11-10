@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_runsheet.json",
+    "title": "GeneLab Proteomics Runsheet Schema",
+    "description": "Schema for validating proteomics runsheet CSV files",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "type": "string",
+                "description": "Unique identifier for the sample"
+            },
+            "input_file": {
+                "type": "string",
+                "description": "URL or path to the input file"
+            }
+        },
+        "required": ["Sample Name", "input_file"],
+        "additionalProperties": true
+    }
+}
