@@ -59,7 +59,7 @@ workflow PROTEOMICS {
         }
 
         // Handle runsheet: generate from ISA or use provided
-        if ( params.runsheet == null ) {
+        if ( params.runsheet_path == null ) {
             // Generate runsheet from ISA archive
             if ( params.isa_archive == null ) {
                 FETCH_ISA( output_dir, osd_accession, glds_accession )
@@ -71,7 +71,7 @@ workflow PROTEOMICS {
             }
         } else {
             // Use provided runsheet
-            runsheet = params.runsheet
+            runsheet = params.runsheet_path
         }
 
         // Convert the runsheet to a list of samples and run processing
