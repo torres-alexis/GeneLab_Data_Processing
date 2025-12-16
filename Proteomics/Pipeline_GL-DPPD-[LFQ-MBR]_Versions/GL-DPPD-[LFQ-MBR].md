@@ -1,0 +1,733 @@
+# GeneLab bioinformatics processing pipeline for Mass Spectrometry-based Proteomics Data (LFQ-MBR Workflow)
+
+> **This page holds an overview and instructions for how GeneLab processes mass spectrometry-based proteomics data using the LFQ-MBR (Label-Free Quantification with Match-Between-Runs) workflow. Exact processing commands, GL-DPPD-[LFQ-MBR] version used, and processed data output files for specific datasets are provided in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
+
+---
+
+**Date:** December X, 2025  
+**Revision:** A  
+**Document Number:** GL-DPPD-[LFQ-MBR]-A  
+
+**Submitted by:**  
+Alexis Torres (GeneLab Data Processing Team)  
+
+**Approved by:**  
+X (X)
+---
+
+# Table of contents  
+
+- [**Software used**](#software-used)
+- [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
+  - [**1. Raw Data QC**](#1-raw-data-qc)
+    - [1a. RawBeans QC (Samplewise)](#1a-rawbeans-qc-samplewise)
+    - [1b. RawBeans QC (All Samples)](#1b-rawbeans-qc-all-samples)
+  - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
+    - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
+    - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
+  - [**3. FragPipe Processing Pipeline**](#3-fragpipe-processing-pipeline)
+    - [3a. Launch FragPipe](#3a-launch-fragpipe)
+    - [3b. Check Centroid Status](#3b-check-centroid-status)
+    - [3c. Initialize Workspace](#3c-initialize-workspace)
+    - [3d. MSFragger Database Search](#3d-msfragger-database-search)
+    - [3e. MSBooster PSM Validation](#3e-msbooster-psm-validation)
+    - [3f. Percolator Statistical Validation](#3f-percolator-statistical-validation)
+    - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
+    - [3g. ProteinProphet Protein Inference](#3g-proteinprophet-protein-inference)
+    - [3h. Database Annotation](#3h-database-annotation)
+    - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
+    - [3j. Generate Reports](#3j-generate-reports)
+    - [3k. IonQuant Label-Free Quantification](#3k-ionquant-label-free-quantification)
+  - [**4. MSstats Differential Abundance Analysis**](#4-msstats-differential-abundance-analysis)
+
+---
+
+# Software used  
+
+|Program|Version|Relevant Links|
+|:------|:------:|:-------------|
+|dp_tools|1.3.9|[https://github.com/torres-alexis/dp_tools](https://github.com/torres-alexis/dp_tools)|
+|rawBeans|1.6.4|[https://github.com/torres-alexis/rawBeans](https://github.com/torres-alexis/rawBeans)|
+|FragPipe|23.1|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
+|BatMass|1.35.4|[https://batmass.org/](https://batmass.org/)|
+|MSFragger|4.3|[http://msfragger-upgrader.nesvilab.org/upgrader/](http://msfragger-upgrader.nesvilab.org/upgrader/)|
+|MSBooster|1.3.17|[https://github.com/Nesvilab/MSBooster](https://github.com/Nesvilab/MSBooster)|
+|DIA-NN|1.8.2 Beta 8|[https://github.com/vdemichev/DiaNN](https://github.com/vdemichev/DiaNN)|
+|Percolator|3.7.1|[https://github.com/percolator/percolator](https://github.com/percolator/percolator)|
+|Philosopher|5.1.2|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
+|IonQuant|1.11.11|[https://github.com/Nesvilab/IonQuant/releases/latest](https://github.com/Nesvilab/IonQuant/releases/latest)|
+|MSstats|4.18.0|[https://www.bioconductor.org/packages/release/bioc/html/MSstats.html](https://www.bioconductor.org/packages/release/bioc/html/MSstats.html)|
+
+
+---
+
+# General processing overview with example commands  
+
+<img src="../Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png" align="center" alt="Proteomics LFQ-MBR processing workflow"/>
+
+> Exact processing commands and output files listed in **bold** below are included with each relevant mass spectrometry-based proteomics processed dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/). 
+
+---
+
+### 1. Raw Data QC  
+
+#### 1a. RawBeans QC (Samplewise)
+
+```bash
+create-qc-report.py \
+  --input *.mzML \
+  --output-dir . \
+  --batch \
+  --cores NumberOfThreads
+
+cd *
+zip -r ../*-report.zip qc-report.html resources/
+cd ..
+```
+
+**Parameter Definitions:**
+
+- `--input` – one mzML file path
+- `--output-dir` – the output directory to store results
+- `--batch` – process file in batch mode (creates subdirectory for output)
+- `--cores` – number of CPU cores to use for processing
+
+**Input Data:**
+
+- `*.mzML` (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- \*/qc-report.html (RawBeans QC report HTML file)
+- \*/resources/ (directory containing supporting files for the QC report HTML)
+- **\*_qc-report.zip** (zip archive containing qc-report.html and resources/ folder)
+
+<br>
+
+#### 1b. RawBeans QC (All Samples)
+
+```bash
+create-qc-report.py \
+  --input sample1.mzML sample2.mzML \
+  --output-dir . \
+  --cores NumberOfThreads
+
+zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
+```
+
+**Parameter Definitions:**
+
+- `--input` – multiple mzML files provided as individual paths separated by spaces
+- `--output-dir` – the output directory to store results
+- `--cores` – number of CPU cores to use for processing
+
+**Input Data:**
+
+- `*.mzML` (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- qc-report.html (RawBeans QC report HTML file for all samples)
+- resources/ (directory containing supporting files for the QC report HTML)
+- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples combined)
+
+<br>
+
+---
+
+### 2. Download Reference Proteome, Add Decoys and Contaminants to FASTA
+
+```bash
+  philosopher database \
+    --id UPXXXXXXXXX \
+    --reviewed \
+    --contam
+```
+**Parameter Definitions:**
+
+- `--id` – UniProt proteome ID (e.g., UP000059680)
+- `--reviewed` – restrict to reviewed (Swiss-Prot) proteome entries
+- `--contam` – add 116 common contaminant proteins to the FASTA database (see [Philosopher Database Wiki](https://github.com/Nesvilab/philosopher/wiki/Database))
+
+**Output Data:**
+
+- \*-decoys-reviewed-contam-*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
+
+<br>
+
+---
+
+## 3. FragPipe Processing Pipeline
+
+### 3a. Launch FragPipe
+
+```bash
+fragpipe \
+  --headless \
+  --workflow LFQ-MBR.workflow \
+  --manifest manifest.tsv \
+  --workdir . \
+  --config-tools-folder tools_folder \
+  --config-python /usr/bin/python3.11
+```
+
+**Parameter Definitions:**
+
+- `--headless` – run FragPipe in headless mode (no GUI)
+- `--workflow` – path to FragPipe workflow configuration file
+- `--manifest` – path to manifest TSV file containing sample information
+- `--workdir` – working directory for FragPipe execution
+- `--config-tools-folder` – path to folder containing FragPipe tools not included in the Docker image (e.g., MSFragger, IonQuant, diaTracer JAR files)
+- `--config-python` – path to Python executable
+
+**Input Data:**
+
+- `LFQ-MBR.workflow` (FragPipe LFQ-MBR workflow configuration file)
+- `manifest.tsv` (manifest file with sample information and file paths)
+- `tools_folder/` (directory containing FragPipe tools not included in the Docker image)
+- `*.mzML` (input mass spectrometry raw data in mzML format)
+- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+
+**Output Data:**
+
+- `fragger.params` (MSFragger parameter configuration file)
+- `msbooster_params.txt` (MSBooster parameter configuration file)
+- `filelist_proteinprophet.txt` (file list for ProteinProphet)
+- `filelist_ionquant.txt` (file list for IonQuant)
+- `modmasses_ionquant.txt` (modification masses file for IonQuant)
+- `experiment_annotation.tsv` (experiment annotation file)
+- `fragpipe.workflow` (updated FragPipe workflow configuration file)
+- `fragpipe-files.fp-manifest` (FragPipe files manifest)
+- `fragpipe.job` (FragPipe job configuration file)
+- `log_*.txt` (FragPipe execution log file with timestamp)
+- `sdrf.tsv` (Sample and Data Relationship Format file)
+
+> **Note:** FragPipe generates these configuration files during launch to configure and orchestrate all subsequent Fragpipe processing steps. These files contain parameters, file lists, and workflow settings used by the various tools in the pipeline.
+
+<br>
+
+### 3b. Check Centroid Status
+
+```bash
+java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar:/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 30
+```
+<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
+
+**Parameter Definitions:**
+
+- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-cp` – Java classpath to FragPipe and BatMass libraries
+- `org.nesvilab.fragpipe.util.CheckCentroid` – CheckCentroid main class
+- `*.mzML` – input mzML file(s) to check
+- `30` – threshold parameter for centroid detection
+
+**Input Data:**
+
+- `*.mzML` (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- (No output files; checks if mzML files are centroided or profile mode; FragPipe exits if files are not centroided)
+
+<br>
+
+### 3c. Initialize Workspace
+
+```bash
+philosopher-v5.1.2 workspace --clean --nocheck
+philosopher-v5.1.2 workspace --init --nocheck --temp /tmp/temp_directory
+```
+<!-- ```bash
+philosopher workspace --clean --nocheck
+philosopher workspace --init --nocheck --temp /tmp/temp_directory
+``` -->
+
+**Parameter Definitions:**
+
+- `workspace` – Philosopher subcommand for managing workspace
+- `--clean` – removes any existing workspace files
+- `--init` – initializes a new Philosopher workspace
+- `--nocheck` – skips workspace validation checks
+- `--temp` – specifies temporary directory for workspace initialization
+
+**Output Data:**
+
+- .meta/ (Philosopher workspace metadata directory)
+
+<br>
+
+### 3d. MSFragger Database Search
+
+```bash
+java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1.mzML sample2.mzML
+```
+<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
+
+**Parameter Definitions:**
+
+- `-jar` – executes JAR file
+- `-Dfile.encoding=UTF-8` – sets file encoding to UTF-8
+- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `MSFragger-4.3.jar` – MSFragger JAR file
+- `fragger.params` – MSFragger parameter configuration file
+- `*.mzML` – multiple mzML files provided as individual paths separated by spaces
+
+**Input Data:**
+
+- `fragger.params` (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- `*.mzML` (input mass spectrometry raw data in mzML format)
+- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+
+**Output Data:**
+
+- \*.pepXML (peptide-spectrum matches in pepXML format)
+- \*.pin (Percolator input format for statistical validation)
+- \*.pepindex (peptide index files for the FASTA database)
+- \*.tsv (MSFragger results in tab-separated format)
+
+<br>
+
+### 3e. MSBooster PSM Validation
+
+```bash
+java -Djava.awt.headless=true -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
+```
+<!-- CLI mode (backup):
+```bash
+java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
+``` -->
+
+**Parameter Definitions:**
+
+- `-Djava.awt.headless=true` – runs in headless mode (no GUI)
+- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-cp` – Java classpath to MSBooster and BatMass libraries
+- `mainsteps.MainClass` – MSBooster main class
+- `--paramsList` – path to MSBooster parameter configuration file
+
+**Input Data:**
+
+- `msbooster_params.txt` (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- `*.pin` (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- `*.mzML` (original mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- \*_edited.pin (Percolator input files with added deep learning features from MSBooster)
+- spectraRT_full.tsv (full spectra retention time data)
+- spectraRT.predicted.bin (binary file containing predicted retention times)
+- spectraRT.tsv (spectra retention time data)
+- MSBooster_plots/ (directory containing diagnostic plots: RT_calibration_curves/ with retention time calibration plots per sample, and score_histograms/ with histograms of deep learning features including delta_RT_loess, hypergeometric_probability, intersection, predicted retention times, and spectral entropy metrics)
+
+<br>
+
+### 3f. Percolator Statistical Validation
+
+```bash
+/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
+  --only-psms \
+  --no-terminate \
+  --post-processing-tdc \
+  --num-threads 30 \
+  --results-psms *_percolator_target_psms.tsv \
+  --decoy-results-psms *_percolator_decoy_psms.tsv \
+  --protein-decoy-pattern rev_ \
+  *_edited.pin
+```
+<!-- CLI mode (backup):
+```bash
+percolator \
+  --only-psms \
+  --no-terminate \
+  --post-processing-tdc \
+  --num-threads 30 \
+  --results-psms *_percolator_target_psms.tsv \
+  --decoy-results-psms *_percolator_decoy_psms.tsv \
+  --protein-decoy-pattern rev_ \
+  *_edited.pin
+``` -->
+
+**Parameter Definitions:**
+
+- `--only-psms` – output only PSM-level results
+- `--no-terminate` – do not terminate if a model cannot be learned
+- `--post-processing-tdc` – apply target-decoy competition on Percolator scores
+- `--num-threads` – number of CPU threads to use
+- `--results-psms` – output file for target PSMs
+- `--decoy-results-psms` – output file for decoy PSMs
+- `--protein-decoy-pattern` – prefix for decoy proteins
+- `*_edited.pin` – input Percolator input files with MSBooster features (output from [Step 3e](#3e-msbooster-psm-validation))
+
+**Input Data:**
+
+- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-psm-validation))
+
+**Output Data:**
+
+- *_percolator_target_psms.tsv (Percolator target PSM results in TSV format)
+- *_percolator_decoy_psms.tsv (Percolator decoy PSM results in TSV format)
+
+<br>
+
+### 3f.1. Convert Percolator Results to pepXML
+
+```bash
+java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
+  org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML \
+  *.pin \
+  * \
+  *_percolator_target_psms.tsv \
+  *_percolator_decoy_psms.tsv \
+  interact-* \
+  DDA \
+  0.5 \
+  *.mzML
+```
+<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
+
+**Parameter Definitions:**
+
+- `-cp` – Java classpath to FragPipe libraries
+- `org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML` – FragPipe utility class for converting Percolator TSV output to pepXML
+- `*.pin` – original Percolator input PIN file
+- `*` – sample name
+- `*_percolator_target_psms.tsv` – Percolator target PSM results (output from [Step 3f](#3f-percolator-statistical-validation))
+- `*_percolator_decoy_psms.tsv` – Percolator decoy PSM results (output from [Step 3f](#3f-percolator-statistical-validation))
+- `interact-*` – output pepXML file prefix
+- `DDA` – data acquisition type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)
+- `0.5` – FDR threshold
+- `*.mzML` – original mzML file path
+
+**Input Data:**
+
+- `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-statistical-validation))
+- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-statistical-validation))
+- `*.mzML` (original mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- interact-*.pep.xml (Percolator-validated results converted to pepXML format)
+
+> **Note:** The temporary `*_percolator_target_psms.tsv` and `*_percolator_decoy_psms.tsv` files are deleted after conversion to pepXML format.
+
+<br>
+
+### 3g. ProteinProphet Protein Inference
+
+```bash
+philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
+```
+<!-- CLI mode (backup):
+```bash
+philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
+``` -->
+
+**Parameter Definitions:**
+
+- `proteinprophet` – run ProteinProphet for protein inference
+- `--maxppmdiff 2000000` – maximum PPM difference for peptide grouping
+- `--output combined` – output combined protein results
+- `filelist_proteinprophet.txt` – file containing a list of pepXML files to process (output from [Step 3a](#3a-launch-fragpipe))
+
+**Input Data:**
+
+- `filelist_proteinprophet.txt` (file list for ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
+- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f](#3f-percolator-statistical-validation))
+
+**Output Data:**
+
+- combined.prot.xml (ProteinProphet results in protXML format)
+
+<br>
+
+### 3h. Database Annotation
+
+```bash
+philosopher-v5.1.2 database --annotate *.fas --prefix rev_
+```
+<!-- CLI mode (backup):
+```bash
+philosopher database --annotate *.fas --prefix rev_
+``` -->
+
+**Parameter Definitions:**
+
+- `database --annotate` – annotate database with decoy prefix
+- `*.fas` – path to FASTA database file
+- `--prefix rev_` – decoy prefix used in the database
+
+**Input Data:**
+
+- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+
+**Output Data:**
+
+- .meta/ (Philosopher workspace metadata directory containing binary database files)
+
+<br>
+
+### 3i. Filter Results by FDR
+
+```bash
+# First sample (initializes database annotation)
+philosopher-v5.1.2 filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml sample_directory \
+  --protxml combined.prot.xml \
+  --razor
+
+# Subsequent samples (reuse database annotation from first sample)
+philosopher-v5.1.2 filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml sample_directory \
+  --dbbin first_sample_directory \
+  --protxml combined.prot.xml \
+  --probin first_sample_directory \
+  --razor
+```
+<!-- CLI mode (backup):
+```bash
+# First sample (initializes database annotation)
+philosopher filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml sample_directory \
+  --protxml combined.prot.xml \
+  --razor
+
+# Subsequent samples (reuse database annotation from first sample)
+philosopher filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml sample_directory \
+  --dbbin first_sample_directory \
+  --protxml combined.prot.xml \
+  --probin first_sample_directory \
+  --razor
+``` -->
+
+**Parameter Definitions:**
+
+- `filter` – filter results by FDR
+- `--sequential` – apply sequential FDR filtering
+- `--prot 0.01` – protein FDR threshold (e.g., 0.01 for 1%)
+- `--picked` – use picked protein FDR
+- `--tag rev_` – decoy prefix
+- `--pepxml` – directory containing pepXML files
+- `--protxml combined.prot.xml` – path to combined protXML file
+- `--dbbin` – (for subsequent samples) path to first sample directory containing database annotation
+- `--probin` – (for subsequent samples) path to first sample directory containing protein annotation
+- `--razor` – apply razor protein parsimony
+
+**Input Data:**
+
+- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f](#3f-percolator-statistical-validation))
+- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-inference))
+- .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
+
+**Output Data:**
+
+- psm.tsv (filtered PSM results in tab-separated format)
+- protein.tsv (filtered protein results in tab-separated format)
+- peptide.tsv (filtered peptide results in tab-separated format)
+- filter.log (Philosopher filter execution log file)
+
+<br>
+
+### 3j. Generate Reports
+
+```bash
+philosopher-v5.1.2 report
+```
+<!-- CLI mode (backup):
+```bash
+philosopher report
+``` -->
+
+**Input Data:**
+
+- Filtered PSM, peptide, and protein TSV files (output from [Step 3i](#3i-filter-results-by-fdr))
+- Philosopher workspace metadata
+
+**Output Data:**
+
+- protein_groups.tsv (protein groups report)
+- ion.tsv** (ion report)
+- peptide_groups.tsv (peptide groups report)
+- psm_groups.tsv (PSM groups report)
+
+<br>
+
+### 3k. IonQuant Label-Free Quantification
+
+```bash
+java -Djava.awt.headless=true -Xmx55G \
+  -Dlibs.bruker.dir=tools/ext/bruker \
+  -Dlibs.thermo.dir=tools/ext/thermo \
+  -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
+  ionquant.IonQuant \
+  --threads 30 \
+  --perform-ms1quant 1 \
+  --perform-isoquant 0 \
+  --isotol 20.0 \
+  --isolevel 2 \
+  --isotype tmt10 \
+  --ionmobility 0 \
+  --site-reports 1 \
+  --msstats 1 \
+  --minexps 1 \
+  --mbr 1 \
+  --maxlfq 1 \
+  --requantify 1 \
+  --mztol 10 \
+  --imtol 0.05 \
+  --rttol 0.4 \
+  --mbrmincorr 0 \
+  --mbrrttol 1 \
+  --mbrimtol 0.05 \
+  --mbrtoprun 10 \
+  --ionfdr 0.01 \
+  --proteinfdr 1 \
+  --peptidefdr 1 \
+  --normalization 1 \
+  --minisotopes 2 \
+  --intensitymode 0 \
+  --minscans 3 \
+  --writeindex 0 \
+  --tp 0 \
+  --minfreq 0 \
+  --minions 1 \
+  --locprob 0.75 \
+  --uniqueness 0 \
+  --multidir . \
+  --filelist filelist_ionquant.txt \
+  --modlist modmasses_ionquant.txt
+```
+<!-- CLI mode (backup):
+```bash
+java -Xmx55G \
+  -Dlibs.bruker.dir=tools/ext/bruker \
+  -Dlibs.thermo.dir=tools/ext/thermo \
+  -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
+  ionquant.IonQuant \
+  --threads 30 \
+  --perform-ms1quant 1 \
+  --perform-isoquant 0 \
+  --isotol 20.0 \
+  --isolevel 2 \
+  --isotype tmt10 \
+  --ionmobility 0 \
+  --site-reports 1 \
+  --msstats 1 \
+  --minexps 1 \
+  --mbr 1 \
+  --maxlfq 1 \
+  --requantify 1 \
+  --mztol 10 \
+  --imtol 0.05 \
+  --rttol 0.4 \
+  --mbrmincorr 0 \
+  --mbrrttol 1 \
+  --mbrimtol 0.05 \
+  --mbrtoprun 10 \
+  --ionfdr 0.01 \
+  --proteinfdr 1 \
+  --peptidefdr 1 \
+  --normalization 1 \
+  --minisotopes 2 \
+  --intensitymode 0 \
+  --minscans 3 \
+  --writeindex 0 \
+  --tp 0 \
+  --minfreq 0 \
+  --minions 1 \
+  --locprob 0.75 \
+  --uniqueness 0 \
+  --multidir . \
+  --filelist filelist_ionquant.txt \
+  --modlist modmasses_ionquant.txt
+``` -->
+
+**Parameter Definitions:**
+
+- `-Djava.awt.headless=true` – run in headless mode (no GUI)
+- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-Dlibs.bruker.dir` – directory for Bruker libraries
+- `-Dlibs.thermo.dir` – directory for Thermo libraries
+- `-cp` – Java classpath to jfreechart and IonQuant JAR files
+- `ionquant.IonQuant` – IonQuant main class
+- `--threads` – number of CPU threads to use
+- `--perform-ms1quant 1` – enable MS1 quantification
+- `--perform-isoquant 0` – disable isotopic quantification
+- `--mbr 1` – enable match-between-runs
+- `--maxlfq 1` – enable MaxLFQ algorithm
+- `--msstats 1` – enable MSstats output
+- `--filelist` – file containing a list of input files (output from [Step 3a](#3a-launch-fragpipe))
+- `--modlist` – file containing a list of modification masses (output from [Step 3a](#3a-launch-fragpipe))
+
+**Input Data:**
+
+- `filelist_ionquant.txt` (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
+- `modmasses_ionquant.txt` (modification masses file, output from [Step 3a](#3a-launch-fragpipe))
+- Filtered PSM, peptide, and protein TSV files (output from [Step 3i](#3i-filter-results-by-fdr))
+- `*.mzML` (original mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- protein.tsv (updated protein report with quantification columns added: `Total Intensity`, `Unique Intensity`, `Razor Intensity`, `Coverage`, and other quantification metrics; modifies existing `protein.tsv` file from Philosopher)
+- peptide.tsv (peptide-level quantification report with `Intensity` and `Spectral Count` columns)
+- ion.tsv (ion-level quantification report with detailed intensity measurements, retention times, and charge states for each identified ion)
+- psm.tsv (updated PSM report with quantification data; modifies existing `psm.tsv` file from Philosopher)
+- combined_protein.tsv (combined protein quantification across all samples with per-sample intensity columns)
+- combined_peptide.tsv (combined peptide quantification across all samples)
+- combined_modified_peptide.tsv (combined modified peptide quantification across all samples)
+- combined_ion.tsv (combined ion-level quantification across all samples)
+- combined_site_*.tsv (site-specific modification reports, e.g., `combined_site_C_57.0215.tsv` for carbamidomethylation, `combined_site_M_15.9949.tsv` for oxidation)
+- reprint.int.tsv (reprint intensity file)
+- reprint.spc.tsv (reprint spectral count file)
+- \*_model.png (IonQuant model visualization plot showing quantification model fits)
+- **msstats.csv** (formatted input file for the MSstats R package for downstream differential analysis; contains columns: `ProteinName`, `PeptideSequence`, `PrecursorCharge`, `FragmentIon`, `Condition`, `BioReplicate`, `Run`, `Intensity`; main input for downstream statistical analysis)
+- msstats_ptm.csv (MSstats input file for PTM (post-translational modification) analysis; includes PTM site columns)
+
+<br>
+
+---
+
+## 4. MSstats Differential Abundance Analysis
+
+```bash
+msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
+```
+
+**Parameter Definitions:**
+
+- `msstats_analysis.R` – R script for MSstats differential abundance analysis
+- `.` – root directory for output
+- `assay_suffix` – assay suffix to remove from Run column (optional)
+- `runsheet.tsv` – runsheet file with sample metadata and factor values
+- `msstats.csv` – MSstats input file from IonQuant (output from [Step 3k](#3k-ionquant-label-free-quantification))
+
+**Input Data:**
+
+- `msstats.csv` (MSstats input file, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `runsheet.tsv` (runsheet file with sample metadata and factor values)
+
+**Output Data:**
+
+- **msstats_input.csv** (processed MSstats input file)
+- **msstats_comparison_*.csv** (pairwise differential abundance comparison results)
+- **msstats_comparison_all.csv** (all pairwise comparisons combined)
+- **msstats_contrasts.csv** (contrast definitions)
+
+<br>

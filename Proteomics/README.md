@@ -5,6 +5,10 @@
 ---
 ## Proteomics Processing Pipelines
 
+<p align="center">
+<a href="Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png"><img src="Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png"></a>
+</p>
+
 ### LFQ-MBR
 <!-- Pipeline diagram will be added here -->
 
