@@ -4,7 +4,7 @@
 
 ---
 
-**Date:** December X, 2025  
+**Date:** January X, 2026  
 **Revision:** A  
 **Document Number:** GL-DPPD-[LFQ-MBR]-A  
 
@@ -13,6 +13,7 @@ Alexis Torres (GeneLab Data Processing Team)
 
 **Approved by:**  
 X (X)
+
 ---
 
 # Table of contents  
@@ -27,13 +28,13 @@ X (X)
     - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
   - [**3. FragPipe Processing Pipeline**](#3-fragpipe-processing-pipeline)
     - [3a. Launch FragPipe](#3a-launch-fragpipe)
-    - [3b. Check Centroid Status](#3b-check-centroid-status)
+    - [3b. Check Spectral Files Centroid Status](#3b-check-spectral-files-centroid-status)
     - [3c. Initialize Workspace](#3c-initialize-workspace)
     - [3d. MSFragger Database Search](#3d-msfragger-database-search)
-    - [3e. MSBooster PSM Validation](#3e-msbooster-psm-validation)
-    - [3f. Percolator Statistical Validation](#3f-percolator-statistical-validation)
+    - [3e. MSBooster Deep Learning Feature Addition](#3e-msbooster-deep-learning-feature-addition)
+    - [3f. Percolator Peptide Identification Statistical Validation](#3f-percolator-peptide-identification-statistical-validation)
     - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
-    - [3g. ProteinProphet Protein Inference](#3g-proteinprophet-protein-inference)
+    - [3g. ProteinProphet Protein Identification Statistical Validation](#3g-proteinprophet-protein-identification-statistical-validation)
     - [3h. Database Annotation](#3h-database-annotation)
     - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
     - [3j. Generate Reports](#3j-generate-reports)
@@ -202,11 +203,11 @@ fragpipe \
 - `log_*.txt` (FragPipe execution log file with timestamp)
 - `sdrf.tsv` (Sample and Data Relationship Format file)
 
-> **Note:** FragPipe generates these configuration files during launch to configure and orchestrate all subsequent Fragpipe processing steps. These files contain parameters, file lists, and workflow settings used by the various tools in the pipeline.
+<!-- > **Note:** FragPipe generates these configuration files during launch to configure and orchestrate all subsequent Fragpipe processing steps. These files contain parameters, file lists, and workflow settings used by the various tools in the pipeline. -->
 
 <br>
 
-### 3b. Check Centroid Status
+### 3b. Check Spectral Files Centroid Status
 
 ```bash
 java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar:/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 30
@@ -252,7 +253,7 @@ philosopher workspace --init --nocheck --temp /tmp/temp_directory
 
 **Output Data:**
 
-- .meta/ (Philosopher workspace metadata directory)
+- .meta/ (Philosopher workspace metadata directory containing binary database files)
 
 <br>
 
@@ -281,13 +282,17 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 **Output Data:**
 
 - \*.pepXML (peptide-spectrum matches in pepXML format)
-- \*.pin (Percolator input format for statistical validation)
+- \*.pin (Percolator input format (PIN) for statistical validation)
 - \*.pepindex (peptide index files for the FASTA database)
 - \*.tsv (MSFragger results in tab-separated format)
 
+<!-- > **Note:** MSFragger performs the database search and reports PSMs and associated search scores in pin files. See [MSFragger GitHub](https://github.com/Nesvilab/MSFragger) for details. -->
+
+<!-- > **Note:** **PIN (Percolator Input)** files are tab-delimited files containing peptide-spectrum matches (PSMs) with features and scores. MSFragger generates PIN files with basic features (e.g., hyperscore, delta score, retention time, charge). MSBooster adds additional deep learning-based features (e.g., spectral entropy, hypergeometric probability, intersection, predicted RT, delta RT LOESS) to these PIN files. **pepXML (Peptide XML)** is an open data format developed at the SPC/Institute for Systems Biology for the storage, exchange, and processing of peptide sequence assignments of MS/MS scans. It provides a common data output format for many different MS/MS search engines and subsequent peptide-level analyses. See [pepXML format documentation](http://tools.proteomecenter.org/wiki/index.php?title=Formats:pepXML) for details. -->
+
 <br>
 
-### 3e. MSBooster PSM Validation
+### 3e. MSBooster Deep Learning Feature Addition
 
 ```bash
 java -Djava.awt.headless=true -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
@@ -313,15 +318,17 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 **Output Data:**
 
-- \*_edited.pin (Percolator input files with added deep learning features from MSBooster)
+- \*_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
 - spectraRT_full.tsv (full spectra retention time data)
-- spectraRT.predicted.bin (binary file containing predicted retention times)
+- spectraRT.predicted.bin (binary file containing predicted spectra, retention times, and ion mobilities from DIA-NN models)
 - spectraRT.tsv (spectra retention time data)
-- MSBooster_plots/ (directory containing diagnostic plots: RT_calibration_curves/ with retention time calibration plots per sample, and score_histograms/ with histograms of deep learning features including delta_RT_loess, hypergeometric_probability, intersection, predicted retention times, and spectral entropy metrics)
+- MSBooster_plots/ (directory containing diagnostic plots: RT_calibration_curves/ with retention time calibration plots per sample (up to top 5000 PSMs (peptide-spectrum matches)), IM_calibration_curves/ with ion mobility calibration plots per charge state (if IM features enabled), and score_histograms/ with overlayed histograms of target and decoy PSMs for all deep learning features)
+
+<!-- > **Note:** MSBooster extracts peptides from pin files and creates input for a deep learning model (DIA-NN in FragPipe) to predict physicochemical properties (RT, IM, and/or MS/MS spectra). Predictions are performed for candidate peptides reported by MSFragger. MSBooster generates features based on agreement between experimental and predicted values and adds them to the pin files, which are then passed to Percolator. See [MSBooster GitHub](https://github.com/Nesvilab/MSBooster) and [Yang et al. (2023) Nature Communications](https://pmc.ncbi.nlm.nih.gov/articles/PMC10374903/). -->
 
 <br>
 
-### 3f. Percolator Statistical Validation
+### 3f. Percolator Peptide Identification Statistical Validation
 
 ```bash
 /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
@@ -356,16 +363,18 @@ percolator \
 - `--results-psms` – output file for target PSMs
 - `--decoy-results-psms` – output file for decoy PSMs
 - `--protein-decoy-pattern` – prefix for decoy proteins
-- `*_edited.pin` – input Percolator input files with MSBooster features (output from [Step 3e](#3e-msbooster-psm-validation))
+- `*_edited.pin` – input Percolator input files with MSBooster features
 
 **Input Data:**
 
-- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-psm-validation))
+- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
 
 **Output Data:**
 
 - *_percolator_target_psms.tsv (Percolator target PSM results in TSV format)
 - *_percolator_decoy_psms.tsv (Percolator decoy PSM results in TSV format)
+
+<!-- > **Note:** Percolator learns a linear support vector machine (SVM) to differentiate true target PSMs from decoy PSMs using features in the pin files (including deep learning-based features added by MSBooster). Percolator assigns an SVM score and posterior error probability to each PSM. -->
 
 <br>
 
@@ -383,7 +392,7 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
   0.5 \
   *.mzML
 ```
-<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
+<!-- CLI mode (backup) - N/A -->
 
 **Parameter Definitions:**
 
@@ -391,8 +400,8 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 - `org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML` – FragPipe utility class for converting Percolator TSV output to pepXML
 - `*.pin` – original Percolator input PIN file
 - `*` – sample name
-- `*_percolator_target_psms.tsv` – Percolator target PSM results (output from [Step 3f](#3f-percolator-statistical-validation))
-- `*_percolator_decoy_psms.tsv` – Percolator decoy PSM results (output from [Step 3f](#3f-percolator-statistical-validation))
+- `*_percolator_target_psms.tsv` – Percolator target PSM results
+- `*_percolator_decoy_psms.tsv` – Percolator decoy PSM results
 - `interact-*` – output pepXML file prefix
 - `DDA` – data acquisition type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)
 - `0.5` – FDR threshold
@@ -401,19 +410,19 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 **Input Data:**
 
 - `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-statistical-validation))
-- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-statistical-validation))
+- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-peptide-identification-statistical-validation))
+- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-peptide-identification-statistical-validation))
 - `*.mzML` (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
 - interact-*.pep.xml (Percolator-validated results converted to pepXML format)
 
-> **Note:** The temporary `*_percolator_target_psms.tsv` and `*_percolator_decoy_psms.tsv` files are deleted after conversion to pepXML format.
+<!-- > **Note:** The temporary `*_percolator_target_psms.tsv` and `*_percolator_decoy_psms.tsv` files are deleted after conversion to pepXML format. -->
 
 <br>
 
-### 3g. ProteinProphet Protein Inference
+### 3g. ProteinProphet Protein Identification Statistical Validation
 
 ```bash
 philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
@@ -425,19 +434,21 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 
 **Parameter Definitions:**
 
-- `proteinprophet` – run ProteinProphet for protein inference
+- `proteinprophet` – run ProteinProphet to generate probabilities for protein identifications based on MS/MS data
 - `--maxppmdiff 2000000` – maximum PPM difference for peptide grouping
 - `--output combined` – output combined protein results
-- `filelist_proteinprophet.txt` – file containing a list of pepXML files to process (output from [Step 3a](#3a-launch-fragpipe))
+- `filelist_proteinprophet.txt` – file containing a list of pepXML file paths (interact-*.pep.xml files)
 
 **Input Data:**
 
 - `filelist_proteinprophet.txt` (file list for ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
-- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f](#3f-percolator-statistical-validation))
+- `interact-*.pep.xml` (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-convert-percolator-results-to-pepxml))
 
 **Output Data:**
 
-- combined.prot.xml (ProteinProphet results in protXML format)
+- combined.prot.xml (ProteinProphet results in protXML format with protein probabilities and protein groups)
+
+<!-- > **Note:** ProteinProphet generates probabilities for protein identifications by combining peptide identifications corresponding to the same protein and using peptide probabilities. It addresses peptide degeneracy (when one peptide corresponds to several different proteins) and groups proteins into clusters within the protXML `<protein group>` element. Proteins sharing identified peptides are grouped together, and Occam's Razor is applied to assign probabilities (often assigning probability of zero to unneeded proteins in a group to present the shortest list of proteins needed to explain the data). See [ProteinProphet documentation](http://tools.proteomecenter.org/wiki/index.php?title=Software:ProteinProphet) for details. -->
 
 <br>
 
@@ -453,7 +464,7 @@ philosopher database --annotate *.fas --prefix rev_
 
 **Parameter Definitions:**
 
-- `database --annotate` – annotate database with decoy prefix
+- `database --annotate` – annotate FASTA database file (creates binary database files for Philosopher tools)
 - `*.fas` – path to FASTA database file
 - `--prefix rev_` – decoy prefix used in the database
 
@@ -519,7 +530,7 @@ philosopher filter \
 
 **Parameter Definitions:**
 
-- `filter` – filter results by FDR
+- `filter` – filter PSMs, peptides, and proteins by FDR threshold
 - `--sequential` – apply sequential FDR filtering
 - `--prot 0.01` – protein FDR threshold (e.g., 0.01 for 1%)
 - `--picked` – use picked protein FDR
@@ -532,16 +543,14 @@ philosopher filter \
 
 **Input Data:**
 
-- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f](#3f-percolator-statistical-validation))
-- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-inference))
+- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f.1](#3f1-convert-percolator-results-to-pepxml))
+- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-identification-statistical-validation))
 - .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
 
 **Output Data:**
 
-- psm.tsv (filtered PSM results in tab-separated format)
-- protein.tsv (filtered protein results in tab-separated format)
-- peptide.tsv (filtered peptide results in tab-separated format)
 - filter.log (Philosopher filter execution log file)
+- Filtered data stored in Philosopher workspace as binary files (db.bin, ion.bin, pep.bin, pro.bin, protxml.bin, psm.bin, razor.bin, etc.; filtered PSM, peptide, and protein data ready for report generation)
 
 <br>
 
@@ -557,15 +566,14 @@ philosopher report
 
 **Input Data:**
 
-- Filtered PSM, peptide, and protein TSV files (output from [Step 3i](#3i-filter-results-by-fdr))
-- Philosopher workspace metadata
+- Philosopher workspace containing filtered data (output from [Step 3i](#3i-filter-results-by-fdr))
 
 **Output Data:**
 
-- protein_groups.tsv (protein groups report)
-- ion.tsv** (ion report)
-- peptide_groups.tsv (peptide groups report)
-- psm_groups.tsv (PSM groups report)
+- protein.tsv (sample-specific protein report generated from filtered data; contains protein identifiers, gene names, protein descriptions, and protein-level statistics)
+- peptide.tsv (sample-specific peptide report generated from filtered data; contains peptide sequences, protein mapping, charges, probabilities, and spectral counts)
+- psm.tsv (sample-specific PSM report generated from filtered data; contains spectrum information, peptide assignments, charge states, and retention times)
+- ion.tsv (sample-specific ion report generated from filtered data; contains peptide sequences, modifications, m/z values, charge states, and observed masses)
 
 <br>
 
@@ -671,24 +679,30 @@ java -Xmx55G \
 - `--perform-ms1quant 1` – enable MS1 quantification
 - `--perform-isoquant 0` – disable isotopic quantification
 - `--mbr 1` – enable match-between-runs
-- `--maxlfq 1` – enable MaxLFQ algorithm
-- `--msstats 1` – enable MSstats output
-- `--filelist` – file containing a list of input files (output from [Step 3a](#3a-launch-fragpipe))
-- `--modlist` – file containing a list of modification masses (output from [Step 3a](#3a-launch-fragpipe))
+- `--maxlfq 1` – enable MaxLFQ algorithm (calculate MaxLFQ intensity)
+- `--msstats 1` – enable MSstats output (generate MSstats input files)
+- `--multidir .` – output directory for multi-experimental results (current directory)
+- `--filelist` – file containing flags (tab-delimited file with `--psm` entries pointing to sample-specific `psm.tsv` files and `--specdir` entry pointing to the directory containing mzML files)
+- `--modlist` – file containing a list of modification masses
+- `--specdir` – directory containing spectral files (mzML/mzXML/raw); specified in filelist or can be provided directly
 
 **Input Data:**
 
 - `filelist_ionquant.txt` (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- `modmasses_ionquant.txt` (modification masses file, output from [Step 3a](#3a-launch-fragpipe))
-- Filtered PSM, peptide, and protein TSV files (output from [Step 3i](#3i-filter-results-by-fdr))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
+- `modmasses_ionquant.txt` (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
+- `protein.tsv` (protein report, output from [Step 3j](#3j-generate-reports))
+- `peptide.tsv` (peptide report, output from [Step 3j](#3j-generate-reports))
+- `psm.tsv` (PSM report, output from [Step 3j](#3j-generate-reports))
+- `ion.tsv` (ion report, output from [Step 3j](#3j-generate-reports))
+- `*.mzML` (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract intensity data for MS1 quantification and match-between-runs feature matching)
 
 **Output Data:**
 
-- protein.tsv (updated protein report with quantification columns added: `Total Intensity`, `Unique Intensity`, `Razor Intensity`, `Coverage`, and other quantification metrics; modifies existing `protein.tsv` file from Philosopher)
-- peptide.tsv (peptide-level quantification report with `Intensity` and `Spectral Count` columns)
-- ion.tsv (ion-level quantification report with detailed intensity measurements, retention times, and charge states for each identified ion)
-- psm.tsv (updated PSM report with quantification data; modifies existing `psm.tsv` file from Philosopher)
+- protein.tsv (sample-specific protein report with intensity columns populated: `Total Intensity`, `Unique Intensity`, `Razor Intensity`; these columns exist before IonQuant but are zero-filled; IonQuant populates them with quantification values; all other columns remain unchanged)
+- peptide.tsv (sample-specific peptide report modified: removes `Protein Start`, `Protein End`, `Class`, `Qvalue`, `Is Decoy`, `Is Contaminant`; renames `Protein Start/End` to `Start/End`; adds `Match Type` column; populates `Intensity` and updates `Spectral Count` columns; other columns remain unchanged)
+- ion.tsv (sample-specific ion report modified: removes `Protein Start`, `Protein End`, `Class`, `Qvalue`, `Is Decoy`, `Is Contaminant`; renames `Protein Start/End` to `Start/End`; adds `Compensation Voltage`, `Apex Retention Time`, `Apex Scan Number`, `Retention Time Start`, `Retention Time End`, `Retention Time FWHM`, `Traced Scans`, `Match Type`, `Localization`; populates `Intensity` column; other columns remain unchanged)
+- psm.tsv (sample-specific PSM report modified: adds `Parent Scan Number`, `Apex Retention Time`, `Apex Scan Number`, `Retention Time Start`, `Retention Time End`, `Retention Time FWHM`, `Traced Scans`; updates `Intensity` column; all other columns remain unchanged)
+- \*_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
 - combined_protein.tsv (combined protein quantification across all samples with per-sample intensity columns)
 - combined_peptide.tsv (combined peptide quantification across all samples)
 - combined_modified_peptide.tsv (combined modified peptide quantification across all samples)
@@ -696,9 +710,10 @@ java -Xmx55G \
 - combined_site_*.tsv (site-specific modification reports, e.g., `combined_site_C_57.0215.tsv` for carbamidomethylation, `combined_site_M_15.9949.tsv` for oxidation)
 - reprint.int.tsv (reprint intensity file)
 - reprint.spc.tsv (reprint spectral count file)
-- \*_model.png (IonQuant model visualization plot showing quantification model fits)
 - **msstats.csv** (formatted input file for the MSstats R package for downstream differential analysis; contains columns: `ProteinName`, `PeptideSequence`, `PrecursorCharge`, `FragmentIon`, `Condition`, `BioReplicate`, `Run`, `Intensity`; main input for downstream statistical analysis)
 - msstats_ptm.csv (MSstats input file for PTM (post-translational modification) analysis; includes PTM site columns)
+<!-- - \*.mbrbin (match-between-runs binary data file for MBR feature matching) -->
+<!-- - \*.quantbin2 (quantification binary cache file) -->
 
 <br>
 
@@ -716,7 +731,7 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 - `.` – root directory for output
 - `assay_suffix` – assay suffix to remove from Run column (optional)
 - `runsheet.tsv` – runsheet file with sample metadata and factor values
-- `msstats.csv` – MSstats input file from IonQuant (output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `msstats.csv` – MSstats input file from IonQuant
 
 **Input Data:**
 
