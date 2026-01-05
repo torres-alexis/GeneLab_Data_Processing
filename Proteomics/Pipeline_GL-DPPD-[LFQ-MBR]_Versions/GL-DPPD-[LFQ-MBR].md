@@ -32,9 +32,9 @@ X (X)
     - [3c. Initialize Workspace](#3c-initialize-workspace)
     - [3d. MSFragger Database Search](#3d-msfragger-database-search)
     - [3e. MSBooster Deep Learning Feature Addition](#3e-msbooster-deep-learning-feature-addition)
-    - [3f. Percolator Peptide Identification Statistical Validation](#3f-percolator-peptide-identification-statistical-validation)
+    - [3f. Percolator PSM Rescoring and Statistical Validation](#3f-percolator-psm-rescoring-and-statistical-validation)
     - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
-    - [3g. ProteinProphet Protein Identification Statistical Validation](#3g-proteinprophet-protein-identification-statistical-validation)
+    - [3g. ProteinProphet Protein Inference and Statistical Validation](#3g-proteinprophet-protein-inference-and-statistical-validation)
     - [3h. Database Annotation](#3h-database-annotation)
     - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
     - [3j. Generate Reports](#3j-generate-reports)
@@ -328,7 +328,7 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 <br>
 
-### 3f. Percolator Peptide Identification Statistical Validation
+### 3f. Percolator PSM Rescoring and Statistical Validation
 
 ```bash
 /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
@@ -410,8 +410,8 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 **Input Data:**
 
 - `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-peptide-identification-statistical-validation))
-- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-peptide-identification-statistical-validation))
+- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
 - `*.mzML` (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
@@ -422,7 +422,7 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 
 <br>
 
-### 3g. ProteinProphet Protein Identification Statistical Validation
+### 3g. ProteinProphet Protein Inference and Statistical Validation
 
 ```bash
 philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
@@ -544,7 +544,7 @@ philosopher filter \
 **Input Data:**
 
 - `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f.1](#3f1-convert-percolator-results-to-pepxml))
-- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-identification-statistical-validation))
+- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
 - .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
 
 **Output Data:**
