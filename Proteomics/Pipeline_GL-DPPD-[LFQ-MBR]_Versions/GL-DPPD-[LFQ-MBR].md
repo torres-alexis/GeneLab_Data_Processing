@@ -378,7 +378,7 @@ percolator \
 
 <br>
 
-### 3f.1. Convert Percolator Results to pepXML
+#### 3f.1. Convert Percolator Results to pepXML
 
 ```bash
 java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
