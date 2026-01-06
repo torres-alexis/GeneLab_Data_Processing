@@ -51,23 +51,18 @@ def main():
         writer = csv.writer(f, delimiter="\t")
 
         for row in rows:
-            # Column 1: input_file (basename only)
+            # Column 1: input_file (use Sample Name + assay_suffix, not original basename)
             input_file_path = row.get("input_file", "").strip()
             if not input_file_path:
                 continue
 
-            # Get basename (filename only, no path)
-            input_file = os.path.basename(input_file_path)
+            # Use Sample Name instead of original basename
+            sample_name = row.get("Sample Name", "").strip()
+            if not sample_name:
+                sys.exit(f"Error: Missing 'Sample Name' column in runsheet for row: {row}")
 
-            # Apply assay_suffix to filename if provided
-            if args.assay_suffix:
-                # Add suffix before .mzML extension
-                if input_file.endswith(".mzML"):
-                    input_file = input_file.replace(".mzML", f"{args.assay_suffix}.mzML")
-                elif input_file.endswith(".mzml"):
-                    input_file = input_file.replace(".mzml", f"{args.assay_suffix}.mzML")
-                else:
-                    input_file = f"{input_file}{args.assay_suffix}.mzML"
+            # Build filename: Sample Name + assay_suffix + .mzML
+            input_file = f"{sample_name}{args.assay_suffix}.mzML"
 
             # Column 2: Join Factor Value columns with __, replace spaces with _
             factor_values = []
