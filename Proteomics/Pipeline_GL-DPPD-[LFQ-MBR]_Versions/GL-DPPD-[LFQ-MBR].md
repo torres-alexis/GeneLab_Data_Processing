@@ -70,9 +70,9 @@ X (X)
 
 ---
 
-### 1. Raw Data QC  
+## 1. Raw Data QC  
 
-#### 1a. RawBeans QC (Samplewise)
+### 1a. RawBeans QC (Samplewise)
 
 ```bash
 create-qc-report.py \
@@ -105,7 +105,7 @@ cd ..
 
 <br>
 
-#### 1b. RawBeans QC (All Samples)
+### 1b. RawBeans QC (All Samples)
 
 ```bash
 create-qc-report.py \
@@ -136,7 +136,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 ---
 
-### 2. Download Reference Proteome, Add Decoys and Contaminants to FASTA
+## 2. Download Reference Proteome, Add Decoys and Contaminants to FASTA
 
 ```bash
   philosopher database \
