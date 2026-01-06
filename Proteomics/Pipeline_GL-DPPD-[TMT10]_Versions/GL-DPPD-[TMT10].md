@@ -33,7 +33,7 @@ TBD
     - [3d. MSFragger Database Search](#3d-msfragger-database-search)
     - [3e. MSBooster Deep Learning Feature Addition](#3e-msbooster-deep-learning-feature-addition)
     - [3f. Percolator PSM Rescoring and Statistical Validation](#3f-percolator-psm-rescoring-and-statistical-validation)
-    - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
+        - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
     - [3g. ProteinProphet Protein Inference and Statistical Validation](#3g-proteinprophet-protein-inference-and-statistical-validation)
     - [3h. Database Annotation](#3h-database-annotation)
     - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
@@ -395,7 +395,7 @@ percolator \
 
 <br>
 
-### 3f.1. Convert Percolator Results to pepXML
+#### 3f.1. Convert Percolator Results to pepXML
 
 ```bash
 java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
