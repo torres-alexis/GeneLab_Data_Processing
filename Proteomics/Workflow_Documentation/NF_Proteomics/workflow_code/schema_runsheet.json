@@ -1,0 +1,35 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_runsheet.json",
+    "title": "GeneLab Proteomics Runsheet Schema",
+    "description": "Schema for validating proteomics runsheet CSV files",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "type": "string",
+                "description": "Unique identifier for the sample",
+                "meta": ["id"]
+            },
+            "input_file": {
+                "type": "string",
+                "description": "URL or path to the input file"
+            },
+            "label": {
+                "type": "string",
+                "description": "Labeling method: Label-free, TMT-10, TMT-16, or TMT-16-phospho",
+                "enum": ["Label-free", "TMT-10", "TMT-16", "TMT-16-phospho"],
+                "meta": ["label"]
+            },
+            "data_type": {
+                "type": "string",
+                "description": "Mass spectrometry acquisition method -> FragPipe Data Type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)",
+                "enum": ["DDA", "DIA", "GPF-DIA", "DIA-Quant", "DIA-Lib"],
+                "meta": ["data_type"]
+            }
+        },
+        "required": ["Sample Name", "input_file"],
+        "additionalProperties": true
+    }
+}
