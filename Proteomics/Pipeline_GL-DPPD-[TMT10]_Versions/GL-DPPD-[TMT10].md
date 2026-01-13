@@ -191,7 +191,7 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 ```bash
 /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/bin/fragpipe \
   --headless \
-  --workflow TMT10_GLProteomics.workflow \
+  --workflow TMT10.workflow \
   --manifest manifest_GLProteomics.tsv \
   --workdir . \
   --config-tools-folder tools \
@@ -209,7 +209,7 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 
 **Input Data:**
 
-- `TMT10_GLProteomics.workflow` (FragPipe workflow configuration file for TMT-10 workflow)
+- `TMT10.workflow` (FragPipe workflow configuration file for TMT-10 workflow)
 - `manifest_GLProteomics.tsv` (FragPipe manifest TSV file with columns: input_file, joined_factor_values, bioreplicate, data_type)
 - `*-decoys-reviewed-isoforms-contam-*.fas` (proteome FASTA database, output from [Step 2b](#2b-add-decoys-and-contaminants-to-fasta))
 - `*.mzML` (input mass spectrometry raw data in mzML format)
