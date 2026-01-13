@@ -727,7 +727,7 @@ java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
 
 **Output Data:**
 
-- tmt-report/abundance_protein_MD.tsv (protein-level TMT abundance values with median-centering normalization; contains columns: `Index`, `NumberPSM`, `Gene`, `MaxPepProb`, `Protein`, `Protein ID`, `Entry Name`, `Protein Description`, `Organism`, `Indistinguishable Proteins`, `ReferenceIntensity`, and per-sample TMT channel intensity columns (e.g., `P_1_126`, `P_1_127N`, `Z_2_126`, `Z_2_127N`))
+- tmt-report/abundance_protein_MD.tsv (protein-level TMT abundance values with median-centering normalization; contains columns: `Index`, `NumberPSM`, `Gene`, `MaxPepProb`, `Protein`, `Protein ID`, `Entry Name`, `Protein Description`, `Organism`, `Indistinguishable Proteins`, `ReferenceIntensity`, and per-sample TMT channel intensity columns in the format `experiment_bioreplicate_channel` based on the FragPipe manifest)
 - tmt-report/abundance_peptide_MD.tsv (peptide-level TMT abundance values with median-centering normalization)
 - tmt-report/abundance_gene_MD.tsv (gene-level TMT abundance values with median-centering normalization)
 - tmt-report/ratio_protein_MD.tsv (protein-level TMT ratio values)
