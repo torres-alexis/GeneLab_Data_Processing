@@ -16,12 +16,6 @@
                 "type": "string",
                 "description": "URL or path to the input file"
             },
-            "label": {
-                "type": "string",
-                "description": "Labeling method: Label-free, TMT10, TMT16, or TMT16-phospho",
-                "enum": ["Label-free", "TMT10", "TMT16", "TMT16-phospho"],
-                "meta": ["label"]
-            },
             "data_type": {
                 "type": "string",
                 "description": "Mass spectrometry acquisition method -> FragPipe Data Type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)",
