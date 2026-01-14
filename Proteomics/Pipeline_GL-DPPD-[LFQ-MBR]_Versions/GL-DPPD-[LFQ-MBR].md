@@ -708,8 +708,8 @@ java -Xmx55G \
 - ion.tsv (sample-specific ion report modified: removes `Protein Start`, `Protein End`, `Class`, `Qvalue`, `Is Decoy`, `Is Contaminant`; renames `Protein Start/End` to `Start/End`; adds `Compensation Voltage`, `Apex Retention Time`, `Apex Scan Number`, `Retention Time Start`, `Retention Time End`, `Retention Time FWHM`, `Traced Scans`, `Match Type`, `Localization`; populates `Intensity` column; other columns remain unchanged)
 - psm.tsv (sample-specific PSM report modified: adds `Parent Scan Number`, `Apex Retention Time`, `Apex Scan Number`, `Retention Time Start`, `Retention Time End`, `Retention Time FWHM`, `Traced Scans`; updates `Intensity` column; all other columns remain unchanged)
 - \*_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
-- combined_protein.tsv (combined protein quantification across all samples with per-sample intensity columns)
-- combined_peptide.tsv (combined peptide quantification across all samples)
+- **combined_protein.tsv** (combined protein quantification across all samples with per-sample intensity columns)
+- **combined_peptide.tsv** (combined peptide quantification across all samples)
 - combined_modified_peptide.tsv (combined modified peptide quantification across all samples)
 - combined_ion.tsv (combined ion-level quantification across all samples)
 - combined_site_*.tsv (site-specific modification reports, e.g., `combined_site_C_57.0215.tsv` for carbamidomethylation, `combined_site_M_15.9949.tsv` for oxidation)
@@ -745,8 +745,8 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 **Output Data:**
 
-- **msstats_comparison_*.csv** (pairwise differential abundance comparison results)
-- **msstats_comparison_all.csv** (all pairwise comparisons combined)
-- **msstats_contrasts.csv** (contrast definitions)
+- msstats_comparison_*.csv (pairwise differential abundance comparison results)
+- msstats_comparison_all.csv (all pairwise comparisons combined)
+- msstats_contrasts.csv (contrast definitions)
 
 <br>
