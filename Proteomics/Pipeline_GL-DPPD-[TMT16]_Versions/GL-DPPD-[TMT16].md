@@ -305,10 +305,10 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 **Output Data:**
 
-- \*.pepXML (peptide-spectrum matches from the MSFragger database search)
-- \*.pin (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
-- \*.pepindex (peptide index files for the FASTA database)
-- \*.tsv (MSFragger results in tab-separated format)
+- **\*.pepXML** (peptide-spectrum matches from the MSFragger database search)
+- **\*.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
+- **\*.pepindex** (peptide index files for the FASTA database)
+- **\*.tsv** (MSFragger results in tab-separated format)
 
 <br>
 
@@ -668,7 +668,7 @@ java -Djava.awt.headless=true -Xmx55G \
 
 **Output Data:**
 
-- psm.tsv (sample-specific PSM report modified: adds TMT reporter ion intensity columns for each TMT channel (e.g., `TMT-126`, `TMT-127N`, `TMT-127C`, `TMT-128N`, `TMT-128C`, `TMT-129N`, `TMT-129C`, `TMT-130N`, `TMT-130C`, `TMT-131N`, `TMT-131C`, `TMT-132N`, `TMT-132C`, `TMT-133N`, `TMT-133C`, `TMT-134N`); all other columns remain unchanged)
+- **psm.tsv** (sample-specific PSM report modified: adds TMT reporter ion intensity columns for each TMT channel (e.g., `TMT-126`, `TMT-127N`, `TMT-127C`, `TMT-128N`, `TMT-128C`, `TMT-129N`, `TMT-129C`, `TMT-130N`, `TMT-130C`, `TMT-131N`, `TMT-131C`, `TMT-132N`, `TMT-132C`, `TMT-133N`, `TMT-133C`, `TMT-134N`); all other columns remain unchanged)
 - **combined_protein.tsv** (combined protein quantification across all samples)
 - **combined_peptide.tsv** (combined peptide quantification across all samples)
 - combined_ion.tsv (combined ion-level quantification across all samples)
