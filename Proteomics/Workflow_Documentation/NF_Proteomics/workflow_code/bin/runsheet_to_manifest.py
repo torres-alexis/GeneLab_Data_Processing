@@ -5,7 +5,7 @@ Convert runsheet CSV to FragPipe manifest TSV format.
 
 Manifest format (4 columns):
 1. input_file (path to mzML file)
-2. joined_factor_values (Factor Value columns joined with " & ", values pasted as-is)
+2. joined_factor_values (Factor Value columns joined with __, spaces replaced with _)
 3. bioreplicate
 4. data_type
 """
@@ -64,14 +64,16 @@ def main():
             # Build filename: Sample Name + assay_suffix + .mzML
             input_file = f"{sample_name}{args.assay_suffix}.mzML"
 
-            # Column 2: Join Factor Value columns with " & ", paste values as-is
+            # Column 2: Join Factor Value columns with __, replace spaces with _
             factor_values = []
             for factor_col in factor_columns:
                 value = row.get(factor_col, "").strip()
                 if value:
+                    # Replace spaces with underscores
+                    value = value.replace(" ", "_")
                     factor_values.append(value)
 
-            joined_factors = " & ".join(factor_values) if factor_values else ""
+            joined_factors = "__".join(factor_values) if factor_values else ""
 
             # Column 3: bioreplicate
             bioreplicate = row.get("bioreplicate", "").strip()
@@ -87,4 +89,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
