@@ -1,7 +1,7 @@
 process STAGE_INPUT {
     tag "${meta.id}"
     
-    publishDir "${output_dir}/00-RawData",
+    publishDir "${output_dir}/RawData",
         mode: params.publish_dir_mode,
         pattern: "*.mzML"
 

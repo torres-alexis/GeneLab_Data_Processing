@@ -1,22 +1,24 @@
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
-include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
+//include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { RUNSHEET_TO_MANIFEST } from '../modules/runsheet_to_manifest.nf'
 include { STAGE_INPUT } from '../modules/stage_input.nf'
 include { RAWBEANS_QC } from '../modules/rawbeans_qc.nf'
 include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
-include { OPENMS_FILEINFO } from '../modules/openms_fileinfo.nf'
-include { MSFRAGGER } from '../modules/msfragger.nf'
-include { MSFRAGGER_CONFIG } from '../modules/msfragger.nf'
+//include { OPENMS_FILEINFO } from '../modules/openms_fileinfo.nf'
+//include { MSFRAGGER } from '../modules/msfragger.nf'
+//include { MSFRAGGER_CONFIG } from '../modules/msfragger.nf'
 include { GET_PROTEOME } from '../modules/get_proteome.nf'
-include { CRYSTAL_C } from '../modules/crystal_c.nf'
-include { CRYSTAL_C_CONFIG } from '../modules/crystal_c.nf'
-include { PHILOSOPHER } from '../modules/philosopher.nf'
-include { IONQUANT } from '../modules/ionquant.nf'
-include { MSSTATS } from '../modules/msstats.nf'
-include { FRAGPIPE } from '../modules/fragpipe.nf'
-
+//include { CRYSTAL_C } from '../modules/crystal_c.nf'
+//include { CRYSTAL_C_CONFIG } from '../modules/crystal_c.nf'
+//include { PHILOSOPHER } from '../modules/philosopher.nf'
+//include { IONQUANT } from '../modules/ionquant.nf'
+//include { MSSTATS } from '../modules/msstats.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
+include { FRAGPIPE } from '../modules/fragpipe.nf'
+//include { PEPXML_TO_MZID } from '../modules/pepxml_to_mzid.nf'
+//include { PMULTIQC } from '../modules/pmultiqc.nf'
+
 
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
@@ -108,7 +110,7 @@ workflow PROTEOMICS {
         if (!params.uniprot_id && !params.reference_proteome) {
             error "ERROR: Must specify either uniprot_id or reference_proteome."
         }
-        
+
         // Get proteome database: download from UniProt OR use existing FASTA
         if (params.uniprot_id) {
             // Download and prepare from UniProt using GET_PROTEOME
@@ -139,34 +141,31 @@ workflow PROTEOMICS {
         ///////////////////////////////////////////////////////////
         ch_fragpipe_tools = params.fragpipe_tools ? Channel.fromPath( params.fragpipe_tools ) : Channel.fromPath("NO_FILE")
 
-        // Determine fragpipe_config: use provided or select based on label from samples
-        if (params.fragpipe_config) {
-            fragpipe_config = Channel.fromPath(params.fragpipe_config)
+        // Determine fragpipe_config: use fragpipe_workflow_config if provided (takes precedence), otherwise map fragpipe_workflow string to workflow file
+        if (params.fragpipe_workflow_config) {
+            // Use provided config file (takes precedence over workflow string)
+            fragpipe_config = Channel.fromPath(params.fragpipe_workflow_config)
+        } else if (params.fragpipe_workflow) {
+            // Map fragpipe_workflow string to workflow file path
+            def workflow_file
+            switch(params.fragpipe_workflow) {
+                case 'TMT10':
+                    workflow_file = "${projectDir}/conf/workflows/TMT10.workflow"
+                    break
+                case 'TMT16':
+                    workflow_file = "${projectDir}/conf/workflows/TMT16.workflow"
+                    break
+                case 'TMT16-phospho':
+                    workflow_file = "${projectDir}/conf/workflows/TMT16-phospho.workflow"
+                    break
+                case 'LFQ-MBR':
+                default:
+                    workflow_file = "${projectDir}/conf/workflows/LFQ-MBR.workflow"
+                    break
+            }
+            fragpipe_config = Channel.value(file(workflow_file))
         } else {
-            // Get label from first sample (assuming all samples have same label)
-            // Map label to workflow config file path
-            fragpipe_config = samples
-                .map { meta, input_file -> meta.label }
-                .first()
-                .map { label ->
-                    def workflow_file
-                    switch(label ?: 'Label-free') {
-                        case 'TMT-10':
-                            workflow_file = "${projectDir}/conf/workflows/TMT10.workflow"
-                            break
-                        case 'TMT-16':
-                            workflow_file = "${projectDir}/conf/workflows/TMT16.workflow"
-                            break
-                        case 'TMT-16-phospho':
-                            workflow_file = "${projectDir}/conf/workflows/TMT16-phospho.workflow"
-                            break
-                        case 'Label-free':
-                        default:
-                            workflow_file = "${projectDir}/conf/workflows/LFQ-MBR.workflow"
-                            break
-                    }
-                    return file(workflow_file)
-                }
+            error "ERROR: Either fragpipe_workflow_config or fragpipe_workflow parameter must be provided. Use fragpipe_workflow_config to specify a custom workflow file, or fragpipe_workflow to use a preset (LFQ-MBR, TMT10, TMT16, TMT16-phospho)."
         }
 
         FRAGPIPE_CONFIG_SETUP(output_dir, fragpipe_config, proteome)
@@ -226,6 +225,11 @@ workflow PROTEOMICS {
 
 
         FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
+
+        // // Run MultiQC with pmultiqc fragpipe plugin
+        // ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
+        // ch_fragpipe_output_dir = output_dir.map { file("${it}/FragPipe", type: 'dir') }
+        // PMULTIQC( output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
 
         ///////////////////////////////////////////////////////////
         // END HEADLESS FRAGPIPE
@@ -287,8 +291,11 @@ workflow PROTEOMICS {
         // END MANUAL FRAGPIPE PROCESSING
         ///////////////////////////////////////////////////////////
 
-        // // Run MSstats for statistical analysis
-        // MSSTATS(output_dir, IONQUANT.out.msstats, runsheet)
+        // Run MSstats for statistical analysis (only for LFQ-MBR workflow)
+        if (params.fragpipe_workflow == 'LFQ-MBR') {
+            // Use the dedicated msstats_csv and fragpipe_manifest outputs from FRAGPIPE
+            MSSTATS(output_dir, runsheet, FRAGPIPE.out.fragpipe_manifest, FRAGPIPE.out.msstats_csv)
+        }
 
 
     emit:
