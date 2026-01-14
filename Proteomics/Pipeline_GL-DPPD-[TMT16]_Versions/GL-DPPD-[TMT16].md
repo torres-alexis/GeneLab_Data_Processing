@@ -31,15 +31,14 @@ TBD
     - [3b. Check Spectral Files Centroid Status](#3b-check-spectral-files-centroid-status)
     - [3c. Initialize Workspace](#3c-initialize-workspace)
     - [3d. MSFragger Database Search](#3d-msfragger-database-search)
-    - [3e. MSBooster Deep Learning Feature Addition](#3e-msbooster-deep-learning-feature-addition)
-    - [3f. Percolator PSM Rescoring and Statistical Validation](#3f-percolator-psm-rescoring-and-statistical-validation)
-        - [3f.1. Convert Percolator Results to pepXML](#3f1-convert-percolator-results-to-pepxml)
-    - [3g. ProteinProphet Protein Inference and Statistical Validation](#3g-proteinprophet-protein-inference-and-statistical-validation)
-    - [3h. Database Annotation](#3h-database-annotation)
-    - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
-    - [3j. Generate Reports](#3j-generate-reports)
-    - [3k. IonQuant TMT Reporter Ion Extraction](#3k-ionquant-tmt-reporter-ion-extraction)
-    - [3l. TMTIntegrator TMT Quantification](#3l-tmtintegrator-tmt-quantification)
+    - [3e. Percolator PSM Rescoring and Statistical Validation](#3e-percolator-psm-rescoring-and-statistical-validation)
+        - [3e.1. Add Percolator Validation Information to pepXML](#3e1-add-percolator-validation-information-to-pepxml)
+    - [3f. ProteinProphet Protein Inference and Statistical Validation](#3f-proteinprophet-protein-inference-and-statistical-validation)
+    - [3g. Database Annotation](#3g-database-annotation)
+    - [3h. Filter Results by FDR](#3h-filter-results-by-fdr)
+    - [3i. Generate Reports](#3i-generate-reports)
+    - [3j. IonQuant TMT Reporter Ion Extraction](#3j-ionquant-tmt-reporter-ion-extraction)
+    - [3k. TMTIntegrator TMT Quantification](#3k-tmtintegrator-tmt-quantification)
 
 ---
 
@@ -219,7 +218,7 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 - `fragger.params` (MSFragger parameter configuration file)
 - `msbooster_params.txt` (MSBooster parameter configuration file)
 - `tmt-integrator-conf.yml` (TMTIntegrator configuration file)
-- `filelist_proteinprophet.txt` (file list for ProteinProphet)
+- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet)
 - `filelist_ionquant.txt` (file list for IonQuant)
 - `modmasses_ionquant.txt` (modification masses file for IonQuant)
 - `experiment_annotation.tsv` (experiment annotation file mapping TMT channels to samples)
@@ -235,7 +234,7 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 ### 3b. Check Spectral Files Centroid Status
 
 ```bash
-java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar:/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 30
+java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar:/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
 ```
 <!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
@@ -245,7 +244,7 @@ java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar
 - `-cp` – Java classpath to FragPipe and BatMass libraries
 - `org.nesvilab.fragpipe.util.CheckCentroid` – CheckCentroid main class
 - `*.mzML` – input mzML file(s) to check
-- `30` – threshold parameter for centroid detection
+- `31` – number of CPU threads to use
 
 **Input Data:**
 
@@ -306,59 +305,25 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 **Output Data:**
 
-- \*.pepXML (peptide-spectrum matches in pepXML format)
-- \*.pin (Percolator input format (PIN) for statistical validation)
+- \*.pepXML (peptide-spectrum matches from the MSFragger database search)
+- \*.pin (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
 - \*.pepindex (peptide index files for the FASTA database)
 - \*.tsv (MSFragger results in tab-separated format)
 
 <br>
 
-### 3e. MSBooster Deep Learning Feature Addition
-
-```bash
-java -Djava.awt.headless=true -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
-```
-<!-- CLI mode (backup):
-```bash
-java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
-``` -->
-
-**Parameter Definitions:**
-
-- `-Djava.awt.headless=true` – runs in headless mode (no GUI)
-- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
-- `-cp` – Java classpath to MSBooster and BatMass libraries
-- `mainsteps.MainClass` – MSBooster main class
-- `--paramsList` – path to MSBooster parameter configuration file
-
-**Input Data:**
-
-- `msbooster_params.txt` (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `*.pin` (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
-
-**Output Data:**
-
-- \*_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
-- spectraRT_full.tsv (full spectra retention time data)
-- spectraRT.predicted.bin (binary file containing predicted spectra, retention times, and ion mobilities from DIA-NN models)
-- spectraRT.tsv (spectra retention time data)
-- MSBooster_plots/ (directory containing diagnostic plots: RT_calibration_curves/ with retention time calibration plots per sample (up to top 5000 PSMs (peptide-spectrum matches)), IM_calibration_curves/ with ion mobility calibration plots per charge state (if IM features enabled), and score_histograms/ with overlayed histograms of target and decoy PSMs for all deep learning features)
-
-<br>
-
-### 3f. Percolator PSM Rescoring and Statistical Validation
+### 3e. Percolator PSM Rescoring and Statistical Validation
 
 ```bash
 /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
   --only-psms \
   --no-terminate \
   --post-processing-tdc \
-  --num-threads 30 \
+  --num-threads 31 \
   --results-psms *_percolator_target_psms.tsv \
   --decoy-results-psms *_percolator_decoy_psms.tsv \
   --protein-decoy-pattern rev_ \
-  *_edited.pin
+  *.pin
 ```
 <!-- CLI mode (backup):
 ```bash
@@ -366,11 +331,11 @@ percolator \
   --only-psms \
   --no-terminate \
   --post-processing-tdc \
-  --num-threads 30 \
+  --num-threads 31 \
   --results-psms *_percolator_target_psms.tsv \
   --decoy-results-psms *_percolator_decoy_psms.tsv \
   --protein-decoy-pattern rev_ \
-  *_edited.pin
+  *.pin
 ``` -->
 
 **Parameter Definitions:**
@@ -382,11 +347,11 @@ percolator \
 - `--results-psms` – output file for target PSMs
 - `--decoy-results-psms` – output file for decoy PSMs
 - `--protein-decoy-pattern` – prefix for decoy proteins
-- `*_edited.pin` – input Percolator input files with MSBooster features
+- `*.pin` – input Percolator input files from MSFragger
 
 **Input Data:**
 
-- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
+- `*.pin` (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
 
 **Output Data:**
 
@@ -395,7 +360,7 @@ percolator \
 
 <br>
 
-#### 3f.1. Convert Percolator Results to pepXML
+#### 3e.1. Add Percolator Validation Information to pepXML
 
 ```bash
 java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
@@ -414,7 +379,7 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 **Parameter Definitions:**
 
 - `-cp` – Java classpath to FragPipe libraries
-- `org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML` – FragPipe utility class for converting Percolator TSV output to pepXML
+- `org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML` – FragPipe utility class for adding Percolator validation information to pepXML files
 - `*.pin` – original Percolator input PIN file
 - `*` – sample name
 - `*_percolator_target_psms.tsv` – Percolator target PSM results
@@ -427,45 +392,46 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 **Input Data:**
 
 - `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
-- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3e](#3e-percolator-psm-rescoring-and-statistical-validation))
+- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3e](#3e-percolator-psm-rescoring-and-statistical-validation))
 - `*.mzML` (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
-- interact-*.pep.xml (Percolator-validated results converted to pepXML format)
+- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator)
 
 <br>
 
-### 3g. ProteinProphet Protein Inference and Statistical Validation
+### 3f. ProteinProphet Protein Inference and Statistical Validation
 
 ```bash
-philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
+philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --minprob 0.5 --output combined filelist_proteinprophet.txt
 ```
 <!-- CLI mode (backup):
 ```bash
-philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
+philosopher proteinprophet --maxppmdiff 2000000 --minprob 0.5 --output combined filelist_proteinprophet.txt
 ``` -->
 
 **Parameter Definitions:**
 
 - `proteinprophet` – run ProteinProphet to generate probabilities for protein identifications based on MS/MS data
-- `--maxppmdiff 2000000` – maximum PPM difference for peptide grouping
-- `--output combined` – output combined protein results
-- `filelist_proteinprophet.txt` – file containing a list of pepXML file paths (interact-*.pep.xml files)
+- `--maxppmdiff 2000000` – maximum peptide mass difference in PPM
+- `--minprob 0.5` – minimum probability threshold for peptide assignments
+- `--output combined` – output file name; results in `combined.prot.xml`
+- `filelist_proteinprophet.txt` – list of interact.pep.xml files to be passed to ProteinProphet
 
 **Input Data:**
 
-- `filelist_proteinprophet.txt` (file list for ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
-- `interact-*.pep.xml` (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-convert-percolator-results-to-pepxml))
+- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
+- `interact-*.pep.xml` (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3e.1](#3e1-add-percolator-validation-information-to-pepxml))
 
 **Output Data:**
 
-- combined.prot.xml (ProteinProphet results in protXML format with protein probabilities and protein groups)
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher)
 
 <br>
 
-### 3h. Database Annotation
+### 3g. Database Annotation
 
 ```bash
 philosopher-v5.1.2 database --annotate *.fas --prefix rev_
@@ -491,14 +457,14 @@ philosopher database --annotate *.fas --prefix rev_
 
 <br>
 
-### 3i. Filter Results by FDR
+### 3h. Filter Results by FDR
 
 ```bash
 # First sample (initializes database annotation)
 philosopher-v5.1.2 filter \
   --sequential \
-  --prot 0.01 \
   --picked \
+  --prot 0.01 \
   --tag rev_ \
   --pepxml sample_directory \
   --protxml combined.prot.xml \
@@ -507,8 +473,8 @@ philosopher-v5.1.2 filter \
 # Subsequent samples (reuse database annotation from first sample)
 philosopher-v5.1.2 filter \
   --sequential \
-  --prot 0.01 \
   --picked \
+  --prot 0.01 \
   --tag rev_ \
   --pepxml sample_directory \
   --dbbin first_sample_directory \
@@ -521,8 +487,8 @@ philosopher-v5.1.2 filter \
 # First sample (initializes database annotation)
 philosopher filter \
   --sequential \
-  --prot 0.01 \
   --picked \
+  --prot 0.01 \
   --tag rev_ \
   --pepxml sample_directory \
   --protxml combined.prot.xml \
@@ -531,8 +497,8 @@ philosopher filter \
 # Subsequent samples (reuse database annotation from first sample)
 philosopher filter \
   --sequential \
-  --prot 0.01 \
   --picked \
+  --prot 0.01 \
   --tag rev_ \
   --pepxml sample_directory \
   --dbbin first_sample_directory \
@@ -544,21 +510,21 @@ philosopher filter \
 **Parameter Definitions:**
 
 - `filter` – filter PSMs, peptides, and proteins by FDR threshold
-- `--sequential` – apply sequential FDR filtering
-- `--prot 0.01` – protein FDR threshold (e.g., 0.01 for 1%)
-- `--picked` – use picked protein FDR
-- `--tag rev_` – decoy prefix
-- `--pepxml` – directory containing pepXML files
-- `--protxml combined.prot.xml` – path to combined protXML file
+- `--sequential` – estimate FDR using filtered PSM and protein lists to increase identifications
+- `--prot 0.01` – protein-level FDR threshold
+- `--picked` – apply picked FDR algorithm prior to protein scoring
+- `--tag rev_` – decoy sequence prefix
+- `--pepxml` – path to pepXML file(s) or directory containing pepXML files
+- `--protxml combined.prot.xml` – path to protXML file
 - `--dbbin` – (for subsequent samples) path to first sample directory containing database annotation
 - `--probin` – (for subsequent samples) path to first sample directory containing protein annotation
-- `--razor` – apply razor protein parsimony
+- `--razor` – use razor peptides for protein-level FDR scoring
 
 **Input Data:**
 
-- `interact-*.pep.xml` (Percolator results in pepXML format, output from [Step 3f.1](#3f1-convert-percolator-results-to-pepxml))
-- `combined.prot.xml` (ProteinProphet results, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
-- .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
+- `interact-*.pep.xml` (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3e.1](#3e1-add-percolator-validation-information-to-pepxml))
+- `combined.prot.xml` (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3f](#3f-proteinprophet-protein-inference-and-statistical-validation))
+- .meta/ (Philosopher workspace metadata, output from [Step 3g](#3g-database-annotation))
 
 **Output Data:**
 
@@ -567,7 +533,7 @@ philosopher filter \
 
 <br>
 
-### 3j. Generate Reports
+### 3i. Generate Reports
 
 ```bash
 philosopher-v5.1.2 report
@@ -579,18 +545,22 @@ philosopher report
 
 **Input Data:**
 
-- Philosopher workspace containing filtered data (output from [Step 3i](#3i-filter-results-by-fdr))
+- Philosopher workspace containing filtered data (output from [Step 3h](#3h-filter-results-by-fdr))
 
 **Output Data:**
 
-- protein.tsv (sample-specific protein report generated from filtered data; contains protein identifiers, gene names, protein descriptions, and protein-level statistics)
-- peptide.tsv (sample-specific peptide report generated from filtered data; contains peptide sequences, protein mapping, charges, probabilities, and spectral counts)
-- psm.tsv (sample-specific PSM report generated from filtered data; contains spectrum information, peptide assignments, charge states, and retention times)
-- ion.tsv (sample-specific ion report generated from filtered data; contains peptide sequences, modifications, m/z values, charge states, and observed masses)
+- protein.fas (FASTA file containing FDR-filtered protein sequences identified in the analysis, generated by Philosopher)
+- protein.tsv (sample-specific protein report generated from filtered data; contains protein identifiers, gene names, protein descriptions, and protein-level statistics; from Philosopher, overwritten by IonQuant)
+- peptide.tsv (sample-specific peptide report generated from filtered data; contains peptide sequences, protein mapping, charges, probabilities, and spectral counts; from Philosopher, overwritten by IonQuant)
+- psm.tsv (sample-specific PSM report generated from filtered data; contains spectrum information, peptide assignments, charge states, and retention times; from Philosopher, updated by PTM-Shepherd and IonQuant)
+- ion.tsv (sample-specific ion report generated from filtered data; contains peptide sequences, modifications, m/z values, charge states, and observed masses; from Philosopher, overwritten by IonQuant)
+- combined_protein.tsv (combined protein report across all samples; from Philosopher, overwritten by IonQuant with quantification data)
+- combined_peptide.tsv (combined peptide report across all samples; from Philosopher, overwritten by IonQuant with quantification data)
+- combined_ion.tsv (combined ion report across all samples; from Philosopher, overwritten by IonQuant with quantification data)
 
 <br>
 
-### 3k. IonQuant TMT Reporter Ion Extraction
+### 3j. IonQuant TMT Reporter Ion Extraction
 
 ```bash
 # First pass: MS1 quantification
@@ -599,13 +569,15 @@ java -Djava.awt.headless=true -Xmx55G \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
   ionquant.IonQuant \
-  --threads 30 \
+  --threads 31 \
   --perform-ms1quant 1 \
   --perform-isoquant 0 \
   --isotol 20.0 \
   --isolevel 2 \
   --isotype tmt10 \
   --ionmobility 0 \
+  --site-reports 0 \
+  --msstats 0 \
   --minexps 1 \
   --mbr 0 \
   --maxlfq 0 \
@@ -632,13 +604,15 @@ java -Djava.awt.headless=true -Xmx55G \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
   ionquant.IonQuant \
-  --threads 30 \
+  --threads 31 \
   --perform-ms1quant 0 \
   --perform-isoquant 1 \
   --isotol 20.0 \
   --isolevel 2 \
   --isotype TMT-16 \
   --ionmobility 0 \
+  --site-reports 0 \
+  --msstats 0 \
   --annotation sample1/psm.tsv=sample1/sample1_annotation.txt \
   --annotation sample2/psm.tsv=sample2/sample2_annotation.txt \
   --minexps 1 \
@@ -670,23 +644,25 @@ java -Djava.awt.headless=true -Xmx55G \
 - `-Dlibs.thermo.dir` – directory for Thermo libraries
 - `-cp` – Java classpath to jfreechart and IonQuant JAR files
 - `ionquant.IonQuant` – IonQuant main class
-- `--threads` – number of CPU threads to use
-- `--perform-ms1quant 1` – enable MS1 quantification (first pass)
-- `--perform-isoquant 1` – enable isobaric quantification (second pass)
-- `--isotype tmt10` / `--isotype TMT-16` – TMT-16 isobaric labeling type (first pass uses `tmt10` for MS1 quantification; second pass uses `TMT-16` for isobaric quantification)
-- `--annotation` – annotation file mapping TMT channels to sample names (format: `psm.tsv=annotation.txt`)
-- `--multidir .` – output directory for multi-experimental results (current directory)
+- `--threads` – number of CPU threads to use (0 = all logical cores)
+- `--perform-ms1quant 1` – perform MS1 quantification (first pass; 0 = no, 1 = yes)
+- `--perform-isoquant 1` – perform isobaric labeling quantification (second pass; 0 = no, 1 = yes)
+- `--isotype tmt10` / `--isotype TMT-16` – isobaric quantification type (first pass uses `tmt10` for MS1 quantification; second pass uses `TMT-16` for isobaric quantification)
+- `--site-reports 0` – generate site reports (0 = no, 1 = yes; requires modification localization columns in psm.tsv)
+- `--msstats 0` – generate MSstats input files (0 = no, 1 = yes)
+- `--annotation` – annotation file for isobaric quantification (format: `psm.tsv=annotation.txt`; can specify multiple)
+- `--multidir .` – output directory for multi-experimental results (optional)
 - `--filelist` – file containing flags (tab-delimited file with `--psm` entries pointing to sample-specific `psm.tsv` files and `--specdir` entry pointing to the directory containing mzML files)
-- `--modlist` – file containing a list of modification masses
+- `--modlist` – file listing modification masses (used to remove mass discrepancy due to rounding errors)
 
 **Input Data:**
 
 - `filelist_ionquant.txt` (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
 - `modmasses_ionquant.txt` (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- `protein.tsv` (protein report, output from [Step 3j](#3j-generate-reports))
-- `peptide.tsv` (peptide report, output from [Step 3j](#3j-generate-reports))
-- `psm.tsv` (PSM report, output from [Step 3j](#3j-generate-reports))
-- `ion.tsv` (ion report, output from [Step 3j](#3j-generate-reports))
+- `protein.tsv` (protein report, output from [Step 3i](#3i-generate-reports))
+- `peptide.tsv` (peptide report, output from [Step 3i](#3i-generate-reports))
+- `psm.tsv` (PSM report, output from [Step 3i](#3i-generate-reports))
+- `ion.tsv` (ion report, output from [Step 3i](#3i-generate-reports))
 - `*_annotation.txt` (sample-specific annotation files mapping TMT channels to sample names, output from [Step 3a](#3a-launch-fragpipe))
 - `*.mzML` (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract TMT reporter ion intensities)
 
@@ -697,12 +673,12 @@ java -Djava.awt.headless=true -Xmx55G \
 - combined_peptide.tsv (combined peptide quantification across all samples)
 - combined_ion.tsv (combined ion-level quantification across all samples)
 - combined_modified_peptide.tsv (combined modified peptide quantification across all samples)
-- reprint.int.tsv (reprint intensity file)
-- reprint.spc.tsv (reprint spectral count file)
+- reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities, generated by Philosopher)
+- reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts, generated by Philosopher)
 
 <br>
 
-### 3l. TMTIntegrator TMT Quantification
+### 3k. TMTIntegrator TMT Quantification
 
 ```bash
 java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
@@ -722,8 +698,7 @@ java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
 **Input Data:**
 
 - `tmt-integrator-conf.yml` (TMTIntegrator configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `psm.tsv` (sample-specific PSM reports with TMT reporter ion intensities, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `experiment_annotation.tsv` (experiment annotation file mapping TMT channels to samples, output from [Step 3a](#3a-launch-fragpipe))
+- `psm.tsv` (sample-specific PSM reports with TMT reporter ion intensities, output from [Step 3j](#3j-ionquant-tmt-reporter-ion-extraction))
 
 **Output Data:**
 
