@@ -734,7 +734,6 @@ java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
 
 - `tmt-integrator-conf.yml` (TMTIntegrator configuration file, output from [Step 3a](#3a-launch-fragpipe))
 - `psm.tsv` (sample-specific PSM reports with TMT reporter ion intensities, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `experiment_annotation.tsv` (experiment annotation file mapping TMT channels to samples, output from [Step 3a](#3a-launch-fragpipe))
 
 **Output Data:**
 
