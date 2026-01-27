@@ -40,6 +40,7 @@ TBD
     - [3j. Generate Reports](#3j-generate-reports)
     - [3k. IonQuant TMT Reporter Ion Extraction](#3k-ionquant-tmt-reporter-ion-extraction)
     - [3l. TMTIntegrator TMT Quantification](#3l-tmtintegrator-tmt-quantification)
+  - [**4. Compile FragPipe QC Reports**](#4-compile-fragpipe-qc-reports)
 
 ---
 
@@ -57,6 +58,8 @@ TBD
 |Philosopher|5.1.2|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
 |IonQuant|1.11.11|[https://github.com/Nesvilab/IonQuant/releases/latest](https://github.com/Nesvilab/IonQuant/releases/latest)|
 |TMTIntegrator|6.1.1|[https://github.com/Nesvilab/TMTIntegrator](https://github.com/Nesvilab/TMTIntegrator)|
+|MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
+|pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
 
 
 ---
@@ -717,5 +720,45 @@ java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
 - tmt-report/ratio_gene_MD.tsv (gene-level TMT ratio values; ratios are channel abundance divided by reference channel abundance, log2-transformed)
 - tmt-report/ratio_single-site_MD.tsv (single-site phosphosite-level TMT ratio values; ratios are channel abundance divided by reference channel abundance, log2-transformed)
 - tmt-report/ratio_multi-site_MD.tsv (multi-site phosphosite-level TMT ratio values; ratios are channel abundance divided by reference channel abundance, log2-transformed)
+
+<br>
+
+---
+
+## 4. Compile FragPipe QC Reports
+
+```bash
+multiqc --fragpipe-plugin \
+  -o /path/to/pmultiqc/output/directory \
+  -n multiqc_GLProteomics \
+  /path/to/FragPipe/output/directory
+
+clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/directory
+```
+
+**Parameter Definitions:**
+
+- `--fragpipe-plugin` – enable FragPipe plugin for MultiQC to process FragPipe output files
+- `-o` – the output directory to store results
+- `-n` – prefix name for output files
+- `/path/to/FragPipe/output/directory` – the directory containing FragPipe output files, provided as a positional argument
+- `clean_multiqc_paths.py` – Python script to clean absolute paths (if present) from MultiQC data files and create a zip archive
+- `multiqc_GLProteomics_data` – name of the MultiQC data directory to process
+- `/path/to/pmultiqc/output/directory` – output directory where the zip file will be created
+
+**Input Data:**
+
+- `psm.tsv` (plex-specific PSM reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- `ion.tsv` (plex-specific ion reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- `combined_ion.tsv` (combined ion report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- `*.workflow` (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
+- `fragger.params` (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
+
+**Output Data:**
+
+- **multiqc_GLProteomics.html** (MultiQC output html summary)
+- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data with cleaned paths)
 
 <br>
