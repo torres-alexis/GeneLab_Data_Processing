@@ -39,7 +39,8 @@ X (X)
     - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
     - [3j. Generate Reports](#3j-generate-reports)
     - [3k. IonQuant Label-Free Quantification](#3k-ionquant-label-free-quantification)
-  - [**4. MSstats Differential Abundance Analysis**](#4-msstats-differential-abundance-analysis)
+  - [**4. Compile FragPipe QC Reports**](#4-compile-fragpipe-qc-reports)
+  - [**5. MSstats Differential Abundance Analysis**](#5-msstats-differential-abundance-analysis)
 
 ---
 
@@ -58,6 +59,8 @@ X (X)
 |Philosopher|5.1.2|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
 |IonQuant|1.11.11|[https://github.com/Nesvilab/IonQuant/releases/latest](https://github.com/Nesvilab/IonQuant/releases/latest)|
 |MSstats|4.18.0|[https://www.bioconductor.org/packages/release/bioc/html/MSstats.html](https://www.bioconductor.org/packages/release/bioc/html/MSstats.html)|
+|MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
+|pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
 
 
 ---
@@ -721,7 +724,47 @@ java -Xmx55G \
 
 ---
 
-## 4. MSstats Differential Abundance Analysis
+## 4. Compile FragPipe QC Reports
+
+```bash
+multiqc --fragpipe-plugin \
+  -o /path/to/pmultiqc/output/directory \
+  -n multiqc_GLProteomics \
+  /path/to/FragPipe/output/directory
+
+clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/directory
+```
+
+**Parameter Definitions:**
+
+- `--fragpipe-plugin` – enable FragPipe plugin for MultiQC to process FragPipe output files
+- `-o` – the output directory to store results
+- `-n` – prefix name for output files
+- `/path/to/FragPipe/output/directory` – the directory containing FragPipe output files, provided as a positional argument
+- `clean_multiqc_paths.py` – Python script to clean absolute paths (if present) from MultiQC data files and create a zip archive
+- `multiqc_GLProteomics_data` – name of the MultiQC data directory to process
+- `/path/to/pmultiqc/output/directory` – output directory where the zip file will be created
+
+**Input Data:**
+
+- `psm.tsv` (sample-specific PSM reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `ion.tsv` (sample-specific ion reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `combined_ion.tsv` (combined ion report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `*.workflow` (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
+- `fragger.params` (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
+
+**Output Data:**
+
+- **multiqc_GLProteomics.html** (MultiQC output html summary)
+- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data with cleaned paths)
+
+<br>
+
+---
+
+## 5. MSstats Differential Abundance Analysis
 
 ```bash
 msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
