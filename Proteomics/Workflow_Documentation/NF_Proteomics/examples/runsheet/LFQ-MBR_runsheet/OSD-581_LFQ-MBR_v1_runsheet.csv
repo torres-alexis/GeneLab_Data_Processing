@@ -1,13 +1,13 @@
-Sample Name,data_file,organism,Source Name,Factor Value[soil environment exposure],Factor Value[Organism Part]
-Std_Mars_L1,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L1.mzML,Lolium multiflorum,Std_Mars_L1,Martian regolith simulant (MMS-1),Plant Leaves
-Std_Mars_L2,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L2.mzML,Lolium multiflorum,Std_Mars_L2,Martian regolith simulant (MMS-1),Plant Leaves
-Std_Mars_L3,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L3.mzML,Lolium multiflorum,Std_Mars_L3,Martian regolith simulant (MMS-1),Plant Leaves
-Std_soil_L1,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L1.mzML,Lolium multiflorum,Std_soil_L1,Normal soil,Plant Leaves
-Std_soil_L2,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L2.mzML,Lolium multiflorum,Std_soil_L2,Normal soil,Plant Leaves
-Std_soil_L3,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L3.mzML,Lolium multiflorum,Std_soil_L3,Normal soil,Plant Leaves
-High_Mars_R1,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R1.mzML,Lolium multiflorum,High_Mars_R1,Martian regolith simulant (MMS-1),Plant Roots
-High_Mars_R2,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R2.mzML,Lolium multiflorum,High_Mars_R2,Martian regolith simulant (MMS-1),Plant Roots
-High_Mars_R3,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R3.mzML,Lolium multiflorum,High_Mars_R3,Martian regolith simulant (MMS-1),Plant Roots
-High_soil_R1,/path/to/LFQ-MBR_OSD-581/data/High_soil_R1.mzML,Lolium multiflorum,High_soil_R1,Normal soil,Plant Roots
-High_soil_R2,/path/to/LFQ-MBR_OSD-581/data/High_soil_R2.mzML,Lolium multiflorum,High_soil_R2,Normal soil,Plant Roots
-High_soil_R3,/path/to/LFQ-MBR_OSD-581/data/High_soil_R3.mzML,Lolium multiflorum,High_soil_R3,Normal soil,Plant Roots
+Sample Name,data_file,data_type,organism,Source Name,Factor Value[soil environment exposure],Factor Value[Organism Part]
+Std_Mars_L1,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L1.mzML,DDA,Lolium multiflorum,Std_Mars_L1,Martian regolith simulant (MMS-1),Plant Leaves
+Std_Mars_L2,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L2.mzML,DDA,Lolium multiflorum,Std_Mars_L2,Martian regolith simulant (MMS-1),Plant Leaves
+Std_Mars_L3,/path/to/LFQ-MBR_OSD-581/data/Std_Mars_L3.mzML,DDA,Lolium multiflorum,Std_Mars_L3,Martian regolith simulant (MMS-1),Plant Leaves
+Std_soil_L1,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L1.mzML,DDA,Lolium multiflorum,Std_soil_L1,Normal soil,Plant Leaves
+Std_soil_L2,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L2.mzML,DDA,Lolium multiflorum,Std_soil_L2,Normal soil,Plant Leaves
+Std_soil_L3,/path/to/LFQ-MBR_OSD-581/data/Std_soil_L3.mzML,DDA,Lolium multiflorum,Std_soil_L3,Normal soil,Plant Leaves
+High_Mars_R1,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R1.mzML,DDA,Lolium multiflorum,High_Mars_R1,Martian regolith simulant (MMS-1),Plant Roots
+High_Mars_R2,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R2.mzML,DDA,Lolium multiflorum,High_Mars_R2,Martian regolith simulant (MMS-1),Plant Roots
+High_Mars_R3,/path/to/LFQ-MBR_OSD-581/data/High_Mars_R3.mzML,DDA,Lolium multiflorum,High_Mars_R3,Martian regolith simulant (MMS-1),Plant Roots
+High_soil_R1,/path/to/LFQ-MBR_OSD-581/data/High_soil_R1.mzML,DDA,Lolium multiflorum,High_soil_R1,Normal soil,Plant Roots
+High_soil_R2,/path/to/LFQ-MBR_OSD-581/data/High_soil_R2.mzML,DDA,Lolium multiflorum,High_soil_R2,Normal soil,Plant Roots
+High_soil_R3,/path/to/LFQ-MBR_OSD-581/data/High_soil_R3.mzML,DDA,Lolium multiflorum,High_soil_R3,Normal soil,Plant Roots

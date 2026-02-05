@@ -16,11 +16,12 @@
 
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
-| Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | Mmus_BAL-TAL_LRTN_BSL_Rep1_B7 |
-| data_file | string (url or local path) | Location of the mass spectrometry data file in mzML format. | /my/data/sample_1.mzML |
-| Source Name | string | Biological replicate identifier. Used to generate BioReplicate information for FragPipe manifest and MSstats analysis. Multiple fractions from the same biological sample should share the same Source Name. | Mouse_1 |
+| Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | RR10_KDN_WT_BSL_B1 |
+| data_file | string (url or local path) | Location of the mass spectrometry data file in mzML format. | /path/to/plex1/RR10_KDN_WT_BSL_B1.mzML |
+| data_type | string | Mass spectrometry data type. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA |
 | organism | string | Species name used to map to the appropriate UniProt proteome ID if a reference proteome or UniProt ID are not provided as a Nextflow parameter. Also used to extend output tables with annotations corresponding to the species. | Mus musculus |
-| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Space Flight |
+| Source Name | string | Biological replicate identifier. Multiple fractions from the same biological sample should share the same Source Name. | RR-10_BL-01 |
+| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Basal Control |
 
 ## TMT-specific columns (required for TMT workflows)
 
