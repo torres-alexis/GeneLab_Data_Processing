@@ -1,0 +1,19 @@
+Sample Name,data_file,organism,Source Name,plex,label,Factor Value[Sex],Factor Value[Spaceflight],Factor Value[Altered Gravity]
+SFug_M1,/path/to/plexa/SFug_M1.mzML,Drosophila melanogaster,Spaceflight microgravity Male 1,TMTa,127N,male,Space Flight,uG
+SFug_M2,/path/to/plexb/SFug_M2.mzML,Drosophila melanogaster,Spaceflight microgravity Male 2,TMTb,127N,male,Space Flight,uG
+SFug_M3,/path/to/plexc/SFug_M3.mzML,Drosophila melanogaster,Spaceflight microgravity Male 3,TMTc,127N,male,Space Flight,uG
+SFug_F1,/path/to/plexa/SFug_F1.mzML,Drosophila melanogaster,Spaceflight microgravity Female 1,TMTa,126,female,Space Flight,uG
+SFug_F2,/path/to/plexb/SFug_F2.mzML,Drosophila melanogaster,Spaceflight microgravity Female 2,TMTb,126,female,Space Flight,uG
+SFug_F3,/path/to/plexc/SFug_F3.mzML,Drosophila melanogaster,Spaceflight microgravity Female 3,TMTc,126,female,Space Flight,uG
+SF1g_M1,/path/to/plexa/SF1g_M1.mzML,Drosophila melanogaster,Spaceflight 1g_Male 1,TMTa,128N,male,Space Flight,1G in centrifuge
+SF1g_M2,/path/to/plexb/SF1g_M2.mzML,Drosophila melanogaster,Spaceflight 1g_Male 2,TMTb,128N,male,Space Flight,1G in centrifuge
+SF1g_M3,/path/to/plexc/SF1g_M3.mzML,Drosophila melanogaster,Spaceflight 1g_Male 3,TMTc,128N,male,Space Flight,1G in centrifuge
+SF1g_F1,/path/to/plexa/SF1g_F1.mzML,Drosophila melanogaster,Spaceflight 1g_Female 1,TMTa,127C,female,Space Flight,1G in centrifuge
+SF1g_F2,/path/to/plexb/SF1g_F2.mzML,Drosophila melanogaster,Spaceflight 1g_Female 2,TMTb,127C,female,Space Flight,1G in centrifuge
+SF1g_F3,/path/to/plexc/SF1g_F3.mzML,Drosophila melanogaster,Spaceflight 1g_Female 3,TMTc,127C,female,Space Flight,1G in centrifuge
+Earth M1,/path/to/plexa/Earth M1.mzML,Drosophila melanogaster,Earth Male 1,TMTa,129N,male,Ground Control,1G
+Earth M2,/path/to/plexb/Earth M2.mzML,Drosophila melanogaster,Earth Male 2,TMTb,129N,male,Ground Control,1G
+Earth M3,/path/to/plexc/Earth M3.mzML,Drosophila melanogaster,Earth Male 3,TMTc,129N,male,Ground Control,1G
+Earth F1,/path/to/plexa/Earth F1.mzML,Drosophila melanogaster,Earth Female 1,TMTa,128C,female,Ground Control,1G
+Earth F2,/path/to/plexb/Earth F2.mzML,Drosophila melanogaster,Earth Female 2,TMTb,128C,female,Ground Control,1G
+Earth F3,/path/to/plexc/Earth F3.mzML,Drosophila melanogaster,Earth Female 3,TMTc,128C,female,Ground Control,1G

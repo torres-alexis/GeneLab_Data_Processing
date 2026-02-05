@@ -7,17 +7,24 @@
 
 ## Examples
 
-1. [Runsheet for GLDS-574](GLDS-574_proteomics_v1_runsheet.csv) 
-
-
+1. [LFQ-MBR runsheet for OSD-581](LFQ-MBR_runsheet/OSD-581_LFQ-MBR_v1_runsheet.csv)
+2. [TMT10 runsheet for OSD-514](TMT10_runsheet/OSD-514_TMT10_v1_runsheet.csv)
+3. [TMT16 runsheet for OSD-462](TMT16_runsheet/OSD-462_TMT16_v1_runsheet.csv)
+4. [TMT16-phospho runsheet for OSD-462](TMT16_phospho_runsheet/OSD-462_TMT16-phospho_v1_runsheet.csv)
 
 ## Required columns
 
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | Mmus_BAL-TAL_LRTN_BSL_Rep1_B7 |
-| Source Name | string | Biological replicate identifier. Used by MSstats to set BioReplicate for statistical analysis. Unique Source Names are naturally sorted (numeric-alphabetic) and assigned sequential integers (e.g., "Mouse_1", "Mouse_2", "Mouse_10" → 1, 2, 3). | Mouse_1 |
-| data_type | string | Mass spectrometry data acquisition type. Options: `DDA` (Data-Dependent Acquisition), `DIA` (Data-Independent Acquisition), `GPF-DIA` (Gas-Phase Fractionation DIA), `DIA-Quant` (DIA Quantification), `DIA-Lib` (DIA Library). | DDA |
-| input_file | string (url or local path) | Location of the mzML file. | /my/data/sample_1.mzML |
-| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Space Flight |
+| data_file | string (url or local path) | Location of the mass spectrometry data file in mzML format. | /my/data/sample_1.mzML |
+| Source Name | string | Biological replicate identifier. Used to generate BioReplicate information for FragPipe manifest and MSstats analysis. Multiple fractions from the same biological sample should share the same Source Name. | Mouse_1 |
+| organism | string | Species name used to map to the appropriate UniProt proteome ID if a reference proteome or UniProt ID are not provided as a Nextflow parameter. Also used to extend output tables with annotations corresponding to the species. | Mus musculus |
+| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Space Flight |
 
+## TMT-specific columns (required for TMT workflows)
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| plex | string | Alphanumeric identifier indicating which TMT multiplexed run the sample belongs to. | TMT1 |
+| label | string | TMT channel label assigned to the sample (e.g., 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N for TMT-10; 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N, 131C, 132N, 132C, 133N, 133C, 134N for TMT-16). | 126 |
