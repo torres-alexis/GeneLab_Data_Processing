@@ -20,7 +20,7 @@ The table below details the default maximum resource allocations for individual 
 |---------------|-------------------|----------------|
 | All workflows | 8                 | 64 GB          |
 
-> **Note:** These per-process resource allocations are defaults. They can be adjusted by modifying `cpus` and `memory`  directives in the configuration files: [`local.config`](workflow_code/conf/local.config) (local execution) and [`slurm.config`](workflow_code/conf/slurm.config) (SLURM clusters).
+> **Note:** These per-process resource allocations are defaults. They can be adjusted by modifying `cpus` and `memory` directives in the configuration files: [`local.config`](workflow_code/conf/local.config) (local execution) and [`slurm.config`](workflow_code/conf/slurm.config) (SLURM clusters).
 
 > **Click links below to show/hide workflow diagrams**
 
@@ -60,13 +60,13 @@ Below is a description of each subworkflow and the additional output files gener
 1. **Analysis Staging Subworkflow**
 
    - Description:
-     - This subworkflow extracts the metadata parameters (e.g. data_type, sample information) needed for processing from the OSD/GLDS ISA archive and retrieves the raw mass spectrometry files hosted on the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).
+     - This subworkflow extracts the metadata information needed for processing from the OSD/GLDS ISA archive and retrieves the raw mass spectrometry files hosted on the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).
        > *OSD/GLDS ISA archive*: ISA directory containing Investigation, Study, and Assay (ISA) metadata files for a respective GLDS dataset - the *ISA.zip file is located under 'Files' -> 'Study Metadata Files' for any GeneLab Data Set (GLDS) in the [OSDR](https://osdr.nasa.gov/bio/repo/).
 
 2. **Proteomics Consensus Pipeline Subworkflow**
 
    - Description:
-     - This subworkflow processes the staged raw data and metadata parameters from the Analysis Staging Subworkflow. The workflow automatically selects the appropriate FragPipe sequential tools and configurations based on the runsheet `data_type` column and labeling information, or the workflow mode can be explicitly specified via a workflow configuration file. The selected mode determines which of the following pipelines is executed:
+     - This subworkflow processes the staged raw data and metadata parameters from the Analysis Staging Subworkflow. The workflow automatically selects the appropriate FragPipe sequential tools and configurations based on the selection of the Nextflow workflow parameter `fragpipe_workflow`. A custom Fragpipe workflow configuration file can also be specified using the `fragpipe_workflow_config` parameter, in addition to using the `fragpipe_workflow` option. The `fragpipe_workflow` parameter determines which of the following pipelines is executed:
        - [The GeneLab LFQ-MBR Pipeline](../../Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md) for label-free quantification with match-between-runs
        - [The GeneLab TMT10 Pipeline](../../Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md) for TMT10-plex labeling
        - [The GeneLab TMT16 Pipeline](../../Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md) for TMT16-plex labeling
