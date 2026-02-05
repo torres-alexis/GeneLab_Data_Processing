@@ -61,6 +61,7 @@ X (X)
 |MSstats|4.18.0|[https://www.bioconductor.org/packages/release/bioc/html/MSstats.html](https://www.bioconductor.org/packages/release/bioc/html/MSstats.html)|
 |MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
+|FragPipeAnalystR|1.1.0|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
 
 ---
