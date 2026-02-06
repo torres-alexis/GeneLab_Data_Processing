@@ -1,8 +1,8 @@
 process PMULTIQC {
-    // tag("Dataset-wide")
-    // publishDir "${ publishdir }",
-    //     pattern:  "*.{html,zip}" ,
-    //     mode: params.publish_dir_mode
+    tag("Dataset-wide")
+    publishDir "${ publishdir }",
+        pattern:  "*.{html,zip}" ,
+        mode: params.publish_dir_mode
     
     input:
     val(publishdir)
@@ -17,12 +17,18 @@ process PMULTIQC {
     path("versions.yml"), emit: versions
 
     script:
-    """
-    # Unset any config-related environment variables that might interfere
-    unset MULTIQC_CONFIG || true
+    """ 
+    # pmultiqc expects these FragPipe outputs:
+    # - FragPipe/*/psm.tsv
+    # - FragPipe/*/ion.tsv
+    # - FragPipe/combined_protein.tsv
+    # - FragPipe/combined_peptide.tsv
+    # - FragPipe/combined_ion.tsv
+    # - FragPipe/*.workflow
+    # - FragPipe/fragger.params
     
-    # Call multiqc directly (entrypoint is overridden to /bin/sh)
-    /usr/local/bin/multiqc \
+    # Call multiqc
+    multiqc \
         --fragpipe-plugin \
         -o . \
         -n multiqc${ params.assay_suffix } \
