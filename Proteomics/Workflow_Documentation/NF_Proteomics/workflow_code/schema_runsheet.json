@@ -14,7 +14,8 @@
             },
             "data_file": {
                 "type": "string",
-                "description": "URL or path to the mass spectrometry data file in mzML format"
+                "description": "URL or path to the mass spectrometry data file in mzML format",
+                "meta": ["data_file"]
             },
             "data_type": {
                 "type": "string",
@@ -24,22 +25,16 @@
             },
             "organism": {
                 "type": "string",
-                "description": "Species name used to map to the appropriate UniProt proteome ID if a reference proteome or UniProt ID are not provided as a Nextflow parameter. Also used to extend output tables with annotations corresponding to the species."
+                "description": "Species name used to map to the appropriate UniProt proteome ID if a reference proteome or UniProt ID are not provided as a Nextflow parameter. Also used to extend output tables with annotations corresponding to the species.",
+                "meta": ["organism"]
             },
             "Source Name": {
                 "type": "string",
-                "description": "Biological replicate identifier. Multiple fractions from the same biological sample should share the same Source Name."
-            },
-            "plex": {
-                "type": "string",
-                "description": "Alphanumeric identifier indicating which TMT multiplexed run the sample belongs to. Required for TMT workflows."
-            },
-            "label": {
-                "type": "string",
-                "description": "TMT channel label assigned to the sample (e.g., 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N for TMT-10; 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N, 131C, 132N, 132C, 133N, 133C, 134N for TMT-16). Required for TMT workflows."
+                "description": "Biological replicate identifier. Multiple fractions from the same biological sample should share the same Source Name.",
+                "meta": ["Source Name"]
             }
         },
-        "required": ["Sample Name", "data_file", "data_type", "organism", "Source Name"],
+        "required": ["Sample Name", "data_file"],
         "patternProperties": {
             "^Factor Value\\[.*\\]$": {
                 "type": "string",

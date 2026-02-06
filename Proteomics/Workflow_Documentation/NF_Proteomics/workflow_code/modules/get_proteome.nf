@@ -1,16 +1,11 @@
 process GET_PROTEOME {
-    tag "${uniprot_id}"
+    tag "${params.uniprot_id}"
     publishDir "${output_dir}/Proteome/",
         mode: params.publish_dir_mode,
         pattern: "*.fas"
 
     input:
     val(output_dir)
-    val(reference_store_path)
-    val(uniprot_id)
-    val(reviewed)
-    val(isoforms)
-    val(contaminants)
 
     output:
     path("*.fas"), emit: proteome_fasta
@@ -21,7 +16,7 @@ process GET_PROTEOME {
     def isoforms_flag = params.philosopher_isoforms ? '--isoform' : ''
     def contaminants_flag = params.philosopher_contaminants ? '--contam' : ''
     def contaminants_prefix_flag = (params.philosopher_contaminants && params.philosopher_contaminants_prefix) ? '--contamprefix' : ''
-    def nodecoys_flag = params.philosopher_nodecoys ? '--nodecoys' : ''
+    def nodecoys_flag = params.philosopher_decoys ? '' : '--nodecoys'
     def decoy_prefix_flag = params.philosopher_decoy_prefix && params.philosopher_decoy_prefix != 'rev_' ? "--prefix ${params.philosopher_decoy_prefix}" : ''
     def enzyme_flag = params.philosopher_enzyme && params.philosopher_enzyme != 'trypsin' ? "--enzyme ${params.philosopher_enzyme}" : ''
     def spike_in_flag = params.philosopher_spike_in ? "--add ${params.philosopher_spike_in}" : ''
@@ -37,7 +32,7 @@ process GET_PROTEOME {
     
     # Download proteome using philosopher database command with --id
     /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 database \\
-        --id ${uniprot_id} \\
+        --id ${params.uniprot_id} \\
         ${reviewed_flag} \\
         ${isoforms_flag} \\
         ${contaminants_flag} \\

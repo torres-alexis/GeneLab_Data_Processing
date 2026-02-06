@@ -12,8 +12,10 @@ process RUNSHEET_TO_MANIFEST {
 
     script:
     def assay_suffix_flag = params.assay_suffix ? "--assay_suffix ${params.assay_suffix}" : ""
+    def mode = (params.fragpipe_workflow && params.fragpipe_workflow.startsWith('TMT')) ? "TMT" : "LFQ"
+    def mode_flag = "--mode ${mode}"
     def output_filename = "manifest${params.assay_suffix ?: ''}.tsv"
     """
-    runsheet_to_manifest.py --runsheet ${runsheet} --output ${output_filename} ${assay_suffix_flag}
+    runsheet_to_manifest.py --runsheet ${runsheet} --output ${output_filename} ${assay_suffix_flag} ${mode_flag}
     """
 }
