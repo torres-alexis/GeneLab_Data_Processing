@@ -856,7 +856,7 @@ Rscript fp_analyst_analysis.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
-- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv` from IonQuant)
+- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
 - `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ`. Protein uses MaxLFQ; peptide uses Intensity.
@@ -881,9 +881,10 @@ Rscript fp_analyst_analysis.R \
 **Input Data:**
 
 - `experiment_annotation.tsv` (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
-- `combined_protein.tsv` (protein run) and `combined_peptide.tsv` (peptide run) from [Step 3k](#3k-ionquant-label-free-quantification)
+- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
 
-**Expected Output Data (per run: `FragPipe-Analyst/protein/` and `FragPipe-Analyst/peptide/`):**
+**Output Data:**
 
 - `fp_analyst_parameters.txt` (run parameters)
 - `pca.pdf`, `pca.png` (PCA plot)
