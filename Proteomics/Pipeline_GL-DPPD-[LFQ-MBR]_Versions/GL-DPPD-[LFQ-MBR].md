@@ -41,6 +41,7 @@ X (X)
     - [3k. IonQuant Label-Free Quantification](#3k-ionquant-label-free-quantification)
   - [**4. Compile FragPipe QC Reports**](#4-compile-fragpipe-qc-reports)
   - [**5. MSstats Differential Abundance Analysis**](#5-msstats-differential-abundance-analysis)
+  - [**6. FragPipe-Analyst QC and Differential Expression**](#6-fragpipe-analyst-qc-and-differential-expression)
 
 ---
 
@@ -789,5 +790,85 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 - msstats_comparison_*.csv (pairwise differential abundance comparison results)
 - msstats_comparison_all.csv (all pairwise comparisons combined)
 - msstats_contrasts.csv (contrast definitions)
+
+<br>
+
+---
+
+## 6. FragPipe-Analyst QC and Differential Expression
+
+```bash
+Rscript fp_analyst_analysis.R \
+  --experiment_annotation experiment_annotation.tsv \
+  --quantification_file combined_protein.tsv \
+  --mode LFQ \
+  --level protein \
+  --lfq_type MaxLFQ \
+  --min_global_appearance 0 \
+  --min_appearance_one_condition 0 \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --feature_list_protein "" \
+  --feature_list_gene "" \
+  --top_n_protein 10 \
+  --top_n_gene 10 \
+  --qc_show_imputed true \
+  --qc_include_both false \
+  --pathway_database "Hallmark" \
+  --pathway_direction "Both" \
+  --go_database "" \
+  --go_direction "Both" \
+  --output_dir "output/"
+```
+
+**Parameter Definitions:**
+
+- `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
+- `--quantification_file` – path to combined protein quantification file (e.g., `combined_protein.tsv` from IonQuant)
+- `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
+- `--level` – analysis level: `protein` (default for LFQ), `peptide`, `gene`, or `site`
+- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ` (for LFQ mode only)
+- `--min_global_appearance` – at least X% non-missing across all samples (0–100). 0 = no filter
+- `--min_appearance_one_condition` – at least X% non-missing in at least one condition (0–100). 0 = no filter
+- `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
+- `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
+- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based`
+- `--feature_list_protein` – comma-separated protein IDs for feature plots (by rownames). If empty, use `--top_n_protein`
+- `--feature_list_gene` – comma-separated gene names for feature plots (by Gene column). If empty, use `--top_n_gene`
+- `--top_n_protein` – when `--feature_list_protein` is empty, plot top N most variable features by protein ID (0 = skip)
+- `--top_n_gene` – when `--feature_list_gene` is empty, plot top N most variable features by gene (0 = skip)
+- `--qc_show_imputed` – use imputed data for QC plots when `--qc_include_both` is false (`true`/`false`)
+- `--qc_include_both` – generate both imputed and unimputed QC plots (`true`/`false`)
+- `--pathway_database` – pathway enrichment database: `Hallmark`, `KEGG`, or `Reactome`. Empty = skip
+- `--pathway_direction` – pathway enrichment direction: `Up`, `Down`, or `Both`
+- `--go_database` – Gene Ontology enrichment: `GO Biological Process`, `GO Cellular Component`, or `GO Molecular Function`. Empty = skip
+- `--go_direction` – GO enrichment direction: `Up`, `Down`, or `Both`
+- `--output_dir` – output directory for results
+
+**Input Data:**
+
+- `experiment_annotation.tsv` (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
+- `combined_protein.tsv` (combined protein report with MS1 quantification data, output from [Step 3k](#3k-ionquant-label-free-quantification))
+
+**Output Data:**
+
+- `fp_analyst_parameters.txt` (run parameters)
+- `pca.pdf`, `pca.png` (PCA plot)
+- `correlation_heatmap.pdf`, `correlation_heatmap.png` (sample correlation heatmap)
+- `missing_value_heatmap.pdf`, `missing_value_heatmap.png` (missing value pattern heatmap)
+- `feature_numbers.pdf`, `feature_numbers.png` (feature count per sample)
+- `sample_coverage.pdf`, `sample_coverage.png` (sample coverage)
+- `density.pdf`, `density.png` (intensity distribution)
+- `sample_cvs.pdf`, `sample_cvs.png` (sample coefficient of variation)
+- `jaccard.pdf`, `jaccard.png` (Jaccard similarity plot)
+- `upset.pdf`, `upset.png` (UpSet plot)
+- `venndiagram/` (venn diagrams)
+- `feature/protein/`, `feature/gene/` (feature plots)
+- `unimputed_matrix.tsv`, `imputed_matrix.tsv` (exported matrices)
+- `de_results.tsv` (differential expression results)
+- `de_heatmap.pdf`, `de_heatmap.png` (DE heatmap)
+- `volcano/` (volcano plots per contrast)
+- `enrichment/` (pathway and GO enrichment plots and TSV tables)
 
 <br>

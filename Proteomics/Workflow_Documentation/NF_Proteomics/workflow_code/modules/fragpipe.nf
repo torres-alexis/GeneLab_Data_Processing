@@ -21,8 +21,11 @@ process FRAGPIPE {
 
     output:
     path("output/**"), emit: fragpipe_outputs
-    path("output/msstats.csv"), emit: msstats_csv
     path("fragpipe-files.fp-manifest"), emit: fragpipe_manifest
+    path("output/msstats.csv"), emit: msstats_csv, optional: true
+    path("output/experiment_annotation.tsv"), emit: experiment_annotation
+    path("output/combined_protein.tsv"), emit: combined_protein_tsv
+    path("output/combined_peptide.tsv"), emit: combined_peptide_tsv
     path("versions.yml"), emit: versions
 
     script:
