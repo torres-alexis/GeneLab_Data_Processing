@@ -9,6 +9,7 @@ include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
 //include { MSFRAGGER } from '../modules/msfragger.nf'
 //include { MSFRAGGER_CONFIG } from '../modules/msfragger.nf'
 include { GET_PROTEOME } from '../modules/get_proteome.nf'
+include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
 //include { CRYSTAL_C } from '../modules/crystal_c.nf'
 //include { CRYSTAL_C_CONFIG } from '../modules/crystal_c.nf'
 //include { PHILOSOPHER } from '../modules/philosopher.nf'
@@ -16,8 +17,9 @@ include { GET_PROTEOME } from '../modules/get_proteome.nf'
 include { MSSTATS } from '../modules/msstats.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE } from '../modules/fragpipe.nf'
+include { FP_ANALYST_R } from '../modules/fp_analyst_r.nf'
+include { PMULTIQC } from '../modules/pmultiqc.nf'
 //include { PEPXML_TO_MZID } from '../modules/pepxml_to_mzid.nf'
-//include { PMULTIQC } from '../modules/pmultiqc.nf'
 
 
 
@@ -43,7 +45,6 @@ workflow PROTEOMICS {
         // 
         Channel.empty() | set { osd_accession }
         Channel.empty() | set { glds_accession }
-        ch_reference_store_path = Channel.value(params.reference_store_path)
         
         // Handle accession and output directory naming
         if ( params.accession ) {
@@ -87,12 +88,13 @@ workflow PROTEOMICS {
             .flatMap { runsheet_path -> 
                 samplesheetToList(runsheet_path, "$projectDir/schema_runsheet.json")
             }
-            .map { meta, input_file -> 
-                tuple(meta, input_file)
+            .map { row ->
+                def meta = row[0]
+                tuple(meta, meta.data_file)
             }
         
-        // samples.view { meta, input_file ->
-        //     """Sample: ${meta.id}, Input File: ${input_file}"""
+        // samples.view { meta, data_file ->
+        //     """Sample: ${meta.id}, Input File: ${data_file}"""
         // }
 
         // Stage input files for each sample
@@ -114,18 +116,12 @@ workflow PROTEOMICS {
         // Get proteome database: download from UniProt OR use existing FASTA
         if (params.uniprot_id) {
             // Download and prepare from UniProt using GET_PROTEOME
-            GET_PROTEOME(
-                output_dir,
-                params.reference_store_path,
-                params.uniprot_id,
-                params.philosopher_reviewed,
-                params.philosopher_isoforms,
-                params.philosopher_contaminants
-            )
+            GET_PROTEOME(output_dir)
             proteome = GET_PROTEOME.out.proteome_fasta
         } else {
-            // Use existing FASTA file
-            proteome = file(params.reference_proteome)
+            // Check if FASTA file contains decoys and contaminants using input FASTA file
+            CHECK_DECOYS_CONTAMS(output_dir, file(params.reference_proteome))
+            proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
         }
 
         // Generate manifest if not supplied
@@ -226,16 +222,30 @@ workflow PROTEOMICS {
 
         FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
 
-        // // Run MultiQC with pmultiqc fragpipe plugin
-        // ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
-        // ch_fragpipe_output_dir = output_dir.map { file("${it}/FragPipe", type: 'dir') }
-        // PMULTIQC( output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
-
         ///////////////////////////////////////////////////////////
         // END HEADLESS FRAGPIPE
         ///////////////////////////////////////////////////////////
 
 
+        // Run MultiQC with pmultiqc fragpipe plugin
+        ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
+        ch_fragpipe_output_dir = output_dir.map { file("${it}/FragPipe", type: 'dir') }
+        PMULTIQC( output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
+
+        // Run MSstats for statistical analysis (only for LFQ-MBR workflow)
+        if (params.fragpipe_workflow == 'LFQ-MBR') {
+            // Use the dedicated msstats_csv and fragpipe_manifest outputs from FRAGPIPE
+            MSSTATS(output_dir, runsheet, FRAGPIPE.out.fragpipe_manifest, FRAGPIPE.out.msstats_csv)
+            
+            // Run FragPipe-Analyst R on combined_protein.tsv only (single run with both protein and gene feature lists)
+            // data_type placeholder for future TMT (protein/gene/peptide/site)
+            ch_fp_analyst_inputs = FRAGPIPE.out.combined_protein_tsv
+                .combine(FRAGPIPE.out.experiment_annotation)
+                .map { quant_file, exp_anno -> tuple("protein", quant_file, exp_anno) }
+            
+            FP_ANALYST_R(output_dir, ch_fp_analyst_inputs)
+        }
+        
         ///////////////////////////////////////////////////////////
         // MANUAL FRAGPIPE PROCESSING:
         ///////////////////////////////////////////////////////////
@@ -290,13 +300,6 @@ workflow PROTEOMICS {
         ///////////////////////////////////////////////////////////
         // END MANUAL FRAGPIPE PROCESSING
         ///////////////////////////////////////////////////////////
-
-        // Run MSstats for statistical analysis (only for LFQ-MBR workflow)
-        if (params.fragpipe_workflow == 'LFQ-MBR') {
-            // Use the dedicated msstats_csv and fragpipe_manifest outputs from FRAGPIPE
-            MSSTATS(output_dir, runsheet, FRAGPIPE.out.fragpipe_manifest, FRAGPIPE.out.msstats_csv)
-        }
-
 
     emit:
         runsheet
