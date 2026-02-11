@@ -906,13 +906,13 @@ Rscript fp_analyst_analysis.R \
 - venndiagram/ (pairwise Venn diagrams)
 - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (protein run: top 10 by protein ID and top 10 by gene; filenames boxplot_feature_*.pdf, violinplot_feature_*.pdf)
 - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID only)
-- unimputed_matrix.tsv (filtered data, before imputation)
-- normalized_matrix.tsv (after normalization; when normalization is "none", equals filtered)
-- imputed_matrix.tsv (protein intensities after imputation)
-- de_results.tsv (differential expression results)
+- Filtered_matrix.csv (filtered intensity matrix: Protein ID plus sample intensity columns; features passing filter; may contain missing values)
+- Normalized_matrix.csv (normalized intensity matrix: when normalization is none (default), same values as Filtered_matrix)
+- Imputed_matrix.csv (Normalized matrix with missing values filled; default imputation is Perseus-type: random draws from a normal distribution below each sample median. Only written when imputation is run.)
+- DE_results.csv (differential expression results: Protein ID, Gene Name, per-contrast log2 fold change and p.val, p.adj, per-contrast significant (type: boolean), global significant (type: boolean), imputed (type: boolean), num_NAs, Description)
 - de_heatmap.pdf, de_heatmap.png (DE heatmap)
 - volcano/ (volcano plots per contrast)
-- enrichment/ (pathway and GO enrichment plots and TSV tables)
+- enrichment/ (pathway and GO enrichment plots and CSV tables)
 - report.pdf (report file summarizing FragPipe-Analyst results)
 
 <br>
