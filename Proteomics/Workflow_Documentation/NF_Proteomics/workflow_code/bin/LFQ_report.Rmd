@@ -1,0 +1,124 @@
+---
+title: "FragPipe-Analyst report"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+params:
+  data: NA
+  alpha: NA
+  lfc: NA
+  normalization: NA
+  imputation: NA
+  fdr_correction: NA
+  num_signif: NA
+  tested_contrasts: NA
+  numbers_input: NA
+  coverage_input: NA
+  pca_input: NA
+  correlation_input: NA
+  missval_input: NA
+  detect_input: NA
+  density_input: NA
+  p_hist_input: NA
+  heatmap_input: NA
+  dep: NA
+  cvs_input: NA
+  volcano_input: NA
+output:
+  pdf_document:
+    fig_caption: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(opts.label="kill_prefix")
+```
+
+## Method details
+
+The raw DDA LFQ data files were analyzed using FragPipe to obtain protein identifications and their respective label-free quantification values using IonQuant. Uploaded combined_protein.tsv file was first filtered for contaminant proteins and then converted to log2 scale. Samples were grouped by conditions and missing values were imputed using `r params$imputation` method. Protein-wise linear models combined with empirical Bayes statistics were used for the differential expression analyses. The _limma_ package from R Bioconductor was used to generate a list of differentially expressed proteins for each pair-wise comparison. A cutoff of the _adjusted p-value_ of `r params$alpha` (`r params$fdr_correction` method) along with a |log2 fold change| of `r params$lfc` has been applied to determine differentially expressed proteins in each pairwise comparison.
+
+### Quick summary of parameters used:
+
+* Normalization = `r params$normalization`
+* Imputation = `r params$imputation`
+* Tested comparisons = `r params$tested_contrasts`
+* Adjusted _p-value_ cutoff <= `r params$alpha`
+* Log2 fold change cutoff >= `r params$lfc`
+
+## Results
+
+### FragPipe result output contains `r nrow(params$data)` protein groups of which _`r nrow(params$dep())`_ proteins were reproducibly quantified.
+
+### `r params$num_signif` proteins differ significantly between samples.
+
+\pagebreak
+
+## Exploratory Analysis (QC Plots)
+
+### Principle Component Analysis (PCA) plot
+
+```{r pca_plot, echo=FALSE, fig.height= 4}
+print(params$pca_input())
+```
+\pagebreak
+
+### Sample Correlation matrix
+
+```{r correlation_heatmap, echo=FALSE, fig.keep='last', tidy=T, out.height='50%'}
+print(params$correlation_input())
+```
+\pagebreak
+
+### Sample Coefficient of variation (CVs)
+
+```{r sample_cv, echo=FALSE, warning=FALSE }
+print(params$cvs_input())
+```
+\pagebreak
+
+### Proteomics Experiment Summary
+
+Protein quantified per sample (after pre-processing).
+
+```{r numbers, echo=FALSE, warning=FALSE, results='hide', message=FALSE }
+print(params$numbers_input())
+```
+\pagebreak
+
+Protein overlap in all samples.
+
+```{r coverage, echo=FALSE, warning=FALSE}
+print(params$coverage_input())
+```
+\pagebreak
+
+## Missing Value handling
+
+### Missing value heatmap
+A heatmap for proteins with missing value in each dataset. Each row represent a protein with missing value in one or more replicate. Each replicate is clustered based on presence of missing values in the sample.
+
+```{r missing_value_heatmap, echo=FALSE, message=FALSE, results='hide', warning=FALSE, fig.keep='first', tidy=TRUE}
+params$missval_input()
+```
+\pagebreak
+
+### Missing value distribution
+Protein expression distribution before and after imputation. The plot showing the effect of imputation on protein expression distribution.
+
+```{r imputation_effect, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+print(params$density_input())
+```
+\pagebreak
+
+## Differential Expression Analysis (Results Plots)
+
+### Heatmap
+A plot representing an overview of expression of all significant (differentially expressed) proteins (rows) in all samples (columns).
+
+```{r heatmap_2, echo=F, warning=F, error=T, results='hide', fig.keep="first"}
+p <- params$heatmap_input()
+if (!is.null(p)) print(p)
+```
+
+### Volcano Plots
+
+```{r volcano, echo=FALSE, warning=FALSE, comment=NA, results='hide'}
+print(params$volcano_input())
+```
