@@ -1,6 +1,110 @@
 # FragPipe-Analyst DE implementation - from MonashProteomics/FragPipe-Analyst (GPL-3.0)
 # https://github.com/MonashProteomics/FragPipe-Analyst
 
+# plot_feature_monash: based on plot_feature from MonashProteomics/FragPipe-Analyst R/customized.R
+# Always subset by protein IDs (rownames); show_gene replaces facet labels with name/Gene from rowData.
+plot_feature_monash <- function(dep, protein, type = "boxplot", id = "sample_name", show_gene = FALSE) {
+  assertthat::assert_that(inherits(dep, "SummarizedExperiment"),
+                          is.character(protein),
+                          is.character(type))
+  subset <- dep[protein, ]
+  df_reps <- data.frame(assay(subset), check.names = FALSE) %>%
+    tibble::rownames_to_column() %>%
+    tidyr::gather(ID, val, -rowname) %>%
+    dplyr::left_join(., data.frame(colData(subset)), by = c("ID" = id))
+  df_reps$rowname <- factor(as.character(df_reps$rowname), levels = protein)
+  df_CI <- df_reps %>%
+    dplyr::group_by(condition, rowname) %>%
+    dplyr::summarize(mean = mean(val, na.rm = TRUE),
+              sd = sd(val, na.rm = TRUE),
+              n = dplyr::n()) %>%
+    dplyr::mutate(error = qnorm(0.975) * sd / sqrt(n),
+           CI.L = mean - error,
+           CI.R = mean + error) %>%
+    as.data.frame()
+  df_CI$rowname <- factor(as.character(df_CI$rowname), levels = protein)
+  df_reps$condition <- as.factor(df_reps$condition)
+  df_reps <- df_reps[!is.na(df_reps$val), ]
+  if ("replicate" %in% colnames(df_reps)) {
+    df_reps$replicate[is.na(df_reps$replicate)] <- 1L
+    df_reps$replicate <- as.character(df_reps$replicate)
+  }
+  if (show_gene) {
+    md <- metadata(dep)
+    level <- if (!is.null(md$level)) md$level else "protein"
+    if (!level %in% c("site", "peptide")) {
+      df_reps$rowname <- rowData(subset)[df_reps$rowname, "name"]
+    } else {
+      if (!is.null(md$exp) && md$exp == "DIA") {
+        if (level == "site") {
+          df_reps$rowname <- paste0(rowData(subset)[df_reps$rowname, "Gene"], "_", gsub(".*_", "", df_reps$rowname))
+        } else {
+          gene_col <- if ("Gene" %in% colnames(rowData(subset))) "Gene" else "Genes"
+          df_reps$rowname <- paste0(rowData(subset)[df_reps$rowname, gene_col], "_", gsub(".*_", "", df_reps$rowname))
+        }
+      } else if (!is.null(md$exp) && md$exp == "TMT") {
+        if (level == "site") {
+          df_reps$rowname <- paste0(rowData(subset)[df_reps$rowname, "Gene"], "_", gsub(".*_", "", rowData(subset)[df_reps$rowname, "ID"]))
+        } else {
+          df_reps$rowname <- paste0(rowData(subset)[df_reps$rowname, "Gene"], "_", gsub(".*_", "", rowData(subset)[df_reps$rowname, "Peptide"]))
+        }
+      } else {
+        seq_col <- if ("Modified Sequence" %in% colnames(rowData(subset))) "Modified Sequence" else "Peptide.Sequence"
+        df_reps$rowname <- paste0(rowData(subset)[df_reps$rowname, "Gene"], "_", rowData(subset)[df_reps$rowname, seq_col])
+      }
+    }
+  }
+  nrep <- if ("replicate" %in% colnames(df_reps)) max(as.numeric(df_reps$replicate), na.rm = TRUE) else 1
+  if (type == "violin") {
+    if (nrep <= 1) {
+      p <- ggplot2::ggplot(df_reps, ggplot2::aes(condition, val)) +
+        ggplot2::geom_violin(fill = "grey90", scale = "width", draw_quantiles = 0.5, trim = TRUE) +
+        ggplot2::geom_jitter(size = 3, position = ggplot2::position_dodge(width = 0.3)) +
+        ggplot2::labs(y = expression(log[2]~"Intensity")) +
+        ggplot2::facet_wrap(~rowname) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+              panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+              panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
+    } else {
+      p <- ggplot2::ggplot(df_reps, ggplot2::aes(condition, val)) +
+        ggplot2::geom_violin(fill = "grey90", scale = "width", draw_quantiles = 0.5, trim = TRUE) +
+        ggplot2::geom_jitter(ggplot2::aes(color = factor(replicate)), size = 3, position = ggplot2::position_dodge(width = 0.3)) +
+        ggplot2::labs(y = expression(log[2]~"Intensity"), col = "Replicates") +
+        ggplot2::facet_wrap(~rowname) +
+        ggplot2::scale_color_brewer(palette = "Dark2") +
+        ggplot2::theme_bw() +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+              panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+              panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
+    }
+  } else {
+    if (nrep <= 1) {
+      p <- ggplot2::ggplot(df_reps, ggplot2::aes(condition, val)) +
+        ggplot2::geom_boxplot() +
+        ggplot2::geom_jitter(size = 3, position = ggplot2::position_dodge(width = 0.3)) +
+        ggplot2::labs(y = expression(log[2]~"Intensity")) +
+        ggplot2::facet_wrap(~rowname) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+              panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+              panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
+    } else {
+      p <- ggplot2::ggplot(df_reps, ggplot2::aes(condition, val)) +
+        ggplot2::geom_boxplot() +
+        ggplot2::geom_jitter(ggplot2::aes(color = factor(replicate)), size = 3, position = ggplot2::position_dodge(width = 0.3)) +
+        ggplot2::labs(y = expression(log[2]~"Intensity"), col = "Replicates") +
+        ggplot2::facet_wrap(~rowname) +
+        ggplot2::scale_color_brewer(palette = "Dark2") +
+        ggplot2::theme_bw() +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+              panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+              panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
+    }
+  }
+  return(p)
+}
+
 # from MonashProteomics/FragPipe-Analyst R/functions.R # 305 (test_limma, BH FDR)
 # Modified: "others" type, left_join by ID. Matches Shiny limma path.
 # ---- test_limma_customized: Benjamini Hochberg FDR (limma topTable adjust.method="BH") ----

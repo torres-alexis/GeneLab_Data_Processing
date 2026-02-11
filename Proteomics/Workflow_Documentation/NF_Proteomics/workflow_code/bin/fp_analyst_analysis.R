@@ -442,6 +442,8 @@ for (vv in qc_versions) {
 }
 
 # ========== Feature plots: protein list and/or gene list (or top N when empty) ==========
+# Use plot_feature_monash (based on plot_feature from MonashProteomics/FragPipe-Analyst R/customized.R).
+# Avoids FragPipeAnalystR plot_feature(index=...) bug for LFQ.
 do_feature_plots <- function(features, feat_index, subdir) {
   if (length(features) == 0) return(invisible(NULL))
   feat_dir <- file.path(output_dir, "feature", subdir)
@@ -452,9 +454,11 @@ do_feature_plots <- function(features, feat_index, subdir) {
     feat <- as.character(feat)
     safe_name <- gsub("[^A-Za-z0-9_-]", "_", feat)
     for (vv in qc_versions) {
+      prots <- if (is.null(feat_index)) feat else rownames(vv$se)[rowData(vv$se)[[feat_index]] == feat]
+      if (length(prots) == 0) next
       for (ptype in plot_types) {
         tryCatch({
-          p_f <- plot_feature(vv$se, feat, index = feat_index, type = ptype)
+          p_f <- plot_feature_monash(vv$se, prots, type = ptype, show_gene = !is.null(feat_index))
           base <- paste0("feature_", safe_name, "_", ptype, vv$suffix)
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".pdf")), p_f, width = 6, height = 4)
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".png")), p_f, width = 6, height = 4, dpi = 150)
@@ -467,7 +471,7 @@ do_feature_plots <- function(features, feat_index, subdir) {
   }
 }
 
-# Protein IDs (rownames / index=NULL)
+# Protein IDs (rownames)
 features_protein <- character(0)
 if (length(feature_list_protein) > 0) {
   features_protein <- trimws(feature_list_protein[nchar(trimws(feature_list_protein)) > 0])
@@ -493,30 +497,33 @@ if (length(features_protein) > 0) {
   do_feature_plots(features_protein, feat_index = NULL, subdir = "protein")
 }
 
-# Gene names (index="Gene")
+# Gene names - map to protein IDs, plot_feature_monash with show_gene=TRUE
 features_gene <- character(0)
+gene_col <- if (nrow(qc_versions[[1]]$se) > 0 && "Gene" %in% colnames(rowData(qc_versions[[1]]$se))) "Gene" else NULL
 if (length(feature_list_gene) > 0) {
   features_gene <- trimws(feature_list_gene[nchar(trimws(feature_list_gene)) > 0])
-} else if (top_n_gene > 0) {
+} else if (top_n_gene > 0 && !is.null(gene_col)) {
   se_var <- qc_versions[[1]]$se
-  if (nrow(se_var) > 0 && "Gene" %in% colnames(rowData(se_var))) {
-    vars <- apply(assay(se_var), 1, function(x) var(x, na.rm = TRUE))
-    vars[is.na(vars)] <- 0
-    top_idx <- order(vars, decreasing = TRUE)[seq_len(min(top_n_gene * 2, length(vars)))]
-    seen <- character(0)
-    for (i in top_idx) {
-      id <- as.character(rowData(se_var)[i, "Gene"])
-      if (is.na(id) || !nzchar(id) || id %in% seen) next
-      seen <- c(seen, id)
-      features_gene <- c(features_gene, id)
-      if (length(features_gene) >= top_n_gene) break
-    }
-    print(paste("Top", length(features_gene), "variable features by gene for plotting"))
+  vars <- apply(assay(se_var), 1, function(x) var(x, na.rm = TRUE))
+  vars[is.na(vars)] <- 0
+  n_candidates <- min(top_n_gene * 10, length(vars))
+  top_idx <- order(vars, decreasing = TRUE)[seq_len(n_candidates)]
+  seen <- character(0)
+  for (i in top_idx) {
+    id <- as.character(rowData(se_var)[[gene_col]][i])
+    if (is.na(id) || !nzchar(trimws(id)) || id %in% seen) next
+    seen <- c(seen, id)
+    features_gene <- c(features_gene, id)
+    if (length(features_gene) >= top_n_gene) break
   }
+  print(paste("Top", length(features_gene), "variable features by gene for plotting"))
 }
-if (length(features_gene) > 0) {
+if (is.null(gene_col) && (top_n_gene > 0 || length(feature_list_gene) > 0)) {
+  print("Skipping gene feature plots: no 'Gene' column in rowData")
+}
+if (length(features_gene) > 0 && !is.null(gene_col)) {
   print("Plotting feature(s) by gene...")
-  do_feature_plots(features_gene, feat_index = "Gene", subdir = "gene")
+  do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
 }
 
 # ========== Export unimputed matrix ==========
