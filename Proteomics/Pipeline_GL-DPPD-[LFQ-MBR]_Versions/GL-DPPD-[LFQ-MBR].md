@@ -100,7 +100,7 @@ cd ..
 
 **Input Data:**
 
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -129,7 +129,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 **Input Data:**
 
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -188,25 +188,25 @@ fragpipe \
 
 **Input Data:**
 
-- `LFQ-MBR.workflow` (FragPipe LFQ-MBR workflow configuration file)
-- `manifest.tsv` (manifest file with sample information and file paths)
-- `tools_folder/` (directory containing FragPipe tools not included in the Docker image)
-- `*.mzML` (input mass spectrometry raw data in mzML format)
-- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- LFQ-MBR.workflow (FragPipe LFQ-MBR workflow configuration file)
+- manifest.tsv (manifest file with sample information and file paths)
+- tools_folder/ (directory containing FragPipe tools not included in the Docker image)
+- *.mzML (input mass spectrometry raw data in mzML format)
+- *-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
-- `fragger.params` (MSFragger parameter configuration file)
-- `msbooster_params.txt` (MSBooster parameter configuration file)
-- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet)
-- `filelist_ionquant.txt` (file list for IonQuant)
-- `modmasses_ionquant.txt` (modification masses file for IonQuant)
-- **`experiment_annotation.tsv`** (experiment annotation file)
-- `fragpipe.workflow` (updated FragPipe workflow configuration file)
-- `fragpipe-files.fp-manifest` (FragPipe files manifest)
-- `fragpipe.job` (FragPipe job configuration file)
-- `log_*.txt` (FragPipe execution log file with timestamp)
-- `sdrf.tsv` (Sample and Data Relationship Format file)
+- fragger.params (MSFragger parameter configuration file)
+- msbooster_params.txt (MSBooster parameter configuration file)
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
+- filelist_ionquant.txt (file list for IonQuant)
+- modmasses_ionquant.txt (modification masses file for IonQuant)
+- **experiment_annotation.tsv** (experiment annotation file)
+- fragpipe.workflow (updated FragPipe workflow configuration file)
+- fragpipe-files.fp-manifest (FragPipe files manifest)
+- fragpipe.job (FragPipe job configuration file)
+- log_*.txt (FragPipe execution log file with timestamp)
+- sdrf.tsv (Sample and Data Relationship Format file)
 
 <!-- > **Note:** FragPipe generates these configuration files during launch to configure and orchestrate all subsequent Fragpipe processing steps. These files contain parameters, file lists, and workflow settings used by the various tools in the pipeline. -->
 
@@ -229,7 +229,7 @@ java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar
 
 **Input Data:**
 
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -280,9 +280,9 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 **Input Data:**
 
-- `fragger.params` (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `*.mzML` (input mass spectrometry raw data in mzML format)
-- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- fragger.params (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- *.mzML (input mass spectrometry raw data in mzML format)
+- *-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -317,9 +317,9 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 **Input Data:**
 
-- `msbooster_params.txt` (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `*.pin` (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
+- msbooster_params.txt (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- *.pin (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -372,7 +372,7 @@ percolator \
 
 **Input Data:**
 
-- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
+- *_edited.pin (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
 
 **Output Data:**
 
@@ -414,10 +414,10 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 
 **Input Data:**
 
-- `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
-- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
+- *.pin (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- *_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- *_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -446,8 +446,8 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 
 **Input Data:**
 
-- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
-- `interact-*.pep.xml` (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
+- interact-*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
 
 **Output Data:**
 
@@ -475,7 +475,7 @@ philosopher database --annotate *.fas --prefix rev_
 
 **Input Data:**
 
-- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- *-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -548,8 +548,8 @@ philosopher filter \
 
 **Input Data:**
 
-- `interact-*.pep.xml` (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
-- `combined.prot.xml` (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
+- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
 - .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
 
 **Output Data:**
@@ -695,13 +695,13 @@ java -Xmx55G \
 
 **Input Data:**
 
-- `filelist_ionquant.txt` (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- `modmasses_ionquant.txt` (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- `protein.tsv` (sample-specific protein report, output from [Step 3j](#3j-generate-reports))
-- `peptide.tsv` (sample-specific peptide report, output from [Step 3j](#3j-generate-reports))
-- `psm.tsv` (sample-specific PSM report, output from [Step 3j](#3j-generate-reports))
-- `ion.tsv` (sample-specific ion report, output from [Step 3j](#3j-generate-reports))
-- `*.mzML` (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract intensity data for MS1 quantification and match-between-runs feature matching)
+- filelist_ionquant.txt (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
+- modmasses_ionquant.txt (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
+- protein.tsv (sample-specific protein report, output from [Step 3j](#3j-generate-reports))
+- peptide.tsv (sample-specific peptide report, output from [Step 3j](#3j-generate-reports))
+- psm.tsv (sample-specific PSM report, output from [Step 3j](#3j-generate-reports))
+- ion.tsv (sample-specific ion report, output from [Step 3j](#3j-generate-reports))
+- *.mzML (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract intensity data for MS1 quantification and match-between-runs feature matching)
 
 **Output Data:**
 
@@ -710,15 +710,15 @@ java -Xmx55G \
 - ion.tsv (sample-specific ion report with MS1 quantification data and additional data added from IonQuant)
 - psm.tsv (sample-specific PSM report with MS1 quantification data and additional data added from IonQuant)
 - *_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
-- combined_protein.tsv (combined protein report with MS1 quantification data across all samples)
-- combined_peptide.tsv (combined peptide report with MS1 quantification data and additional data across all samples)
-- combined_modified_peptide.tsv (combined modified peptide report with MS1 quantification data and additional data across all samples)
-- combined_ion.tsv (combined ion report with MS1 quantification data and additional data across all samples)
-- **combined_site_*.tsv** (site-specific modification reports, e.g., `combined_site_C_57.0215.tsv` for carbamidomethylation, `combined_site_M_15.9949.tsv` for oxidation)
+- **combined_protein.tsv** (combined protein report with MS1 quantification data across all samples)
+- **combined_peptide.tsv** (combined peptide report with MS1 quantification data and additional data across all samples)
+- **combined_modified_peptide.tsv** (combined modified peptide report with MS1 quantification data and additional data across all samples)
+- **combined_ion.tsv** (combined ion report with MS1 quantification data and additional data across all samples)
+- **combined_site_*.tsv** (site-specific modification reports, e.g., "combined_site_C_57.0215.tsv" for carbamidomethylation, "combined_site_M_15.9949.tsv" for oxidation)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities, generated by Philosopher)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts, generated by Philosopher)
-- **msstats.csv** (formatted input file for the MSstats R package for downstream differential analysis; contains columns: `ProteinName`, `PeptideSequence`, `PrecursorCharge`, `FragmentIon`, `Condition`, `BioReplicate`, `Run`, `Intensity`; main input for downstream statistical analysis)
-- msstats_ptm.csv (MSstats input file for PTM (post-translational modification) analysis; includes PTM site columns)
+- **msstats.csv** (formatted input file for the MSstats R package for downstream differential analysis; contains columns: "ProteinName", "PeptideSequence", "PrecursorCharge", "FragmentIon", "Condition", "BioReplicate", "Run", "Intensity"; main input for downstream statistical analysis)
+- **msstats_ptm.csv** (MSstats input file for PTM (post-translational modification) analysis; includes PTM site columns)
 <!-- - \*.mbrbin (match-between-runs binary data file for MBR feature matching) -->
 <!-- - \*.quantbin2 (quantification binary cache file) -->
 
@@ -749,13 +749,13 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 **Input Data:**
 
-- `psm.tsv` (sample-specific PSM reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `ion.tsv` (sample-specific ion reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `combined_ion.tsv` (combined ion report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `*.workflow` (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
-- `fragger.params` (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
+- psm.tsv (sample-specific PSM reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- ion.tsv (sample-specific ion reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- combined_ion.tsv (combined ion report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- *.workflow (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
+- fragger.params (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
 
 **Output Data:**
 
@@ -782,14 +782,14 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 **Input Data:**
 
-- `msstats.csv` (MSstats input file, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `runsheet.tsv` (runsheet file with sample metadata and factor values)
+- msstats.csv (MSstats input file, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- runsheet.tsv (runsheet file with sample metadata and factor values)
 
 **Output Data:**
 
-- msstats_comparison_*.csv (pairwise differential abundance comparison results)
-- msstats_comparison_all.csv (all pairwise comparisons combined)
-- msstats_contrasts.csv (contrast definitions)
+- **msstats_comparison_*.csv** (pairwise differential abundance comparison results)
+- **msstats_comparison_all.csv** (all pairwise comparisons combined)
+- **msstats_contrasts.csv** (contrast definitions)
 
 <br>
 
@@ -826,6 +826,8 @@ Rscript fp_analyst_analysis.R \
   --go_direction "Both" \
   --output_dir "output/"
 ```
+
+**Peptide run:**
 
 ```bash
 Rscript fp_analyst_analysis.R \
@@ -880,31 +882,31 @@ Rscript fp_analyst_analysis.R \
 
 **Input Data:**
 
-- `experiment_annotation.tsv` (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
-- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- experiment_annotation.tsv (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
+- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
 
 **Output Data:**
 
-- `fp_analyst_parameters.txt` (run parameters)
-- `pca.pdf`, `pca.png` (PCA plot)
-- `correlation_heatmap.pdf`, `correlation_heatmap.png` (sample correlation heatmap)
-- `missing_value_heatmap.pdf`, `missing_value_heatmap.png` (missing value pattern heatmap)
-- `feature_numbers.pdf`, `feature_numbers.png` (feature count per sample)
-- `sample_coverage.pdf`, `sample_coverage.png` (sample coverage)
-- `density.pdf`, `density.png` (intensity distribution)
-- `sample_cvs.pdf`, `sample_cvs.png` (sample coefficient of variation)
-- `jaccard.pdf`, `jaccard.png` (Jaccard similarity plot)
-- `upset.pdf`, `upset.png` (UpSet plot)
-- `venndiagram/` (pairwise Venn diagrams)
-- `feature/protein/boxplot/`, `feature/protein/violinplot/`, `feature/gene/boxplot/`, `feature/gene/violinplot/` (protein run: top 10 by protein ID and top 10 by gene; filenames `boxplot_feature_*.pdf`, `violinplot_feature_*.pdf`)
-- `feature/peptide/boxplot/`, `feature/peptide/violinplot/` (peptide run: top 10 by peptide ID only)
-- `unimputed_matrix.tsv` (filtered data, before imputation)
-- `normalized_matrix.tsv` (after normalization; when normalization is "none", equals filtered)
-- `imputed_matrix.tsv` (protein intensities after imputation)
-- `de_results.tsv` (differential expression results)
-- `de_heatmap.pdf`, `de_heatmap.png` (DE heatmap)
-- `volcano/` (volcano plots per contrast)
-- `enrichment/` (pathway and GO enrichment plots and TSV tables)
+- fp_analyst_parameters.txt (run parameters)
+- pca.pdf, pca.png (PCA plot)
+- correlation_heatmap.pdf, correlation_heatmap.png (sample correlation heatmap)
+- missing_value_heatmap.pdf, missing_value_heatmap.png (missing value pattern heatmap)
+- feature_numbers.pdf, feature_numbers.png (feature count per sample)
+- sample_coverage.pdf, sample_coverage.png (sample coverage)
+- density.pdf, density.png  (intensity distribution)
+- sample_cvs.pdf, sample_cvs.png (sample coefficient of variation)
+- jaccard.pdf, jaccard.png (Jaccard similarity plot)
+- upset.pdf, upset.png (UpSet plot)
+- venndiagram/ (pairwise Venn diagrams)
+- feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (protein run: top 10 by protein ID and top 10 by gene; filenames boxplot_feature_\*.pdf, violinplot_feature_\*.pdf)
+- feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID only)
+- unimputed_matrix.tsv (filtered data, before imputation)
+- normalized_matrix.tsv (after normalization; when normalization is "none", equals filtered)
+- imputed_matrix.tsv (protein intensities after imputation)
+- de_results.tsv (differential expression results)
+- de_heatmap.pdf, de_heatmap.png (DE heatmap)
+- volcano/ (volcano plots per contrast)
+- enrichment/ (pathway and GO enrichment plots and TSV tables)
 
 <br>
