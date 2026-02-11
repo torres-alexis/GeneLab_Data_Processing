@@ -807,7 +807,7 @@ Rscript fp_analyst_analysis.R \
   --quantification_file combined_protein.tsv \
   --mode LFQ \
   --level protein \
-  --lfq_type MaxLFQ \
+  --lfq_type Intensity \
   --min_global_appearance 0 \
   --min_appearance_one_condition 0 \
   --de_alpha 0.05 \
@@ -859,7 +859,7 @@ Rscript fp_analyst_analysis.R \
 - `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
-- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ`. Protein uses MaxLFQ; peptide uses Intensity.
+- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ` (default: `Intensity`).
 - `--min_global_appearance` – at least X% non-missing across all samples (0–100). 0 = no filter
 - `--min_appearance_one_condition` – at least X% non-missing in at least one condition (0–100). 0 = no filter
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
@@ -906,5 +906,6 @@ Rscript fp_analyst_analysis.R \
 - `de_heatmap.pdf`, `de_heatmap.png` (DE heatmap)
 - `volcano/` (volcano plots per contrast)
 - `enrichment/` (pathway and GO enrichment plots and TSV tables)
+- `report.pdf` (report file summarizing FragPipe-Analyst results)
 
 <br>

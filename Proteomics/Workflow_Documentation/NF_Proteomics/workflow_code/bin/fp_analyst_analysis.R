@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 # FragPipe-Analyst downstream analysis: QC plots, DE (limma), feature plots, enrichment.
-# Sources fp_analyst_de_fragpipe.R for filters and plot functions from MonashProteomics/FragPipe-Analyst.
+# Sources fp_analyst_de_fragpipe.R (filters and plot functions from MonashProteomics/FragPipe-Analyst).
 print("STARTING ANALYSIS")
 args = commandArgs(trailingOnly=TRUE)
 
@@ -67,7 +67,7 @@ option_list = list(
     make_option(c("--qc_include_both"), type="character", default="false",
                 help="Generate both imputed and unimputed versions of QC plots (PCA, correlation, CVs, feature). true/false.", metavar="STRING"),
     make_option(c("--shiny_reference_de"), type="character", default=NULL,
-                help="Path to Shiny DE_results.csv; if set, filter SE to same protein set before DE.", metavar="FILE"),
+                help="Path to DE_results.csv; if set, filter SE to same protein set before DE.", metavar="FILE"),
     make_option(c("--volcano_display_names"), type="character", default="true",
                 help="Volcano plot: display names on significant points. true/false.", metavar="STRING"),
     make_option(c("--volcano_show_gene"), type="character", default="true",
@@ -170,10 +170,8 @@ writeLines(c(
 print(paste("Parameters written to:", var_file))
 
 
-# Create SummarizedExperiment object
-# For LFQ protein and peptide: use Shiny-exact path (make_unique + make_se_customized) to replicate FragPipe-Analyst DE table
-# Ref: MonashProteomics/FragPipe-Analyst server.R processed_data, fragpipe_data_input, exp_design_input
-# Same flow: read TSV, filter contaminants, make_unique, make_se_customized, manual_impute(seed=123), test_limma_customized, add_rejections_customized
+# Create SummarizedExperiment (make_unique, make_se_customized, manual_impute, test_limma_customized, add_rejections_customized).
+# From MonashProteomics/FragPipe-Analyst server.R (processed_data, make_se_customized, etc.).
 print("Creating SummarizedExperiment object...")
 make.unique.2 <- function(x, sep = ".") {
   ave(x, x, FUN = function(a) {
@@ -181,7 +179,7 @@ make.unique.2 <- function(x, sep = ".") {
   })
 }
 if (mode == "LFQ" && level == "protein") {
-  # --- Shiny-exact path: LFQ protein ---
+  # LFQ protein
   temp_data <- read.table(quantification_file, header = TRUE, fill = TRUE, sep = "\t",
     quote = "", comment.char = "", blank.lines.skip = FALSE, check.names = FALSE)
   colnames(temp_data) <- make.unique.2(colnames(temp_data), "_")
@@ -208,7 +206,7 @@ if (mode == "LFQ" && level == "protein") {
   data_se <- FragPipeAnalystR::make_se_customized(data_unique, lfq_cols, temp_df,
     log2transform = (lfq_type != "Spectral Count"), exp = "LFQ", lfq_type = lfq_type, level = "protein")
 } else if (mode == "LFQ" && level == "peptide") {
-  # --- Shiny-exact path: LFQ peptide (server.R LFQ-peptide flow) ---
+  # LFQ peptide
   temp_data <- read.table(quantification_file, header = TRUE, fill = TRUE, sep = "\t",
     quote = "", comment.char = "", blank.lines.skip = FALSE, check.names = FALSE)
   colnames(temp_data) <- make.unique.2(colnames(temp_data), "_")
@@ -301,9 +299,7 @@ if (min_appearance_one_condition > 0 && min_appearance_one_condition <= 100) {
 }
 data_se <- filtered_se
 
-# ========== Shiny reference filter (optional) ==========
-# If Shiny DE_results.csv provided, filter to same protein set before imputation/DE
-# This matches Shiny's variance moderation in limma (ebayes uses variance across all proteins)
+# Optional: filter to same protein set as external DE_results.csv before imputation/DE (for variance moderation consistency)
 if (!is.null(shiny_reference_de) && file.exists(shiny_reference_de)) {
   ref_df <- read.table(shiny_reference_de, header = TRUE, sep = ",", quote = "\"",
     stringsAsFactors = FALSE, check.names = FALSE)
@@ -320,7 +316,7 @@ if (!is.null(shiny_reference_de) && file.exists(shiny_reference_de)) {
   }
   n_before <- nrow(data_se)
   data_se <- data_se[match_idx, ]
-  print(paste("shiny_reference_de: filtered to", nrow(data_se), "proteins (from", n_before, ") to match Shiny"))
+  print(paste("shiny_reference_de: filtered to", nrow(data_se), "proteins (from", n_before, ")"))
 }
 
 # ========== PCA ==========
@@ -336,7 +332,7 @@ if (has_missing && mode %in% c("LFQ", "DIA") && imputation_type != "none") {
 }
 
 # QC plots: when qc_include_both=TRUE, generate both imputed and unimputed versions
-# Otherwise use qc_show_imputed to pick one (matches Shiny "Show imputed" checkbox)
+# Otherwise use qc_show_imputed to pick one.
 se_imputed <- if (!is.null(imputed_se)) imputed_se else data_se
 se_unimputed <- data_se
 qc_versions <- if (qc_include_both && !is.null(imputed_se)) {
@@ -365,12 +361,16 @@ for (vv in qc_versions) {
 print("Plotting correlation heatmap...")
 for (vv in qc_versions) {
   tryCatch({
-    ht_corr <- plot_cor_customized(vv$se, significant = FALSE, indicate = "condition", plot = FALSE)
+    n_samp <- ncol(vv$se)
+    ht_corr <- plot_cor_customized(vv$se, significant = FALSE, indicate = "condition", plot = FALSE,
+      font_size = if (n_samp > 10) 9 else 12)
     base <- paste0("correlation_heatmap", vv$suffix)
-    pdf(file.path(output_dir, paste0(base, ".pdf")), width = 8, height = 7)
+    # Scale figure size so sample labels don't truncate in PDF
+    fig_side <- min(14, max(7, 5 + n_samp * 0.35))
+    pdf(file.path(output_dir, paste0(base, ".pdf")), width = fig_side, height = fig_side)
     ComplexHeatmap::draw(ht_corr, heatmap_legend_side = "top")
     dev.off()
-    png(file.path(output_dir, paste0(base, ".png")), width = 8, height = 7, units = "in", res = 150)
+    png(file.path(output_dir, paste0(base, ".png")), width = fig_side, height = fig_side, units = "in", res = 150)
     ComplexHeatmap::draw(ht_corr, heatmap_legend_side = "top")
     dev.off()
     print(paste("Correlation heatmap saved:", base, vv$desc))
@@ -384,10 +384,10 @@ if (has_missing) {
   print("Plotting missing value heatmap...")
   tryCatch({
     pdf(file.path(output_dir, "missing_value_heatmap.pdf"), width = 8, height = 6)
-    plot_missval_heatmap(data_se)
+    plot_missval_customized(data_se)
     dev.off()
     png(file.path(output_dir, "missing_value_heatmap.png"), width = 8, height = 6, units = "in", res = 150)
-    plot_missval_heatmap(data_se)
+    plot_missval_customized(data_se)
     dev.off()
     print(paste("Missing value heatmap saved to", output_dir))
   }, error = function(e) {
@@ -406,8 +406,7 @@ tryCatch({
   warning("Feature numbers plot failed: ", conditionMessage(e))
 })
 
-# ========== Sample coverage (FragPipe-Analyst Shiny: "Sample coverage") ==========
-# Barplot: number of features observed in 1, 2, ..., N samples.
+# Sample coverage (from FragPipe-Analyst plot_coverage_customized): barplot of features in 1, 2, ..., N samples.
 print("Plotting sample coverage...")
 tryCatch({
   p_cov <- plot_coverage_customized(data_se, plot = TRUE)
@@ -423,27 +422,26 @@ print("Plotting density plot...")
 tryCatch({
   ses_dens <- list("original data" = processed_se, "filtered data" = data_se)
   if (!is.null(imputed_se)) ses_dens[["imputed data"]] <- imputed_se
-  p_dens <- plot_density_monash(ses_dens)
+  p_dens <- plot_density_custom(ses_dens)
   ggplot2::ggsave(file.path(output_dir, "density.pdf"), p_dens, width = 8, height = 7)
   ggplot2::ggsave(file.path(output_dir, "density.png"), p_dens, width = 8, height = 7, dpi = 150)
   print("Density plot saved")
 }, error = function(e) { warning("Density plot failed: ", conditionMessage(e)) })
 
-# ========== Absence/Presence plots - SOURCE from MonashProteomics/FragPipe-Analyst ==========
-# data_attendance, Venn (ggVennDiagram), UpSet (UpSetR), Jaccard (plot_Jaccard)
+# Absence/presence (from MonashProteomics/FragPipe-Analyst): data_attendance, Venn, UpSet, Jaccard.
 if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
   print("Plotting Absence/Presence analyses...")
   exp <- if (!is.null(metadata(processed_se)$exp)) metadata(processed_se)$exp else mode
   level <- if (!is.null(metadata(processed_se)$level)) metadata(processed_se)$level else "protein"
-  att_df <- data_attendance_monash(processed_se, exp = exp, level = level)
+  att_df <- data_attendance_custom(processed_se, exp = exp, level = level)
   conditions <- unique(colData(processed_se)$condition)
   # Jaccard - Monash plot_Jaccard (sample-level); main output folder
   tryCatch({
     pdf(file.path(output_dir, "jaccard.pdf"), width = 7, height = 6)
-    plot_Jaccard_monash(processed_se, plot = TRUE, exp = exp)
+    plot_Jaccard_custom(processed_se, plot = TRUE, exp = exp)
     dev.off()
     png(file.path(output_dir, "jaccard.png"), width = 7, height = 6, units = "in", res = 150)
-    plot_Jaccard_monash(processed_se, plot = TRUE, exp = exp)
+    plot_Jaccard_custom(processed_se, plot = TRUE, exp = exp)
     dev.off()
     print("Jaccard similarity plot saved")
   }, error = function(e) { warning("Jaccard plot failed: ", conditionMessage(e)) })
@@ -451,7 +449,7 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
   vd_dir <- file.path(output_dir, "venndiagram")
   for (pr in utils::combn(conditions, 2, simplify = FALSE)) {
     tryCatch({
-      v <- plot_venn_monash(att_df, pr[1], pr[2], cond3 = NULL)
+      v <- plot_venn_custom(att_df, pr[1], pr[2], cond3 = NULL)
       if (!is.null(v)) {
         safe_name <- paste0(gsub("[^A-Za-z0-9_-]", "_", pr[1]), "_vs_", gsub("[^A-Za-z0-9_-]", "_", pr[2]))
         ggplot2::ggsave(file.path(vd_dir, paste0("venn_", safe_name, ".pdf")), v, width = 6, height = 6)
@@ -464,10 +462,10 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
   tryCatch({
     if (length(grep("^#Occurences_", colnames(att_df))) >= 2) {
       pdf(file.path(output_dir, "upset.pdf"), width = 10, height = 6, onefile = FALSE)
-      plot_upset_monash(att_df)
+      plot_upset_custom(att_df)
       dev.off()
       png(file.path(output_dir, "upset.png"), width = 10, height = 6, units = "in", res = 150, type = "cairo")
-      plot_upset_monash(att_df)
+      plot_upset_custom(att_df)
       dev.off()
       print("UpSet plot saved")
     }
@@ -488,12 +486,10 @@ for (vv in qc_versions) {
   })
 }
 
-# ========== Feature plots: protein list and/or gene list (or top N when empty) ==========
-# Use plot_feature_monash (based on plot_feature from MonashProteomics/FragPipe-Analyst R/customized.R).
-# Avoids FragPipeAnalystR plot_feature(index=...) bug for LFQ.
+# Feature plots (plot_feature_custom from MonashProteomics/FragPipe-Analyst R/customized.R): protein/gene list or top N.
 do_feature_plots <- function(features, feat_index, subdir) {
   if (length(features) == 0) return(invisible(NULL))
-  # folder_name -> type for plot_feature_monash (violinplot uses type="violin")
+  # folder_name -> type for plot_feature_custom (violinplot uses type="violin")
   plot_specs <- list(boxplot = "boxplot", violinplot = "violin")
   for (i in seq_along(features)) {
     feat <- features[i]
@@ -506,7 +502,7 @@ do_feature_plots <- function(features, feat_index, subdir) {
       for (folder_name in names(plot_specs)) {
         ptype <- plot_specs[[folder_name]]
         tryCatch({
-          p_f <- plot_feature_monash(vv$se, prots, type = ptype, show_gene = !is.null(feat_index))
+          p_f <- plot_feature_custom(vv$se, prots, type = ptype, show_gene = !is.null(feat_index))
           feat_dir <- file.path(output_dir, "feature", subdir, folder_name)
           if (!dir.exists(feat_dir)) dir.create(feat_dir, recursive = TRUE)
           base <- paste0(folder_name, "_feature_", safe_name, vv$suffix)
@@ -548,7 +544,7 @@ if (length(features_protein) > 0) {
   do_feature_plots(features_protein, feat_index = NULL, subdir = id_subdir)
 }
 
-# Gene names - map to protein IDs, plot_feature_monash with show_gene=TRUE
+# Gene names - map to protein IDs, plot_feature_custom with show_gene=TRUE
 features_gene <- character(0)
 gene_col <- if (nrow(qc_versions[[1]]$se) > 0 && "Gene" %in% colnames(rowData(qc_versions[[1]]$se))) "Gene" else NULL
 if (length(feature_list_gene) > 0) {
@@ -586,9 +582,7 @@ write.table(unimputed_df, file.path(output_dir, "unimputed_matrix.tsv"),
     sep = "\t", row.names = FALSE, quote = FALSE)
 print(paste("Unimputed matrix saved to", output_dir))
 
-# ========== Export normalized matrix ==========
-# Ref: MonashProteomics/FragPipe-Analyst server.R normalized_data() -> when normalization == "none", returns filtered_data().
-# Same as reference: when normalization is "none" (default), normalized = filtered. Same as unimputed.
+# Export normalized matrix. From MonashProteomics/FragPipe-Analyst server.R normalized_data(); when norm="none", normalized = filtered.
 normalized_df <- cbind(
     as.data.frame(rowData(data_se)),
     as.data.frame(assay(data_se))
@@ -642,8 +636,8 @@ if (n_conditions >= 2) {
     v_name_col <- if (volcano_show_gene && "Gene" %in% colnames(de_df)) "Gene" else "ID"
     highlight_vec <- volcano_highlight_feature
     for (cntrst in valid_cntrsts) {
-        p_v <- plot_volcano(de_result_updated, cntrst, plot = TRUE, alpha = de_alpha, lfc = de_lfc,
-          name_col = v_name_col, add_names = volcano_display_names)
+        p_v <- plot_volcano_customized(de_result_updated, cntrst, plot = TRUE, alpha = de_alpha, lfc = de_lfc,
+          name_col = v_name_col, add_names = volcano_display_names, adjusted = TRUE)
         # Add highlight layer if features specified
         if (length(highlight_vec) > 0) {
             diff_col <- paste0(cntrst, "_diff")
@@ -679,15 +673,28 @@ if (n_conditions >= 2) {
 
     # DE heatmap (significant proteins, sample-level)
     # Uses get_cluster_heatmap_customized for correct col labels (label->sample_name mapping fallback)
+    # When no significant features it returns NULL (report shows no figure; standalone gets a placeholder)
     print("Plotting DE heatmap...")
     tryCatch({
+      hm_res <- get_cluster_heatmap_customized(de_result_updated, type = "centered", alpha = de_alpha, lfc = de_lfc,
+        indicate = "condition")
       pdf(file.path(output_dir, "de_heatmap.pdf"), width = 8, height = 8)
-      get_cluster_heatmap_customized(de_result_updated, type = "centered", alpha = de_alpha, lfc = de_lfc,
-        indicate = c("condition", "replicate"))
+      if (is.null(hm_res)) {
+        plot.new()
+        text(0.5, 0.5, "No differentially expressed features available for the heatmap", cex = 1.2)
+      } else {
+        get_cluster_heatmap_customized(de_result_updated, type = "centered", alpha = de_alpha, lfc = de_lfc,
+          indicate = "condition")
+      }
       dev.off()
       png(file.path(output_dir, "de_heatmap.png"), width = 8, height = 8, units = "in", res = 150)
-      get_cluster_heatmap_customized(de_result_updated, type = "centered", alpha = de_alpha, lfc = de_lfc,
-        indicate = c("condition", "replicate"))
+      if (is.null(hm_res)) {
+        plot.new()
+        text(0.5, 0.5, "No differentially expressed features available for the heatmap", cex = 1.2)
+      } else {
+        get_cluster_heatmap_customized(de_result_updated, type = "centered", alpha = de_alpha, lfc = de_lfc,
+          indicate = "condition")
+      }
       dev.off()
       print(paste("DE heatmap saved to", output_dir))
     }, error = function(e) {
@@ -746,6 +753,107 @@ if (n_conditions >= 2) {
     }
 } else {
     print(paste("Skipping DE: only", n_conditions, "condition(s). Need >= 2 for differential expression."))
+}
+
+# Report PDF: map (mode, level) to report Rmd (from MonashProteomics/FragPipe-Analyst reports/).
+report_rmd_map <- c(
+  "LFQ_protein" = "LFQ_report.Rmd",
+  "LFQ_peptide" = "LFQ-peptide_report.Rmd",
+  "TMT_protein" = "TMT_report.Rmd",
+  "TMT_gene" = "TMT_report.Rmd",
+  "TMT_peptide" = "TMT-peptide_report.Rmd",
+  "TMT_site" = "TMT-site_report.Rmd",
+  "DIA_protein" = "DIA_report.Rmd",
+  "DIA_peptide" = "DIA-peptide_report.Rmd",
+  "DIA_site" = "DIA-site_report.Rmd"
+)
+report_rmd_key <- paste(mode, level, sep = "_")
+rmd_name <- report_rmd_map[report_rmd_key]
+if (n_conditions >= 2 && !is.na(rmd_name)) {
+  rmd_path <- file.path(script_dir, rmd_name)
+  if (file.exists(rmd_path) && requireNamespace("rmarkdown", quietly = TRUE)) {
+    tryCatch({
+      de_for_report <- if (exists("de_result_updated")) de_result_updated else NULL
+      se_for_qc <- if (!is.null(imputed_se)) imputed_se else data_se
+      valid_cntrsts <- character(0)
+      num_signif <- 0L
+      if (!is.null(de_for_report)) {
+        de_df <- as.data.frame(rowData(de_for_report))
+        diff_cols <- grep("_diff$", colnames(de_df), value = TRUE)
+        valid_cntrsts <- gsub("_diff$", "", diff_cols)
+        if ("significant" %in% colnames(de_df)) {
+          num_signif <- sum(replace_na(de_df$significant, FALSE), na.rm = TRUE)
+        } else {
+          sig_cols <- grep("_significant$", colnames(de_df), value = TRUE)
+          for (sc in sig_cols) num_signif <- num_signif + sum(de_df[[sc]], na.rm = TRUE)
+        }
+      }
+      pca_input <- function() plot_pca(se_for_qc, indicate = "condition", plot = TRUE)
+      correlation_input <- function() {
+        ht <- plot_cor_customized(se_for_qc, significant = FALSE, indicate = "condition", plot = FALSE)
+        ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
+      }
+      cvs_input <- function() plot_cvs(se_for_qc, id = "sample_name", scale = TRUE)
+      numbers_input <- function() FragPipeAnalystR::plot_feature_numbers(data_se, fill = "condition")
+      coverage_input <- function() plot_coverage_customized(data_se, plot = TRUE)
+      missval_input <- function() {
+        if (any(is.na(assay(data_se)))) plot_missval_customized(data_se)
+      }
+      density_input <- function() {
+        ses <- list("original data" = processed_se, "filtered data" = data_se)
+        if (!is.null(imputed_se)) ses[["imputed data"]] <- imputed_se
+        plot_density_custom(ses)
+      }
+      heatmap_input <- function() {
+        if (is.null(de_for_report)) return(invisible(NULL))
+        get_cluster_heatmap_customized(de_for_report, type = "centered", alpha = de_alpha, lfc = de_lfc,
+          indicate = "condition")
+      }
+      dep_fn <- function() de_for_report
+      # Volcano: always draw something (plot or placeholder)
+      volcano_input <- function() {
+        if (!is.null(de_for_report) && length(valid_cntrsts) > 0) {
+          for (i in valid_cntrsts) {
+            tryCatch(
+              print(plot_volcano_customized(de_for_report, contrast = i, label_size = 2, add_names = FALSE,
+                alpha = de_alpha, lfc = de_lfc, adjusted = TRUE)),
+              error = function(e) NULL
+            )
+          }
+        } else {
+          print(ggplot2::ggplot() + ggplot2::annotate("text", x = 0.5, y = 0.5, label = "No contrasts tested.", size = 5) + ggplot2::theme_void())
+        }
+        invisible()
+      }
+      report_params <- list(
+        data = data_se,
+        dep = dep_fn,
+        alpha = de_alpha,
+        lfc = de_lfc,
+        normalization = "none",
+        imputation = if (imputation_type == "man") "Perseus-type" else imputation_type,
+        fdr_correction = de_fdr,
+        num_signif = num_signif,
+        tested_contrasts = valid_cntrsts,
+        numbers_input = numbers_input,
+        coverage_input = coverage_input,
+        pca_input = pca_input,
+        correlation_input = correlation_input,
+        missval_input = missval_input,
+        detect_input = function() NULL,
+        density_input = density_input,
+        p_hist_input = function() NULL,
+        heatmap_input = heatmap_input,
+        cvs_input = cvs_input,
+        volcano_input = volcano_input
+      )
+      rmarkdown::render(rmd_path, output_file = "report.pdf", output_dir = output_dir,
+        params = report_params, envir = new.env(parent = parent.frame()), quiet = TRUE)
+      print(paste("Report saved:", file.path(output_dir, "report.pdf")))
+    }, error = function(e) {
+      warning("Report generation failed: ", conditionMessage(e))
+    })
+  }
 }
 
 print("FragPipe-Analyst analysis finished successfully.")

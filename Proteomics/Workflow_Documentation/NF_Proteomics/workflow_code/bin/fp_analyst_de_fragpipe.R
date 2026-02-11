@@ -22,9 +22,8 @@ filter_by_condition <- function(se, min_percentage = 50) {
   return(se)
 }
 
-# plot_feature_monash: based on plot_feature from MonashProteomics/FragPipe-Analyst R/customized.R
-# Always subset by protein IDs (rownames); show_gene replaces facet labels with name/Gene from rowData.
-plot_feature_monash <- function(dep, protein, type = "boxplot", id = "sample_name", show_gene = FALSE) {
+# plot_feature_custom: subset by protein IDs (rownames); show_gene uses name/Gene from rowData for facet labels.
+plot_feature_custom <- function(dep, protein, type = "boxplot", id = "sample_name", show_gene = FALSE) {
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"),
                           is.character(protein),
                           is.character(type))
@@ -126,9 +125,7 @@ plot_feature_monash <- function(dep, protein, type = "boxplot", id = "sample_nam
   return(p)
 }
 
-# from MonashProteomics/FragPipe-Analyst R/functions.R # 305 (test_limma, BH FDR)
-# Modified: "others" type, left_join by ID. Matches Shiny limma path.
-# ---- test_limma_customized: Benjamini Hochberg FDR (limma topTable adjust.method="BH") ----
+# test_limma_customized: from MonashProteomics/FragPipe-Analyst R/functions.R. Benjamini Hochberg FDR (limma topTable); "others" type, left_join by ID.
 test_limma_customized <- function(se, type = c("control", "all", "others", "manual"),
                                   control = NULL, test = NULL,
                                   design_formula = formula(~ 0 + condition),
@@ -280,8 +277,7 @@ test_limma_customized <- function(se, type = c("control", "all", "others", "manu
   return(se)
 }
 
-# from MonashProteomics/FragPipe-Analyst R/customized.R # 105
-# ---- test_diff_customized: Local and tail area-based FDR (fdrtool on t-statistics) ----
+# test_diff_customized: Local and tail area-based FDR (fdrtool on t-statistics)
 test_diff_customized <- function(se, type = c("control", "all", "others", "manual"),
                                  control = NULL, test = NULL,
                                  design_formula = formula(~ 0 + condition)) {
@@ -418,8 +414,7 @@ test_diff_customized <- function(se, type = c("control", "all", "others", "manua
   return(se)
 }
 
-# from MonashProteomics/FragPipe-Analyst R/customized.R # 324
-# ---- add_rejections_customized: used by BOTH (marks significant from p.adj and diff) ----
+# add_rejections_customized: marks significant from p.adj and diff
 add_rejections_customized <- function(diff, alpha = 0.05, lfc = 1) {
   if (is.integer(alpha)) alpha <- as.numeric(alpha)
   if (is.integer(lfc)) lfc <- as.numeric(lfc)
@@ -462,9 +457,7 @@ add_rejections_customized <- function(diff, alpha = 0.05, lfc = 1) {
 }
 
 
-# from MonashProteomics/FragPipe-Analyst R/functions.R # 81 (get_cluster_heatmap)
-# Modified: label->sample_name col mapping for heatmap when colnames=label.
-# ========== DE heatmap (get_cluster_heatmap_customized) ==========
+# get_cluster_heatmap_customized: DE heatmap; label->sample_name col mapping when colnames=label.
 get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered"),
                                             kmeans = FALSE, k = 6, col_limit = 6, indicate = NULL,
                                             alpha = 0.01, lfc = 1,
@@ -512,9 +505,7 @@ get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered")
   filtered <- dep[apply(combined_rejections, 1, any), ]
 
   if (nrow(filtered) == 0) {
-    return(ggplot2::ggplot() +
-      ggplot2::annotate("text", x = 4, y = 25, size = 8, label = "No differential expressed genes available for the heatmap") +
-      ggplot2::theme_void())
+    return(NULL)
   }
 
   if (any(is.na(assay(filtered)))) {
@@ -642,6 +633,14 @@ plot_cor_customized <- function(dep, significant = FALSE, lower = -1, upper = 1,
     new_names <- temp[colnames(data), "sample_name"]
     if (!any(is.na(new_names))) colnames(data) <- new_names
   }
+  # Shorten display names (from FragPipe-Analyst plot_cor_customized): strip intensity/suffix so PDF labels don't truncate
+  cn <- colnames(data)
+  cn <- gsub("_MaxLFQ\\.Intensity$| MaxLFQ\\.Intensity$", "", cn)
+  cn <- gsub("_Intensity$| Intensity$", "", cn)
+  cn <- gsub("_Spectral\\.Count$| Spectral\\.Count$", "", cn)
+  cn <- gsub("_{2,}", "_", cn)
+  cn <- trimws(cn)
+  colnames(data) <- make.unique(cn, sep = "_")
 
   cor_mat <- cor(data, use = "complete.obs")
   lower <- min(cor_mat)
@@ -671,7 +670,7 @@ plot_cor_customized <- function(dep, significant = FALSE, lower = -1, upper = 1,
 }
 
 
-# from arnesmits/DEP R/gg_theme.R # 21
+# theme_DEP1 (DEP-style theme_bw)
 theme_DEP1 <- function() {
   basesize <- 12
   theme <- ggplot2::theme_bw(base_size = basesize)
@@ -690,9 +689,164 @@ theme_DEP1 <- function() {
   return(theme)
 }
 
-# plot_feature_numbers_monash: based on DEP plot_numbers (plot_functions_frequencies.R)
-# Join by label (assay colnames = expdesign$label), fill by condition.
-plot_feature_numbers_monash <- function(se, fill = "condition") {
+# plot_volcano_customized: from FragPipe-Analyst R/customized.R (theme_bw with grid and border).
+plot_volcano_customized <- function(dep, contrast, label_size = 3, name_col = NULL,
+                                   add_names = TRUE, adjusted = TRUE, lfc = 1, alpha = 0.05,
+                                   plot = TRUE, show_gene = FALSE, selected = NULL) {
+  if (is.integer(label_size)) label_size <- as.numeric(label_size)
+  assertthat::assert_that(
+    inherits(dep, "SummarizedExperiment"),
+    is.character(contrast), length(contrast) == 1,
+    is.numeric(label_size), length(label_size) == 1,
+    is.logical(add_names), length(add_names) == 1,
+    is.logical(adjusted), length(adjusted) == 1,
+    is.logical(plot), length(plot) == 1
+  )
+  row_data <- SummarizedExperiment::rowData(dep, use.names = FALSE)
+  if (is.null(name_col)) name_col <- "ID"
+  if (any(!c("name", "ID", name_col) %in% colnames(row_data))) {
+    stop("'name' and/or 'ID' columns are not present. Run make_unique() first.", call. = FALSE)
+  }
+  if (length(grep("_p.adj|_diff", colnames(row_data))) < 1) {
+    stop("'[contrast]_diff' and '[contrast]_p.adj' columns are not present. Run test_diff() and add_rejections().", call. = FALSE)
+  }
+  if (length(grep("_significant", colnames(row_data))) < 1) {
+    stop("'[contrast]_significant' column not present. Run add_rejections() first.", call. = FALSE)
+  }
+  if (length(grep(paste("^", contrast, "_diff", sep = ""), colnames(row_data))) == 0) {
+    valid <- row_data %>% data.frame() %>%
+      dplyr::select(dplyr::ends_with("_diff")) %>% colnames() %>% gsub("_diff", "", .)
+    stop("Not a valid contrast. Valid: ", paste0("'", valid, "'", collapse = ", "), call. = FALSE)
+  }
+  diff_col <- grep(paste("^", contrast, "_diff", sep = ""), colnames(row_data))
+  p_values_col <- if (adjusted) {
+    grep(paste("^", contrast, "_p.adj", sep = ""), colnames(row_data))
+  } else {
+    grep(paste("^", contrast, "_p.val", sep = ""), colnames(row_data))
+  }
+  signif <- abs(row_data[, diff_col]) >= lfc & row_data[, p_values_col] <= alpha
+  exp <- if (!is.null(metadata(dep)$exp)) metadata(dep)$exp else "LFQ"
+  lvl <- if (!is.null(metadata(dep)$level)) metadata(dep)$level else "protein"
+  if (!show_gene) {
+    if (exp == "LFQ") {
+      if (lvl != "peptide") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data$name, ID = row_data$ID, label = row_data[, name_col])
+      } else {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = if ("Index" %in% colnames(row_data)) row_data$Index else row_data$name,
+                             ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else if (exp == "TMT") {
+      if (lvl == "protein") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data$ID, ID = row_data$ID, label = row_data[, name_col])
+      } else if (lvl == "gene") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data$ID, ID = row_data$ID, label = row_data[, name_col])
+      } else {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = if ("Index" %in% colnames(row_data)) row_data$Index else row_data$name,
+                             ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else if (exp == "DIA") {
+      if (!lvl %in% c("site", "peptide")) {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data$ID, ID = row_data$ID, label = row_data[, name_col])
+      } else {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = if ("Index" %in% colnames(row_data)) row_data$Index else row_data$name,
+                             ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else {
+      df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                           signif = signif, name = row_data$name, ID = row_data$ID, label = row_data[, name_col])
+    }
+  } else {
+    if (exp == "LFQ") {
+      if (lvl != "peptide") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$name,
+                             ID = row_data$ID, label = if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data[, name_col])
+      } else {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = paste0(if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$ID, "_", if ("Peptide.Sequence" %in% colnames(row_data)) row_data$Peptide.Sequence else row_data$ID),
+                             ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else if (exp == "TMT") {
+      if (lvl == "protein") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$ID,
+                             ID = row_data$ID, label = row_data[, name_col])
+      } else if (lvl == "gene") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data$ID, ID = row_data$ID, label = row_data[, name_col])
+      } else {
+        nm <- if (lvl == "site" && "ID" %in% colnames(row_data)) {
+          paste0(if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$ID, "_", gsub(".*_", "", row_data$ID))
+        } else {
+          paste0(if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$ID, "_", if ("Peptide" %in% colnames(row_data)) row_data$Peptide else row_data$ID)
+        }
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = nm, ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else if (exp == "DIA") {
+      if (lvl == "peptide") {
+        nm <- if ("Gene" %in% colnames(row_data)) paste0(row_data$Gene, "_", if ("Peptide" %in% colnames(row_data)) row_data$Peptide else row_data$ID) else paste0(row_data$ID, "_", row_data$ID)
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = nm, ID = row_data$ID, label = row_data[, name_col])
+      } else if (lvl == "site") {
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = paste0(if ("Gene" %in% colnames(row_data)) row_data$Gene else row_data$ID, "_", gsub(".*_", "", row_data$ID)),
+                             ID = row_data$ID, label = row_data[, name_col])
+      } else {
+        gene_col <- if ("Genes" %in% colnames(row_data)) "Genes" else "Gene"
+        df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                             signif = signif, name = row_data[, gene_col], ID = row_data$ID, label = row_data[, name_col])
+      }
+    } else {
+      df_tmp <- data.frame(diff = row_data[, diff_col], p_values = -log10(row_data[, p_values_col]),
+                           signif = signif, name = row_data$name, ID = row_data$ID, label = row_data[, name_col])
+    }
+  }
+  df <- df_tmp %>% data.frame() %>% dplyr::filter(!is.na(signif)) %>% dplyr::arrange(signif)
+  name1 <- gsub("_vs_.*", "", contrast)
+  name2 <- gsub(".*_vs_", "", contrast)
+  p <- ggplot2::ggplot(df, ggplot2::aes(diff, p_values)) +
+    ggplot2::geom_vline(xintercept = 0) +
+    ggplot2::geom_point(ggplot2::aes(col = signif)) +
+    ggplot2::geom_text(data = data.frame(), ggplot2::aes(x = c(Inf, -Inf), y = c(-Inf, -Inf),
+                                                       hjust = c(1, 0), vjust = c(-1, -1),
+                                                       label = c(name1, name2), size = 5, fontface = "bold")) +
+    ggplot2::labs(title = contrast, x = expression(log[2] ~ "Fold change")) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = "none") +
+    ggplot2::scale_color_manual(values = c("TRUE" = "black", "FALSE" = "grey"))
+  if (add_names) {
+    if (!is.null(selected)) {
+      p <- p + ggrepel::geom_text_repel(data = dplyr::filter(df, signif, !name %in% selected),
+                                        ggplot2::aes(label = name), size = label_size,
+                                        box.padding = grid::unit(0.1, "lines"), point.padding = grid::unit(0.1, "lines"), segment.size = 0.5)
+    } else {
+      p <- p + ggrepel::geom_text_repel(data = dplyr::filter(df, signif),
+                                        ggplot2::aes(label = name), size = label_size,
+                                        box.padding = grid::unit(0.1, "lines"), point.padding = grid::unit(0.1, "lines"), segment.size = 0.5)
+    }
+  }
+  if (adjusted) {
+    p <- p + ggplot2::labs(y = expression(-log[10] ~ "Adjusted p-value"))
+  } else {
+    p <- p + ggplot2::labs(y = expression(-log[10] ~ "P-value"))
+  }
+  if (plot) return(p)
+  df_out <- df %>% dplyr::select(name, diff, p_values, signif)
+  colnames(df_out)[c(1, 2, 3)] <- c("protein", "log2_fold_change", "p_value_-log10")
+  if (adjusted) colnames(df_out)[3] <- "adjusted_p_value_-log10"
+  return(df_out)
+}
+
+# plot_feature_numbers_custom: join by label, fill by condition.
+plot_feature_numbers_custom <- function(se, fill = "condition") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   df <- assay(se) %>%
     data.frame(check.names = FALSE) %>%
@@ -718,8 +872,53 @@ plot_feature_numbers_monash <- function(se, fill = "condition") {
   return(p)
 }
 
-# from FragPipe-Analyst R/customized.R plot_coverage_customized (lines 356-393)
-# Shows only sample counts that exist in data (e.g. 3-12 after global_filter; no 0,1,2 if filtered out)
+# plot_missval_customized: from FragPipe-Analyst R/customized.R. Missing value heatmap; sample_name for column labels, hex col for contrast.
+plot_missval_customized <- function(se) {
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+  se_assay <- assay(se)
+  if (!any(is.na(se_assay))) {
+    stop("No missing values in '", deparse(substitute(se)), "'", call. = FALSE)
+  }
+  df <- se_assay %>% data.frame(., check.names = FALSE)
+  missval <- df[apply(df, 1, function(x) any(is.na(x))), , drop = FALSE]
+  missval <- ifelse(is.na(missval), 0, 1)
+  # Column labels: use sample_name only when lookup succeeds (assay colnames = design label)
+  temp <- as.data.frame(colData(se))
+  if ("label" %in% colnames(temp) && "sample_name" %in% colnames(temp)) {
+    rownames(temp) <- temp$label
+    new_cn <- temp[colnames(missval), "sample_name"]
+    if (!any(is.na(new_cn))) colnames(missval) <- new_cn
+  }
+  if (dim(missval)[1] >= 65536) {
+    dist <- factoextra::get_dist(missval, "euclidean")
+    mat.hc <- fastcluster::hclust(dist, method = "complete")
+    mat.dend <- as.dendrogram(mat.hc)
+    ht2 <- ComplexHeatmap::Heatmap(missval,
+                   col = c("#FFFFFF", "#000000"),
+                   cluster_rows = mat.dend,
+                   column_names_side = "top",
+                   show_row_names = FALSE,
+                   show_column_names = TRUE,
+                   show_row_dend = FALSE,
+                   name = paste0("Missing values pattern (", dim(missval)[1], " proteins )"),
+                   column_names_gp = grid::gpar(fontsize = 16),
+                   heatmap_legend_param = list(at = c(0, 1),
+                                               labels = c("Missing value", "Valid value")))
+  } else {
+    ht2 <- ComplexHeatmap::Heatmap(missval,
+                   col = c("#FFFFFF", "#000000"),
+                   column_names_side = "top",
+                   show_row_names = FALSE,
+                   show_column_names = TRUE,
+                   name = paste0("Missing values pattern (", dim(missval)[1], " proteins )"),
+                   column_names_gp = grid::gpar(fontsize = 16),
+                   heatmap_legend_param = list(at = c(0, 1),
+                                               labels = c("Missing value", "Valid value")))
+  }
+  ComplexHeatmap::draw(ht2, heatmap_legend_side = "top")
+}
+
+# plot_coverage_customized: sample counts that exist in data (e.g. 3–12 after global_filter).
 plot_coverage_customized <- function(se, plot = TRUE) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
                           is.logical(plot), length(plot) == 1)
@@ -751,13 +950,10 @@ plot_coverage_customized <- function(se, plot = TRUE) {
 }
 
 
-# ========== Absence/Presence plots - SOURCE from MonashProteomics/FragPipe-Analyst ==========
-# server.R: data_attendance, venn_plot_input, upset_plot_input
-# R/customized.R: plot_Jaccard, plot_density
+# Absence/presence: data_attendance, Venn, UpSet, Jaccard
 
-# data_attendance - from Monash server.R lines 1825-1922
-# Builds occurrence matrix (#Occurences per condition) for Venn/UpSet.
-data_attendance_monash <- function(se, exp = "LFQ", level = "protein") {
+# data_attendance: occurrence matrix (# occurrences per condition) for Venn/UpSet.
+data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   df <- as.data.frame(assay(se), check.names = FALSE)
   col_data <- as.data.frame(colData(se))
@@ -805,8 +1001,8 @@ data_attendance_monash <- function(se, exp = "LFQ", level = "protein") {
   df
 }
 
-# Venn plot - from Monash server.R venn_plot_input, uses ggVennDiagram
-plot_venn_monash <- function(df, cond1, cond2, cond3 = NULL) {
+# Venn plot (ggVennDiagram)
+plot_venn_custom <- function(df, cond1, cond2, cond3 = NULL) {
   if (!requireNamespace("ggVennDiagram", quietly = TRUE)) {
     warning("ggVennDiagram not installed. Skipping Venn. Install with: install.packages('ggVennDiagram')")
     return(NULL)
@@ -833,7 +1029,7 @@ plot_venn_monash <- function(df, cond1, cond2, cond3 = NULL) {
 }
 
 # UpSet plot - from Monash server.R upset_plot_input
-plot_upset_monash <- function(df) {
+plot_upset_custom <- function(df) {
   if (!requireNamespace("UpSetR", quietly = TRUE)) {
     warning("UpSetR not installed. Skipping UpSet.")
     return(invisible(NULL))
@@ -853,7 +1049,7 @@ plot_upset_monash <- function(df) {
 
 # plot_Jaccard - from Monash R/customized.R (sample-level Jaccard via vegdist)
 # Uses top_annotation for condition and sample_name for labels
-plot_Jaccard_monash <- function(dep, plot = TRUE, exp = "LFQ", indicate = "condition") {
+plot_Jaccard_custom <- function(dep, plot = TRUE, exp = "LFQ", indicate = "condition") {
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"))
   if (!requireNamespace("vegan", quietly = TRUE)) {
     warning("vegan not installed. Skipping Jaccard. Install with: install.packages('vegan')")
@@ -947,7 +1143,7 @@ impute_customized <- function(se, fun = c("bpca", "knn", "QRILC", "MLE", "RF",
 
 # plot_density - from Monash R/customized.R (list of SEs: original, filtered, imputed)
 # Overlaid density curves colored by condition
-plot_density_monash <- function(ses) {
+plot_density_custom <- function(ses) {
   gather_join <- function(se) {
     cd <- as.data.frame(colData(se))
     cd$..colkey.. <- rownames(cd)
