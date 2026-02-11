@@ -1,7 +1,7 @@
 # FragPipe-Analyst DE and plot functions (library)
 # Source: MonashProteomics/FragPipe-Analyst (GPL-3.0) https://github.com/MonashProteomics/FragPipe-Analyst
 # global_filter, filter_by_condition: from R/filter.R
-# GUI calls: global_filter(se, 100 - min_global_appearance), filter_by_condition(se, min_appearance_each_condition)
+# global_filter(se, 100 - min_global_appearance), filter_by_condition(se, min_appearance_each_condition)
 global_filter <- function(se, percentage = 50) {
   percentage <- percentage / 100
   ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= percentage
