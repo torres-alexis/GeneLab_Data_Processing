@@ -46,6 +46,9 @@ process FP_ANALYST_R {
     def min_cond = params.fp_analyst_min_appearance_one_cond != null ? params.fp_analyst_min_appearance_one_cond : 0
     def qc_imputed = (params.fp_analyst_qc_show_imputed == true || params.fp_analyst_qc_show_imputed == 'true') ? 'true' : 'false'
     def qc_both = (params.fp_analyst_qc_include_both == true || params.fp_analyst_qc_include_both == 'true') ? 'true' : 'false'
+    def volcano_display_names = (params.fp_analyst_volcano_display_names == true || params.fp_analyst_volcano_display_names == 'true') ? 'true' : 'false'
+    def volcano_show_gene = (params.fp_analyst_volcano_show_gene == true || params.fp_analyst_volcano_show_gene == 'true') ? 'true' : 'false'
+    def volcano_highlight_feature = (params.fp_analyst_volcano_highlight_feature != null && params.fp_analyst_volcano_highlight_feature != '') ? params.fp_analyst_volcano_highlight_feature : ''
     """
     # Create output directory
     mkdir -p output/
@@ -72,6 +75,9 @@ process FP_ANALYST_R {
         --min_appearance_one_condition "${min_cond}" \\
         --qc_show_imputed "${qc_imputed}" \\
         --qc_include_both "${qc_both}" \\
+        --volcano_display_names "${volcano_display_names}" \\
+        --volcano_show_gene "${volcano_show_gene}" \\
+        --volcano_highlight_feature "${volcano_highlight_feature}" \\
         --output_dir "output/"
     
     # Version info

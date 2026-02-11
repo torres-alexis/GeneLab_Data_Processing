@@ -797,6 +797,10 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 ## 6. FragPipe-Analyst Downstream Analysis
 
+GeneLab runs FragPipe-Analyst twice: once at **protein** level (`combined_protein.tsv`) and once at **peptide** level (`combined_peptide.tsv`). Both runs use default top-10 feature plots (top 10 most variable by protein/peptide ID and top 10 by gene when feature lists are empty).
+
+**Protein run:**
+
 ```bash
 Rscript fp_analyst_analysis.R \
   --experiment_annotation experiment_annotation.tsv \
@@ -817,7 +821,34 @@ Rscript fp_analyst_analysis.R \
   --qc_include_both false \
   --pathway_database "Hallmark" \
   --pathway_direction "Both" \
-  --go_database "" \
+  --go_database "GO Biological Process" \
+  --go_direction "Both" \
+  --output_dir "output/"
+```
+
+**Peptide run:**
+
+```bash
+Rscript fp_analyst_analysis.R \
+  --experiment_annotation experiment_annotation.tsv \
+  --quantification_file combined_peptide.tsv \
+  --mode LFQ \
+  --level peptide \
+  --lfq_type Intensity \
+  --min_global_appearance 0 \
+  --min_appearance_one_condition 0 \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --feature_list_protein "" \
+  --feature_list_gene "" \
+  --top_n_protein 10 \
+  --top_n_gene 10 \
+  --qc_show_imputed true \
+  --qc_include_both false \
+  --pathway_database "Hallmark" \
+  --pathway_direction "Both" \
+  --go_database "GO Biological Process" \
   --go_direction "Both" \
   --output_dir "output/"
 ```
@@ -825,19 +856,19 @@ Rscript fp_analyst_analysis.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
-- `--quantification_file` – path to combined protein quantification file (e.g., `combined_protein.tsv` from IonQuant)
+- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv` from IonQuant)
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
-- `--level` – analysis level: `protein` (default for LFQ), `peptide`, `gene`, or `site`
-- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ` (for LFQ mode only)
+- `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
+- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ`. Protein uses MaxLFQ; peptide uses Intensity.
 - `--min_global_appearance` – at least X% non-missing across all samples (0–100). 0 = no filter
 - `--min_appearance_one_condition` – at least X% non-missing in at least one condition (0–100). 0 = no filter
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
 - `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based`
-- `--feature_list_protein` – comma-separated protein IDs for feature plots (by rownames). If empty, use `--top_n_protein`
-- `--feature_list_gene` – comma-separated gene names for feature plots (by Gene column). If empty, use `--top_n_gene`
-- `--top_n_protein` – when `--feature_list_protein` is empty, plot top N most variable features by protein ID (0 = skip)
-- `--top_n_gene` – when `--feature_list_gene` is empty, plot top N most variable features by gene (0 = skip)
+- `--feature_list_protein` – comma-separated protein/peptide IDs for feature plots. If empty, use `--top_n_protein` (default: 10)
+- `--feature_list_gene` – comma-separated gene names for feature plots. If empty, use `--top_n_gene` (default: 10). Peptide level: gene feature plots not applicable; use protein/peptide ID only.
+- `--top_n_protein` – when feature list empty, plot top N most variable features by protein/peptide ID (default: 10)
+- `--top_n_gene` – when feature list empty, plot top N most variable features by gene (default: 10)
 - `--qc_show_imputed` – use imputed data for QC plots when `--qc_include_both` is false (`true`/`false`)
 - `--qc_include_both` – generate both imputed and unimputed QC plots (`true`/`false`)
 - `--pathway_database` – pathway enrichment database: `Hallmark`, `KEGG`, or `Reactome`. Empty = skip
@@ -849,9 +880,9 @@ Rscript fp_analyst_analysis.R \
 **Input Data:**
 
 - `experiment_annotation.tsv` (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
-- `combined_protein.tsv` (combined protein report with MS1 quantification data, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `combined_protein.tsv` (protein run) and `combined_peptide.tsv` (peptide run) from [Step 3k](#3k-ionquant-label-free-quantification)
 
-**Output Data:**
+**Expected Output Data (per run: `FragPipe-Analyst/protein/` and `FragPipe-Analyst/peptide/`):**
 
 - `fp_analyst_parameters.txt` (run parameters)
 - `pca.pdf`, `pca.png` (PCA plot)
@@ -863,8 +894,9 @@ Rscript fp_analyst_analysis.R \
 - `sample_cvs.pdf`, `sample_cvs.png` (sample coefficient of variation)
 - `jaccard.pdf`, `jaccard.png` (Jaccard similarity plot)
 - `upset.pdf`, `upset.png` (UpSet plot)
-- `venndiagram/` (venn diagrams)
-- `feature/protein/`, `feature/gene/` (feature plots)
+- `venndiagram/` (pairwise Venn diagrams)
+- `feature/protein/boxplot/`, `feature/protein/violinplot/`, `feature/gene/boxplot/`, `feature/gene/violinplot/` (protein run: top 10 by protein ID and top 10 by gene; filenames `boxplot_feature_*.pdf`, `violinplot_feature_*.pdf`)
+- `feature/peptide/boxplot/`, `feature/peptide/violinplot/` (peptide run: top 10 by peptide ID only; gene feature plots not applicable)
 - `unimputed_matrix.tsv`, `imputed_matrix.tsv` (exported matrices)
 - `de_results.tsv` (differential expression results)
 - `de_heatmap.pdf`, `de_heatmap.png` (DE heatmap)

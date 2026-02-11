@@ -1,10 +1,8 @@
 #!/usr/bin/Rscript
+# FragPipe-Analyst downstream analysis: QC plots, DE (limma), feature plots, enrichment.
+# Sources fp_analyst_de_fragpipe.R for filters and plot functions from MonashProteomics/FragPipe-Analyst.
 print("STARTING ANALYSIS")
 args = commandArgs(trailingOnly=TRUE)
-
-# ======================================
-# FragPipe-Analyst R script
-# ======================================
 
 # Load required libraries
 library(optparse)
@@ -67,7 +65,13 @@ option_list = list(
     make_option(c("--qc_include_both"), type="character", default="false",
                 help="Generate both imputed and unimputed versions of QC plots (PCA, correlation, CVs, feature). true/false.", metavar="STRING"),
     make_option(c("--shiny_reference_de"), type="character", default=NULL,
-                help="Path to Shiny DE_results.csv; if set, filter SE to same protein set before DE.", metavar="FILE")
+                help="Path to Shiny DE_results.csv; if set, filter SE to same protein set before DE.", metavar="FILE"),
+    make_option(c("--volcano_display_names"), type="character", default="true",
+                help="Volcano plot: display names on significant points. Matches GUI 'Display names' checkbox. true/false.", metavar="STRING"),
+    make_option(c("--volcano_show_gene"), type="character", default="true",
+                help="Volcano plot: show gene names (true) or protein/peptide ID (false). Matches GUI 'Show gene names' checkbox.", metavar="STRING"),
+    make_option(c("--volcano_highlight_feature"), type="character", default="",
+                help="Comma-delimited list of features to highlight on volcano (e.g. Gene names or IDs). Matches GUI 'select features from results table to highlight'.", metavar="STRING")
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -101,6 +105,10 @@ explore_filter = isTRUE(opt$explore_filter)
 qc_show_imputed = tolower(trimws(opt$qc_show_imputed)) %in% c("true", "1", "yes")
 qc_include_both = tolower(trimws(opt$qc_include_both)) %in% c("true", "1", "yes")
 shiny_reference_de = opt$shiny_reference_de
+volcano_display_names <- tolower(trimws(opt$volcano_display_names)) %in% c("true", "1", "yes")
+volcano_show_gene <- tolower(trimws(opt$volcano_show_gene)) %in% c("true", "1", "yes")
+volcano_highlight_feature <- if (is.null(opt$volcano_highlight_feature) || trimws(opt$volcano_highlight_feature) == "") character(0) else
+  trimws(strsplit(trimws(opt$volcano_highlight_feature), "\\s*,\\s*")[[1]])
 
 print(paste("experiment_annotation:", experiment_annotation))
 print(paste("quantification_file:", quantification_file))
@@ -148,23 +156,26 @@ writeLines(c(
     paste("min_appearance_one_condition:", min_appearance_one_condition),
     paste("qc_show_imputed:", qc_show_imputed),
     paste("qc_include_both:", qc_include_both),
+    paste("volcano_display_names:", volcano_display_names),
+    paste("volcano_show_gene:", volcano_show_gene),
+    paste("volcano_highlight_feature:", paste(volcano_highlight_feature, collapse = ", ")),
     paste("output_dir:", output_dir)
 ), var_file)
 print(paste("Parameters written to:", var_file))
 
 
 # Create SummarizedExperiment object
-# For LFQ protein: use Shiny-exact path (make_unique + make_se_customized) to replicate FragPipe-Analyst DE table
+# For LFQ protein and peptide: use Shiny-exact path (make_unique + make_se_customized) to replicate FragPipe-Analyst DE table
 # Ref: MonashProteomics/FragPipe-Analyst server.R processed_data, fragpipe_data_input, exp_design_input
-# Same flow: read TSV, filter contaminants, make_unique(Gene, Protein ID), make_se_customized, manual_impute(seed=123), test_limma_customized, add_rejections_customized
+# Same flow: read TSV, filter contaminants, make_unique, make_se_customized, manual_impute(seed=123), test_limma_customized, add_rejections_customized
 print("Creating SummarizedExperiment object...")
+make.unique.2 <- function(x, sep = ".") {
+  ave(x, x, FUN = function(a) {
+    if (length(a) > 1) paste(a, seq_along(a), sep = sep) else a
+  })
+}
 if (mode == "LFQ" && level == "protein") {
-  # --- Shiny-exact path: replicate FragPipe-Analyst server.R flow ---
-  make.unique.2 <- function(x, sep = ".") {
-    ave(x, x, FUN = function(a) {
-      if (length(a) > 1) paste(a, seq_along(a), sep = sep) else a
-    })
-  }
+  # --- Shiny-exact path: LFQ protein ---
   temp_data <- read.table(quantification_file, header = TRUE, fill = TRUE, sep = "\t",
     quote = "", comment.char = "", blank.lines.skip = FALSE, check.names = FALSE)
   colnames(temp_data) <- make.unique.2(colnames(temp_data), "_")
@@ -172,17 +183,57 @@ if (mode == "LFQ" && level == "protein") {
   temp_data <- temp_data[!grepl("contam", temp_data$Protein), ]
   data_unique <- FragPipeAnalystR::make_unique(temp_data, "Gene", "Protein ID")
   lfq_cols <- if (lfq_type == "MaxLFQ") grep("MaxLFQ", colnames(data_unique)) else
-    setdiff(grep("Intensity", colnames(data_unique)), grep("MaxLFQ", colnames(data_unique)))
+    if (lfq_type == "Spectral Count") {
+      setdiff(grep("Spectral", colnames(data_unique)), grep("Total Spectral Count", colnames(data_unique)))
+    } else {
+      setdiff(grep("Intensity", colnames(data_unique)), grep("MaxLFQ", colnames(data_unique)))
+    }
   if (length(lfq_cols) == 0) stop("No ", lfq_type, " columns found.")
   temp_df <- read.table(experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
   colnames(temp_df) <- tolower(colnames(temp_df))
-  if (!"sample_name" %in% colnames(temp_df)) temp_df$sample_name <- temp_df$sample
   temp_df$condition <- make.names(temp_df$condition)
   temp_df$sample <- gsub("-", ".", temp_df$sample)
   temp_df$label <- temp_df$sample
-  temp_df$label <- paste(temp_df$label, if (lfq_type == "MaxLFQ") "MaxLFQ.Intensity" else "Intensity", sep = " ")
+  temp_df$label <- paste(temp_df$label,
+    if (lfq_type == "MaxLFQ") "MaxLFQ.Intensity" else if (lfq_type == "Spectral Count") "Spectral.Count" else "Intensity",
+    sep = " ")
+  # sample_name must match assay colnames (label) for FragPipeAnalystR plot_pca, plot_cvs, plot_feature_numbers
+  temp_df$sample_name <- temp_df$label
   data_se <- FragPipeAnalystR::make_se_customized(data_unique, lfq_cols, temp_df,
-    log2transform = TRUE, exp = "LFQ", lfq_type = lfq_type, level = "protein")
+    log2transform = (lfq_type != "Spectral Count"), exp = "LFQ", lfq_type = lfq_type, level = "protein")
+} else if (mode == "LFQ" && level == "peptide") {
+  # --- Shiny-exact path: LFQ peptide (server.R LFQ-peptide flow) ---
+  temp_data <- read.table(quantification_file, header = TRUE, fill = TRUE, sep = "\t",
+    quote = "", comment.char = "", blank.lines.skip = FALSE, check.names = FALSE)
+  colnames(temp_data) <- make.unique.2(colnames(temp_data), "_")
+  colnames(temp_data) <- gsub("-", ".", colnames(temp_data))
+  colnames(temp_data)[colnames(temp_data) == "Protein Description"] <- "Description"
+  temp_data <- temp_data[!grepl("contam", temp_data$Protein), ]
+  if (!"Modified Sequence" %in% colnames(temp_data)) {
+    temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Peptide Sequence`)
+  } else {
+    temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Modified Sequence`)
+  }
+  data_unique <- FragPipeAnalystR::make_unique(temp_data, "Protein ID", "Index")
+  lfq_cols <- if (lfq_type == "MaxLFQ") grep("MaxLFQ", colnames(data_unique)) else
+    if (lfq_type == "Spectral Count") {
+      setdiff(grep("Spectral", colnames(data_unique)), grep("Total Spectral Count", colnames(data_unique)))
+    } else {
+      setdiff(grep("Intensity", colnames(data_unique)), grep("MaxLFQ", colnames(data_unique)))
+    }
+  if (length(lfq_cols) == 0) stop("No ", lfq_type, " columns found in peptide table.")
+  temp_df <- read.table(experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  colnames(temp_df) <- tolower(colnames(temp_df))
+  temp_df$condition <- make.names(temp_df$condition)
+  temp_df$sample <- gsub("-", ".", temp_df$sample)
+  temp_df$label <- temp_df$sample
+  temp_df$label <- paste(temp_df$label,
+    if (lfq_type == "MaxLFQ") "MaxLFQ.Intensity" else if (lfq_type == "Spectral Count") "Spectral.Count" else "Intensity",
+    sep = " ")
+  # sample_name must match assay colnames (label) for FragPipeAnalystR plot_pca, plot_cvs, plot_feature_numbers
+  temp_df$sample_name <- temp_df$label
+  data_se <- FragPipeAnalystR::make_se_customized(data_unique, lfq_cols, temp_df,
+    log2transform = (lfq_type != "Spectral Count"), exp = "LFQ", lfq_type = lfq_type, level = "peptide")
 } else {
   data_se <- make_se_from_files(
     quant_table_path = quantification_file,
@@ -230,27 +281,16 @@ if (explore_filter) {
   quit(save = "no", status = 0)
 }
 
-# ========== Filtering (matches FragPipe-Analyst Shiny Advanced Options) ==========
-# global_filter: keep rows with <= (100 - min_global_appearance)% missing
-# filter_by_condition: keep rows with >= min_appearance_one_condition% valid in at least one condition
-processed_se <- data_se  # keep for Absence/Presence (Monash uses processed_data)
+# ========== Filtering (exact FragPipe-Analyst R/filter.R - GUI source) ==========
+# server.R: global_filter(processed_data(), 100 - min_global), filter_by_condition(..., min_appearance_each_condition)
+processed_se <- data_se  # keep for Absence/Presence
 filtered_se <- data_se
 if (min_global_appearance > 0 && min_global_appearance <= 100) {
-  pct_missing_allowed <- (100 - min_global_appearance) / 100
-  ridx <- rowSums(is.na(assay(filtered_se))) / ncol(assay(filtered_se)) <= pct_missing_allowed
-  filtered_se <- filtered_se[ridx, ]
+  filtered_se <- global_filter(filtered_se, 100 - min_global_appearance)
   print(paste("global_filter: kept", nrow(filtered_se), "features (min", min_global_appearance, "% non-missing globally)"))
 }
 if (min_appearance_one_condition > 0 && min_appearance_one_condition <= 100) {
-  min_frac <- min_appearance_one_condition / 100
-  conditions <- unique(colData(filtered_se)$condition)
-  row_ok <- rep(FALSE, nrow(filtered_se))
-  for (c in conditions) {
-    se_c <- filtered_se[, colData(filtered_se)$condition == c]
-    ridx <- rowSums(!is.na(assay(se_c))) / ncol(assay(se_c)) >= min_frac
-    row_ok <- row_ok | ridx
-  }
-  filtered_se <- filtered_se[row_ok, ]
+  filtered_se <- filter_by_condition(filtered_se, min_appearance_one_condition)
   print(paste("filter_by_condition: kept", nrow(filtered_se), "features (min", min_appearance_one_condition, "% in at least one condition)"))
 }
 data_se <- filtered_se
@@ -307,7 +347,8 @@ qc_versions <- if (qc_include_both && !is.null(imputed_se)) {
 
 print("Plotting PCA...")
 for (vv in qc_versions) {
-  p_pca <- plot_pca(vv$se, indicate = c("condition", "replicate"), plot = TRUE)
+  # Condition only (no replicate shapes) - matches FragPipe Analyst GUI PCA
+  p_pca <- plot_pca(vv$se, indicate = "condition", plot = TRUE)
   base <- paste0("pca", vv$suffix)
   ggplot2::ggsave(file.path(output_dir, paste0(base, ".pdf")), p_pca, width = 8, height = 6)
   ggplot2::ggsave(file.path(output_dir, paste0(base, ".png")), p_pca, width = 8, height = 6, dpi = 150)
@@ -348,10 +389,10 @@ if (has_missing) {
   })
 }
 
-# ========== Feature numbers per sample ==========
+# ========== Feature numbers per sample (FragPipeAnalystR::plot_feature_numbers - GUI source) ==========
 print("Plotting feature numbers...")
 tryCatch({
-  p_fn <- plot_feature_numbers(data_se, fill = "condition")
+  p_fn <- FragPipeAnalystR::plot_feature_numbers(data_se, fill = "condition")
   ggplot2::ggsave(file.path(output_dir, "feature_numbers.pdf"), p_fn, width = 8, height = 5)
   ggplot2::ggsave(file.path(output_dir, "feature_numbers.png"), p_fn, width = 8, height = 5, dpi = 150)
   print(paste("Feature numbers plot saved to", output_dir))
@@ -446,8 +487,8 @@ for (vv in qc_versions) {
 # Avoids FragPipeAnalystR plot_feature(index=...) bug for LFQ.
 do_feature_plots <- function(features, feat_index, subdir) {
   if (length(features) == 0) return(invisible(NULL))
-  feat_dir <- file.path(output_dir, "feature", subdir)
-  plot_types <- c("boxplot", "violin")
+  # folder_name -> type for plot_feature_monash (violinplot uses type="violin")
+  plot_specs <- list(boxplot = "boxplot", violinplot = "violin")
   for (i in seq_along(features)) {
     feat <- features[i]
     if (is.na(feat) || nchar(as.character(feat)) == 0) next
@@ -456,22 +497,26 @@ do_feature_plots <- function(features, feat_index, subdir) {
     for (vv in qc_versions) {
       prots <- if (is.null(feat_index)) feat else rownames(vv$se)[rowData(vv$se)[[feat_index]] == feat]
       if (length(prots) == 0) next
-      for (ptype in plot_types) {
+      for (folder_name in names(plot_specs)) {
+        ptype <- plot_specs[[folder_name]]
         tryCatch({
           p_f <- plot_feature_monash(vv$se, prots, type = ptype, show_gene = !is.null(feat_index))
-          base <- paste0("feature_", safe_name, "_", ptype, vv$suffix)
+          feat_dir <- file.path(output_dir, "feature", subdir, folder_name)
+          if (!dir.exists(feat_dir)) dir.create(feat_dir, recursive = TRUE)
+          base <- paste0(folder_name, "_feature_", safe_name, vv$suffix)
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".pdf")), p_f, width = 6, height = 4)
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".png")), p_f, width = 6, height = 4, dpi = 150)
-          print(paste("Feature plot saved:", base, vv$desc))
+          print(paste("Feature plot saved:", file.path(folder_name, base), vv$desc))
         }, error = function(e) {
-          warning("Feature plot for ", feat, " ", ptype, " ", vv$desc, " failed: ", conditionMessage(e))
+          warning("Feature plot for ", feat, " ", folder_name, " ", vv$desc, " failed: ", conditionMessage(e))
         })
       }
     }
   }
 }
 
-# Protein IDs (rownames)
+# Protein/peptide IDs (rownames). For peptide level, subdir = "peptide"
+id_subdir <- if (!is.null(metadata(qc_versions[[1]]$se)$level) && metadata(qc_versions[[1]]$se)$level == "peptide") "peptide" else "protein"
 features_protein <- character(0)
 if (length(feature_list_protein) > 0) {
   features_protein <- trimws(feature_list_protein[nchar(trimws(feature_list_protein)) > 0])
@@ -489,12 +534,12 @@ if (length(feature_list_protein) > 0) {
       features_protein <- c(features_protein, id)
       if (length(features_protein) >= top_n_protein) break
     }
-    print(paste("Top", length(features_protein), "variable features by protein ID for plotting"))
+    print(paste("Top", length(features_protein), "variable features by", id_subdir, "ID for plotting"))
   }
 }
 if (length(features_protein) > 0) {
-  print("Plotting feature(s) by protein ID...")
-  do_feature_plots(features_protein, feat_index = NULL, subdir = "protein")
+  print(paste("Plotting feature(s) by", id_subdir, "ID..."))
+  do_feature_plots(features_protein, feat_index = NULL, subdir = id_subdir)
 }
 
 # Gene names - map to protein IDs, plot_feature_monash with show_gene=TRUE
@@ -574,11 +619,41 @@ if (n_conditions >= 2) {
         sep = "\t", row.names = FALSE, quote = FALSE)
     print(paste("DE results saved to", output_dir))
 
-    # Volcano plots per contrast
+    # Volcano plots per contrast (matches GUI: Display names + Show gene names + highlight selected features)
     volcano_dir <- file.path(output_dir, "volcano")
     valid_cntrsts <- gsub("_diff$", "", grep("_diff$", colnames(de_df), value = TRUE))
+    v_name_col <- if (volcano_show_gene && "Gene" %in% colnames(de_df)) "Gene" else "ID"
+    highlight_vec <- volcano_highlight_feature
     for (cntrst in valid_cntrsts) {
-        p_v <- plot_volcano(de_result_updated, cntrst, plot = TRUE, alpha = de_alpha, lfc = de_lfc)
+        p_v <- plot_volcano(de_result_updated, cntrst, plot = TRUE, alpha = de_alpha, lfc = de_lfc,
+          name_col = v_name_col, add_names = volcano_display_names)
+        # Add highlight layer if features specified (matches GUI "select features from results table to highlight")
+        if (length(highlight_vec) > 0) {
+            diff_col <- paste0(cntrst, "_diff")
+            pval_col <- paste0(cntrst, "_p.adj")
+            if (!pval_col %in% colnames(de_df)) pval_col <- paste0(cntrst, "_p.val")
+            hl_vec_upper <- toupper(highlight_vec)
+            match_id <- toupper(de_df$ID) %in% hl_vec_upper
+            match_gene <- if ("Gene" %in% colnames(de_df)) toupper(de_df$Gene) %in% hl_vec_upper else FALSE
+            match_name <- toupper(de_df$name) %in% hl_vec_upper
+            hit <- which(match_id | match_gene | match_name)
+            if (length(hit) > 0) {
+                hl_df <- data.frame(
+                    diff = de_df[[diff_col]][hit],
+                    p_values = -log10(pmax(de_df[[pval_col]][hit], 1e-300)),
+                    label = de_df[[v_name_col]][hit]
+                )
+                hl_df <- hl_df[is.finite(hl_df$p_values) & !is.na(hl_df$diff), , drop = FALSE]
+                if (nrow(hl_df) > 0) {
+                    p_v <- p_v +
+                        ggplot2::geom_point(data = hl_df, ggplot2::aes(x = diff, y = p_values),
+                            color = "maroon", size = 3.5, alpha = 0.9, inherit.aes = FALSE) +
+                        ggrepel::geom_text_repel(data = hl_df, ggplot2::aes(x = diff, y = p_values, label = label),
+                            color = "maroon", size = 3, inherit.aes = FALSE,
+                            box.padding = unit(0.2, "lines"), point.padding = unit(0.2, "lines"), segment.size = 0.5)
+                }
+            }
+        }
         safe_name <- gsub("[^A-Za-z0-9_-]", "_", cntrst)
         ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".pdf")), p_v, width = 8, height = 6)
         ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".png")), p_v, width = 8, height = 6, dpi = 150)
