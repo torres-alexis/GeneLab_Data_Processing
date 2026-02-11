@@ -237,11 +237,14 @@ workflow PROTEOMICS {
             // Use the dedicated msstats_csv and fragpipe_manifest outputs from FRAGPIPE
             MSSTATS(output_dir, runsheet, FRAGPIPE.out.fragpipe_manifest, FRAGPIPE.out.msstats_csv)
             
-            // Run FragPipe-Analyst R on combined_protein.tsv only (single run with both protein and gene feature lists)
-            // data_type placeholder for future TMT (protein/gene/peptide/site)
-            ch_fp_analyst_inputs = FRAGPIPE.out.combined_protein_tsv
+            // Run FragPipe-Analyst R on combined_protein.tsv and combined_peptide.tsv
+            ch_fp_analyst_protein = FRAGPIPE.out.combined_protein_tsv
                 .combine(FRAGPIPE.out.experiment_annotation)
                 .map { quant_file, exp_anno -> tuple("protein", quant_file, exp_anno) }
+            ch_fp_analyst_peptide = FRAGPIPE.out.combined_peptide_tsv
+                .combine(FRAGPIPE.out.experiment_annotation)
+                .map { quant_file, exp_anno -> tuple("peptide", quant_file, exp_anno) }
+            ch_fp_analyst_inputs = ch_fp_analyst_protein.mix(ch_fp_analyst_peptide)
             
             FP_ANALYST_R(output_dir, ch_fp_analyst_inputs)
         }

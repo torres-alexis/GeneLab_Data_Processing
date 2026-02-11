@@ -1,5 +1,26 @@
-# FragPipe-Analyst DE implementation - from MonashProteomics/FragPipe-Analyst (GPL-3.0)
-# https://github.com/MonashProteomics/FragPipe-Analyst
+# FragPipe-Analyst DE and plot functions (library)
+# Source: MonashProteomics/FragPipe-Analyst (GPL-3.0) https://github.com/MonashProteomics/FragPipe-Analyst
+# global_filter, filter_by_condition: from R/filter.R
+# GUI calls: global_filter(se, 100 - min_global_appearance), filter_by_condition(se, min_appearance_each_condition)
+global_filter <- function(se, percentage = 50) {
+  percentage <- percentage / 100
+  ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= percentage
+  se <- se[ridx, ]
+  return(se)
+}
+
+filter_by_condition <- function(se, min_percentage = 50) {
+  min_percentage <- min_percentage / 100
+  conditions <- unique(colData(se)$condition)
+  row_ids <- rep(0, nrow(assay(se)))
+  for (c in conditions) {
+    se_c <- se[, colData(se)$condition == c]
+    ridx <- rowSums(!is.na(assay(se_c))) / ncol(assay(se_c)) >= min_percentage
+    row_ids <- row_ids + ridx
+  }
+  se <- se[row_ids > 0, ]
+  return(se)
+}
 
 # plot_feature_monash: based on plot_feature from MonashProteomics/FragPipe-Analyst R/customized.R
 # Always subset by protein IDs (rownames); show_gene replaces facet labels with name/Gene from rowData.
@@ -669,7 +690,36 @@ theme_DEP1 <- function() {
   return(theme)
 }
 
-# from MonashProteomics/FragPipe-Analyst R/customized.R # 449
+# plot_feature_numbers_monash: based on DEP plot_numbers (plot_functions_frequencies.R)
+# Aligns with FragPipe-Analyst GUI: join by label (assay colnames = expdesign$label), fill by condition.
+plot_feature_numbers_monash <- function(se, fill = "condition") {
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+  df <- assay(se) %>%
+    data.frame(check.names = FALSE) %>%
+    tibble::rownames_to_column() %>%
+    tidyr::gather(ID, bin, -rowname) %>%
+    dplyr::mutate(bin = ifelse(is.na(bin), 0, 1))
+  stat <- df %>%
+    dplyr::group_by(ID) %>%
+    dplyr::summarize(n = dplyr::n(), sum = sum(bin))
+  cd <- as.data.frame(colData(se))
+  id_col <- if ("label" %in% colnames(cd)) "label" else "sample_name"
+  stat <- dplyr::left_join(stat, cd, by = c("ID" = id_col))
+  feature <- if (!is.null(metadata(se)$level)) {
+    switch(metadata(se)$level, protein = "Proteins", peptide = "Peptides", gene = "Peptides", site = "Sites", "Features")
+  } else "Features"
+  p <- ggplot2::ggplot(stat, ggplot2::aes(x = ID, y = sum, fill = .data[[fill]])) +
+    ggplot2::geom_col() +
+    ggplot2::geom_hline(yintercept = unique(stat$n), linetype = "dashed") +
+    ggplot2::labs(title = paste0("Number of ", feature, " per Sample (Total: ", nrow(se), ")"),
+                  x = "", y = paste0("Number of ", feature)) +
+    theme_DEP1() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1))
+  return(p)
+}
+
+# from FragPipe-Analyst R/customized.R plot_coverage_customized (lines 356-393)
+# Shows only sample counts that exist in data (e.g. 3-12 after global_filter; no 0,1,2 if filtered out)
 plot_coverage_customized <- function(se, plot = TRUE) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
                           is.logical(plot), length(plot) == 1)
@@ -681,7 +731,8 @@ plot_coverage_customized <- function(se, plot = TRUE) {
   stat <- df %>%
     dplyr::group_by(rowname) %>%
     dplyr::summarize(sum = sum(bin))
-  table <- table(stat$sum) %>% data.frame()
+  table <- table(stat$sum) %>%
+    data.frame()
   p <- ggplot2::ggplot(table, ggplot2::aes(x = "all", y = Freq, fill = Var1)) +
     ggplot2::geom_col(col = "white") +
     ggplot2::scale_fill_grey(start = 0.8, end = 0.2) +
@@ -693,9 +744,9 @@ plot_coverage_customized <- function(se, plot = TRUE) {
   if (plot) {
     return(p)
   } else {
-    df <- as.data.frame(table)
-    colnames(df) <- c("samples", "features")
-    return(df)
+    df_out <- as.data.frame(table)
+    colnames(df_out) <- c("samples", "features")
+    return(df_out)
   }
 }
 
@@ -781,7 +832,7 @@ plot_venn_monash <- function(df, cond1, cond2, cond3 = NULL) {
     ggplot2::coord_flip()
 }
 
-# UpSet plot - exact copy from Monash server.R upset_plot_input
+# UpSet plot - from Monash server.R upset_plot_input
 plot_upset_monash <- function(df) {
   if (!requireNamespace("UpSetR", quietly = TRUE)) {
     warning("UpSetR not installed. Skipping UpSet.")
