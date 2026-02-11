@@ -813,6 +813,7 @@ Rscript fp_analyst_analysis.R \
   --de_alpha 0.05 \
   --de_lfc 1.0 \
   --de_fdr "Benjamini Hochberg" \
+  --imputation_type man \
   --feature_list_protein "" \
   --feature_list_gene "" \
   --top_n_protein 10 \
@@ -840,6 +841,7 @@ Rscript fp_analyst_analysis.R \
   --de_alpha 0.05 \
   --de_lfc 1.0 \
   --de_fdr "Benjamini Hochberg" \
+  --imputation_type man \
   --feature_list_protein "" \
   --feature_list_gene "" \
   --top_n_protein 10 \
@@ -865,6 +867,7 @@ Rscript fp_analyst_analysis.R \
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
 - `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based`
+- `--imputation_type` – imputation method: `none`, `man` (Perseus-type), `knn`, `MLE`, `min`, or `zero` (default: `man`)
 - `--feature_list_protein` – comma-separated protein/peptide IDs for feature plots. If empty, use `--top_n_protein` (default: 10)
 - `--feature_list_gene` – comma-separated gene names for feature plots. If empty, use `--top_n_gene` (default: 10). Peptide level: gene feature plots not applicable; use protein/peptide ID only.
 - `--top_n_protein` – when feature list empty, plot top N most variable features by protein/peptide ID (default: 10)
@@ -897,7 +900,9 @@ Rscript fp_analyst_analysis.R \
 - `venndiagram/` (pairwise Venn diagrams)
 - `feature/protein/boxplot/`, `feature/protein/violinplot/`, `feature/gene/boxplot/`, `feature/gene/violinplot/` (protein run: top 10 by protein ID and top 10 by gene; filenames `boxplot_feature_*.pdf`, `violinplot_feature_*.pdf`)
 - `feature/peptide/boxplot/`, `feature/peptide/violinplot/` (peptide run: top 10 by peptide ID only; gene feature plots not applicable)
-- `unimputed_matrix.tsv`, `imputed_matrix.tsv` (exported matrices)
+- `unimputed_matrix.tsv` (filtered data, before imputation)
+- `normalized_matrix.tsv` (after normalization; when normalization is "none", equals filtered)
+- `imputed_matrix.tsv` (protein intensities after imputation)
 - `de_results.tsv` (differential expression results)
 - `de_heatmap.pdf`, `de_heatmap.png` (DE heatmap)
 - `volcano/` (volcano plots per contrast)

@@ -54,6 +54,8 @@ option_list = list(
                 help="Log2 fold change threshold for DE significance", metavar="NUMERIC"),
     make_option(c("--de_fdr"), type="character", default="Benjamini Hochberg",
                 help="Type of FDR correction: 'Benjamini Hochberg' or 'Local and tail area-based'", metavar="STRING"),
+    make_option(c("--imputation_type"), type="character", default="man",
+                help="Imputation type: none, man (Perseus-type), knn, MLE, min, zero", metavar="STRING"),
     make_option(c("--min_global_appearance"), type="numeric", default=0,
                 help="At least X%% non-missing across all samples (0-100). 0 = no filter.", metavar="NUMERIC"),
     make_option(c("--min_appearance_one_condition"), type="numeric", default=0,
@@ -67,11 +69,11 @@ option_list = list(
     make_option(c("--shiny_reference_de"), type="character", default=NULL,
                 help="Path to Shiny DE_results.csv; if set, filter SE to same protein set before DE.", metavar="FILE"),
     make_option(c("--volcano_display_names"), type="character", default="true",
-                help="Volcano plot: display names on significant points. Matches GUI 'Display names' checkbox. true/false.", metavar="STRING"),
+                help="Volcano plot: display names on significant points. true/false.", metavar="STRING"),
     make_option(c("--volcano_show_gene"), type="character", default="true",
-                help="Volcano plot: show gene names (true) or protein/peptide ID (false). Matches GUI 'Show gene names' checkbox.", metavar="STRING"),
+                help="Volcano plot: show gene names (true) or protein/peptide ID (false).", metavar="STRING"),
     make_option(c("--volcano_highlight_feature"), type="character", default="",
-                help="Comma-delimited list of features to highlight on volcano (e.g. Gene names or IDs). Matches GUI 'select features from results table to highlight'.", metavar="STRING")
+                help="Comma-delimited list of features to highlight on volcano (e.g. Gene names or IDs).", metavar="STRING")
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -99,6 +101,9 @@ de_lfc = opt$de_lfc
 # Normalize FDR: accept "Benjamini Hochberg","BH","bh" -> BH; "Local and tail area-based","fdrtool" -> Local and tail area-based
 de_fdr_raw = trimws(if (is.null(opt$de_fdr) || is.na(opt$de_fdr) || opt$de_fdr == "") "Benjamini Hochberg" else opt$de_fdr)
 de_fdr = if (tolower(de_fdr_raw) %in% c("benjamini hochberg", "bh", "benjamini-hochberg")) "Benjamini Hochberg" else if (tolower(de_fdr_raw) %in% c("local and tail area-based", "fdrtool", "local_tail")) "Local and tail area-based" else de_fdr_raw
+# Imputation: none, man (Perseus-type), knn, MLE, min, zero (matches FragPipe GUI)
+imputation_type_raw = trimws(if (is.null(opt$imputation_type) || is.na(opt$imputation_type) || opt$imputation_type == "") "man" else opt$imputation_type)
+imputation_type = if (tolower(imputation_type_raw) %in% c("none", "no")) "none" else if (tolower(imputation_type_raw) %in% c("man", "perseus", "perseus-type", "perseus_type")) "man" else if (tolower(imputation_type_raw) %in% c("knn", "min", "zero")) tolower(imputation_type_raw) else if (tolower(imputation_type_raw) == "mle") "MLE" else imputation_type_raw
 min_global_appearance = opt$min_global_appearance
 min_appearance_one_condition = opt$min_appearance_one_condition
 explore_filter = isTRUE(opt$explore_filter)
@@ -144,6 +149,7 @@ writeLines(c(
     paste("de_alpha:", de_alpha),
     paste("de_lfc:", de_lfc),
     paste("de_fdr:", de_fdr),
+    paste("imputation_type:", imputation_type),
     paste("feature_list_protein:", paste(feature_list_protein, collapse=", ")),
     paste("feature_list_gene:", paste(feature_list_gene, collapse=", ")),
     paste("top_n_protein:", top_n_protein),
@@ -281,7 +287,7 @@ if (explore_filter) {
   quit(save = "no", status = 0)
 }
 
-# ========== Filtering (exact FragPipe-Analyst R/filter.R - GUI source) ==========
+# ========== Filtering (FragPipe-Analyst R/filter.R) ==========
 # server.R: global_filter(processed_data(), 100 - min_global), filter_by_condition(..., min_appearance_each_condition)
 processed_se <- data_se  # keep for Absence/Presence
 filtered_se <- data_se
@@ -322,11 +328,11 @@ if (!is.null(shiny_reference_de) && file.exists(shiny_reference_de)) {
 n_conditions <- length(unique(colData(data_se)$condition))
 has_missing <- any(is.na(assay(data_se)))
 
-# For LFQ/DIA with missing values: impute before PCA and DE (Perseus-type/man, seed=123 matches Shiny)
+# For LFQ/DIA with missing values: impute before PCA and DE
 imputed_se <- NULL
-if (has_missing && mode %in% c("LFQ", "DIA")) {
-    print("Imputing missing values (Perseus-like, seed=123)...")
-    imputed_se <- manual_impute(data_se, seed = 123)
+if (has_missing && mode %in% c("LFQ", "DIA") && imputation_type != "none") {
+    print(paste("Imputing missing values (", imputation_type, ", seed=123)...", sep = ""))
+    imputed_se <- impute_customized(data_se, fun = imputation_type)
 }
 
 # QC plots: when qc_include_both=TRUE, generate both imputed and unimputed versions
@@ -347,7 +353,7 @@ qc_versions <- if (qc_include_both && !is.null(imputed_se)) {
 
 print("Plotting PCA...")
 for (vv in qc_versions) {
-  # Condition only (no replicate shapes) - matches FragPipe Analyst GUI PCA
+  # Condition only (no replicate shapes)
   p_pca <- plot_pca(vv$se, indicate = "condition", plot = TRUE)
   base <- paste0("pca", vv$suffix)
   ggplot2::ggsave(file.path(output_dir, paste0(base, ".pdf")), p_pca, width = 8, height = 6)
@@ -389,7 +395,7 @@ if (has_missing) {
   })
 }
 
-# ========== Feature numbers per sample (FragPipeAnalystR::plot_feature_numbers - GUI source) ==========
+# ========== Feature numbers per sample (FragPipeAnalystR::plot_feature_numbers) ==========
 print("Plotting feature numbers...")
 tryCatch({
   p_fn <- FragPipeAnalystR::plot_feature_numbers(data_se, fill = "condition")
@@ -468,7 +474,7 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
   }, error = function(e) { warning("UpSet plot failed: ", conditionMessage(e)) })
 }
 
-# ========== Sample CVs (FragPipe-Analyst GUI: "Sample CVs Plots") ==========
+# ========== Sample CVs ==========
 print("Plotting sample CVs...")
 for (vv in qc_versions) {
   tryCatch({
@@ -571,7 +577,7 @@ if (length(features_gene) > 0 && !is.null(gene_col)) {
   do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
 }
 
-# ========== Export unimputed matrix ==========
+# ========== Export unimputed matrix (filtered, before imputation) ==========
 unimputed_df <- cbind(
     as.data.frame(rowData(data_se)),
     as.data.frame(assay(data_se))
@@ -579,6 +585,17 @@ unimputed_df <- cbind(
 write.table(unimputed_df, file.path(output_dir, "unimputed_matrix.tsv"),
     sep = "\t", row.names = FALSE, quote = FALSE)
 print(paste("Unimputed matrix saved to", output_dir))
+
+# ========== Export normalized matrix ==========
+# Ref: MonashProteomics/FragPipe-Analyst server.R normalized_data() -> when normalization == "none", returns filtered_data().
+# Same as reference: when normalization is "none" (default), normalized = filtered. Same as unimputed.
+normalized_df <- cbind(
+    as.data.frame(rowData(data_se)),
+    as.data.frame(assay(data_se))
+)
+write.table(normalized_df, file.path(output_dir, "normalized_matrix.tsv"),
+    sep = "\t", row.names = FALSE, quote = FALSE)
+print(paste("Normalized matrix saved to", output_dir))
 
 # ========== Export imputed matrix (if imputation was done) ==========
 if (!is.null(imputed_se)) {
@@ -619,7 +636,7 @@ if (n_conditions >= 2) {
         sep = "\t", row.names = FALSE, quote = FALSE)
     print(paste("DE results saved to", output_dir))
 
-    # Volcano plots per contrast (matches GUI: Display names + Show gene names + highlight selected features)
+    # Volcano plots per contrast (Display names, Show gene names, highlight selected features)
     volcano_dir <- file.path(output_dir, "volcano")
     valid_cntrsts <- gsub("_diff$", "", grep("_diff$", colnames(de_df), value = TRUE))
     v_name_col <- if (volcano_show_gene && "Gene" %in% colnames(de_df)) "Gene" else "ID"
@@ -627,7 +644,7 @@ if (n_conditions >= 2) {
     for (cntrst in valid_cntrsts) {
         p_v <- plot_volcano(de_result_updated, cntrst, plot = TRUE, alpha = de_alpha, lfc = de_lfc,
           name_col = v_name_col, add_names = volcano_display_names)
-        # Add highlight layer if features specified (matches GUI "select features from results table to highlight")
+        # Add highlight layer if features specified
         if (length(highlight_vec) > 0) {
             diff_col <- paste0(cntrst, "_diff")
             pval_col <- paste0(cntrst, "_p.adj")
@@ -660,7 +677,7 @@ if (n_conditions >= 2) {
         print(paste("Volcano plot saved:", cntrst))
     }
 
-    # DE heatmap (significant proteins, sample-level; matches FragPipe-Analyst GUI)
+    # DE heatmap (significant proteins, sample-level)
     # Uses get_cluster_heatmap_customized for correct col labels (label->sample_name mapping fallback)
     print("Plotting DE heatmap...")
     tryCatch({
