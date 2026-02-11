@@ -797,7 +797,7 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 ## 6. FragPipe-Analyst Downstream Analysis
 
-GeneLab runs FragPipe-Analyst twice: once at **protein** level (`combined_protein.tsv`) and once at **peptide** level (`combined_peptide.tsv`). Both runs use default top-10 feature plots (top 10 most variable by protein/peptide ID and top 10 by gene when feature lists are empty).
+FragPipe-Analyst is ran twice: once at **protein** level (`combined_protein.tsv`) and once at **peptide** level (`combined_peptide.tsv`).
 
 **Protein run:**
 
@@ -826,8 +826,6 @@ Rscript fp_analyst_analysis.R \
   --go_direction "Both" \
   --output_dir "output/"
 ```
-
-**Peptide run:**
 
 ```bash
 Rscript fp_analyst_analysis.R \
@@ -899,7 +897,7 @@ Rscript fp_analyst_analysis.R \
 - `upset.pdf`, `upset.png` (UpSet plot)
 - `venndiagram/` (pairwise Venn diagrams)
 - `feature/protein/boxplot/`, `feature/protein/violinplot/`, `feature/gene/boxplot/`, `feature/gene/violinplot/` (protein run: top 10 by protein ID and top 10 by gene; filenames `boxplot_feature_*.pdf`, `violinplot_feature_*.pdf`)
-- `feature/peptide/boxplot/`, `feature/peptide/violinplot/` (peptide run: top 10 by peptide ID only; gene feature plots not applicable)
+- `feature/peptide/boxplot/`, `feature/peptide/violinplot/` (peptide run: top 10 by peptide ID only)
 - `unimputed_matrix.tsv` (filtered data, before imputation)
 - `normalized_matrix.tsv` (after normalization; when normalization is "none", equals filtered)
 - `imputed_matrix.tsv` (protein intensities after imputation)
