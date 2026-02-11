@@ -99,12 +99,13 @@ cd ..
 
 **Input Data:**
 
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
-- `qc-report.html` (interactive HTML QC report with metrics and visualizations)
-- `resources/` (directory containing QC report assets: CSS, JavaScript, and data files)
+- qc-report.html (interactive HTML QC report with metrics and visualizations)
+- resources/ (directory containing QC report assets: CSS, JavaScript, and data files)
+- **\*_qc-report.zip** (zip archive containing qc-report.html and resources/ folder)
 
 <br>
 
@@ -127,12 +128,13 @@ zip -r *-report.zip qc-report.html resources/
 
 **Input Data:**
 
-- `*.mzML` (all input mass spectrometry raw data files in mzML format)
+- *.mzML (all input mass spectrometry raw data files in mzML format)
 
 **Output Data:**
 
-- `qc-report.html` (interactive HTML QC report with metrics and visualizations across all samples)
-- `resources/` (directory containing QC report assets: CSS, JavaScript, and data files)
+- qc-report.html (interactive HTML QC report with metrics and visualizations across all samples)
+- resources/ (directory containing QC report assets: CSS, JavaScript, and data files)
+- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples combined)
 
 <br>
 
@@ -160,7 +162,7 @@ philosopher-v5.1.2 database --custom UP000005640 --reviewed --isoforms --contam
 
 **Output Data:**
 
-- `*-reviewed-isoforms-contam-*.fas` (proteome FASTA file with reviewed entries, isoforms, and contaminants)
+- *-reviewed-isoforms-contam-*.fas (proteome FASTA file with reviewed entries, isoforms, and contaminants)
 
 <br>
 
@@ -180,11 +182,11 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 
 **Input Data:**
 
-- `*-reviewed-isoforms-contam-*.fas` (proteome FASTA file, output from [Step 2a](#2a-download-proteome-from-uniprot))
+- *-reviewed-isoforms-contam-*.fas (proteome FASTA file, output from [Step 2a](#2a-download-proteome-from-uniprot))
 
 **Output Data:**
 
-- `*-decoys-reviewed-isoforms-contam-*.fas` (proteome FASTA database with decoy sequences (prefixed with `rev_`), reviewed entries, isoforms, and contaminants)
+- *-decoys-reviewed-isoforms-contam-*.fas (proteome FASTA database with decoy sequences (prefixed with `rev_`), reviewed entries, isoforms, and contaminants)
 
 <br>
 
@@ -213,26 +215,26 @@ philosopher-v5.1.2 database --annotate --custom UP000005640 --reviewed --isoform
 
 **Input Data:**
 
-- `TMT10.workflow` (FragPipe workflow configuration file for TMT-10 workflow)
-- `manifest_GLProteomics.tsv` (FragPipe manifest TSV file with columns: input_file, joined_factor_values, bioreplicate, data_type)
-- `*-decoys-reviewed-isoforms-contam-*.fas` (proteome FASTA database, output from [Step 2b](#2b-add-decoys-and-contaminants-to-fasta))
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- TMT10.workflow (FragPipe workflow configuration file for TMT-10 workflow)
+- manifest_GLProteomics.tsv (FragPipe manifest TSV file with columns: input_file, joined_factor_values, bioreplicate, data_type)
+- *-decoys-reviewed-isoforms-contam-*.fas (proteome FASTA database, output from [Step 2b](#2b-add-decoys-and-contaminants-to-fasta))
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
-- `fragger.params` (MSFragger parameter configuration file)
-- `msbooster_params.txt` (MSBooster parameter configuration file)
-- `tmt-integrator-conf.yml` (TMTIntegrator configuration file)
-- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet)
-- `filelist_ionquant.txt` (file list for IonQuant)
-- `modmasses_ionquant.txt` (modification masses file for IonQuant)
-- **`experiment_annotation.tsv`** (experiment annotation file mapping TMT channels to samples)
-- `*_annotation.txt` (plex-specific annotation files mapping TMT channels to sample names)
-- `fragpipe.workflow` (updated FragPipe workflow configuration file)
-- `fragpipe-files.fp-manifest` (FragPipe files manifest)
-- `fragpipe.job` (FragPipe job configuration file)
-- `log_*.txt` (FragPipe execution log file with timestamp)
-- `sdrf.tsv` (Sample and Data Relationship Format file)
+- fragger.params (MSFragger parameter configuration file)
+- msbooster_params.txt (MSBooster parameter configuration file)
+- tmt-integrator-conf.yml (TMTIntegrator configuration file)
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
+- filelist_ionquant.txt (file list for IonQuant)
+- modmasses_ionquant.txt (modification masses file for IonQuant)
+- **experiment_annotation.tsv** (experiment annotation file mapping TMT channels to samples)
+- *_annotation.txt (plex-specific annotation files mapping TMT channels to sample names)
+- fragpipe.workflow (updated FragPipe workflow configuration file)
+- fragpipe-files.fp-manifest (FragPipe files manifest)
+- fragpipe.job (FragPipe job configuration file)
+- log_*.txt (FragPipe execution log file with timestamp)
+- sdrf.tsv (Sample and Data Relationship Format file)
 
 <br>
 
@@ -253,7 +255,7 @@ java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar
 
 **Input Data:**
 
-- `*.mzML` (input mass spectrometry raw data in mzML format)
+- *.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -304,9 +306,9 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 **Input Data:**
 
-- `fragger.params` (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `*.mzML` (input mass spectrometry raw data in mzML format)
-- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- fragger.params (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- *.mzML (input mass spectrometry raw data in mzML format)
+- *-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -337,9 +339,9 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 **Input Data:**
 
-- `msbooster_params.txt` (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `*.pin` (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
+- msbooster_params.txt (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- *.pin (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -390,7 +392,7 @@ percolator \
 
 **Input Data:**
 
-- `*_edited.pin` (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
+- *_edited.pin (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
 
 **Output Data:**
 
@@ -430,10 +432,10 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 
 **Input Data:**
 
-- `*.pin` (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- `*_percolator_target_psms.tsv` (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
-- `*_percolator_decoy_psms.tsv` (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
-- `*.mzML` (original mass spectrometry raw data in mzML format)
+- *.pin (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- *_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- *_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 3f](#3f-percolator-psm-rescoring-and-statistical-validation))
+- *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -461,8 +463,8 @@ philosopher proteinprophet --maxppmdiff 2000000 --minprob 0.5 --output combined 
 
 **Input Data:**
 
-- `filelist_proteinprophet.txt` (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
-- `interact-*.pep.xml` (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
+- interact-*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
 
 **Output Data:**
 
@@ -488,7 +490,7 @@ philosopher database --annotate *.fas --prefix rev_
 
 **Input Data:**
 
-- `*-decoys-reviewed-contam-*.fas` (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- *-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -561,8 +563,8 @@ philosopher filter \
 
 **Input Data:**
 
-- `interact-*.pep.xml` (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
-- `combined.prot.xml` (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
+- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3f.1](#3f1-add-percolator-validation-information-to-pepxml))
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
 - .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
 
 **Output Data:**
@@ -712,14 +714,14 @@ java -Djava.awt.headless=true -Xmx55G \
 
 **Input Data:**
 
-- `filelist_ionquant.txt` (file list for IonQuant containing `--psm` entries pointing to `psm.tsv` files and `--specdir` entry pointing to mzML directory, output from [Step 3a](#3a-launch-fragpipe))
-- `modmasses_ionquant.txt` (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- `protein.tsv` (protein report, output from [Step 3j](#3j-generate-reports))
-- `peptide.tsv` (peptide report, output from [Step 3j](#3j-generate-reports))
-- `psm.tsv` (PSM report, output from [Step 3j](#3j-generate-reports))
-- `ion.tsv` (ion report, output from [Step 3j](#3j-generate-reports))
-- `*_annotation.txt` (plex-specific annotation files mapping TMT channels to sample names, used in second pass only, output from [Step 3a](#3a-launch-fragpipe))
-- `*.mzML` (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract TMT reporter ion intensities)
+- filelist_ionquant.txt (file list for IonQuant containing `--psm` entries pointing to `psm.tsv` files and `--specdir` entry pointing to mzML directory, output from [Step 3a](#3a-launch-fragpipe))
+- modmasses_ionquant.txt (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
+- protein.tsv (protein report, output from [Step 3j](#3j-generate-reports))
+- peptide.tsv (peptide report, output from [Step 3j](#3j-generate-reports))
+- psm.tsv (PSM report, output from [Step 3j](#3j-generate-reports))
+- ion.tsv (ion report, output from [Step 3j](#3j-generate-reports))
+- *_annotation.txt (plex-specific annotation files mapping TMT channels to sample names, used in second pass only, output from [Step 3a](#3a-launch-fragpipe))
+- *.mzML (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in `filelist_ionquant.txt` to extract TMT reporter ion intensities)
 
 **Output Data:**
 
@@ -727,10 +729,10 @@ java -Djava.awt.headless=true -Xmx55G \
 - peptide.tsv (peptide report with TMT reporter ion intensities and additional data added from IonQuant)
 - ion.tsv (ion report with TMT reporter ion intensities and additional data added from IonQuant)
 - psm.tsv (PSM report with TMT reporter ion intensities (individual TMT channel columns) and additional data added from IonQuant)
-- combined_protein.tsv (combined protein report with TMT reporter ion intensities across all samples)
-- combined_peptide.tsv (combined peptide report with TMT reporter ion intensities and additional data across all samples)
-- combined_ion.tsv (combined ion report with TMT reporter ion intensities and additional data across all samples)
-- combined_modified_peptide.tsv (combined modified peptide report with TMT reporter ion intensities and additional data across all samples)
+- **combined_protein.tsv** (combined protein report with TMT reporter ion intensities across all samples)
+- **combined_peptide.tsv** (combined peptide report with TMT reporter ion intensities and additional data across all samples)
+- **combined_ion.tsv** (combined ion report with TMT reporter ion intensities and additional data across all samples)
+- **combined_modified_peptide.tsv** (combined modified peptide report with TMT reporter ion intensities and additional data across all samples)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities, generated by Philosopher)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts, generated by Philosopher)
 
@@ -755,8 +757,8 @@ java -Xmx55G -jar TMT-Integrator-6.1.1.jar \
 
 **Input Data:**
 
-- `tmt-integrator-conf.yml` (TMTIntegrator configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- `psm.tsv` (PSM reports with TMT reporter ion intensities, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- tmt-integrator-conf.yml (TMTIntegrator configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- psm.tsv (PSM reports with TMT reporter ion intensities, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
 
 **Output Data:**
 
@@ -794,13 +796,13 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 **Input Data:**
 
-- `psm.tsv` (plex-specific PSM reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `ion.tsv` (plex-specific ion reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `combined_protein.tsv` (combined protein report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `combined_peptide.tsv` (combined peptide report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `combined_ion.tsv` (combined ion report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
-- `*.workflow` (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
-- `fragger.params` (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
+- psm.tsv (plex-specific PSM reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- ion.tsv (plex-specific ion reports, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- combined_ion.tsv (combined ion report, output from [Step 3k](#3k-ionquant-tmt-reporter-ion-extraction))
+- *.workflow (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
+- fragger.params (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
 
 **Output Data:**
 
