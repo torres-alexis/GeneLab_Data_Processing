@@ -574,7 +574,7 @@ get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered")
     top_annotation = ha1,
     ...)
   p <- ComplexHeatmap::draw(ht1, heatmap_legend_side = "top")
-  list(ht1, ComplexHeatmap::row_order(ht1))
+  list(ht1, ComplexHeatmap::row_order(p))
 }
 
 
@@ -691,7 +691,7 @@ theme_DEP1 <- function() {
 }
 
 # plot_feature_numbers_monash: based on DEP plot_numbers (plot_functions_frequencies.R)
-# Aligns with FragPipe-Analyst GUI: join by label (assay colnames = expdesign$label), fill by condition.
+# Join by label (assay colnames = expdesign$label), fill by condition.
 plot_feature_numbers_monash <- function(se, fill = "condition") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   df <- assay(se) %>%
@@ -891,6 +891,58 @@ plot_Jaccard_monash <- function(dep, plot = TRUE, exp = "LFQ", indicate = "condi
     top_annotation = ha1
   )
   if (plot) ComplexHeatmap::draw(ht1, heatmap_legend_side = "top") else as.data.frame(cor_mat)
+}
+
+# ----- Imputation: from MonashProteomics/FragPipe-Analyst R/customized.R -----
+manual_impute_customized <- function(se, scale = 0.3, shift = 1.8) {
+  if (is.integer(scale)) scale <- as.numeric(scale)
+  if (is.integer(shift)) shift <- as.numeric(shift)
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"),
+    is.numeric(scale), length(scale) == 1,
+    is.numeric(shift), length(shift) == 1)
+  se_assay <- assay(se)
+  if (!any(is.na(se_assay))) {
+    stop("No missing values in '", deparse(substitute(se)), "'", call. = FALSE)
+  }
+  stat <- se_assay %>%
+    data.frame(check.names = FALSE) %>%
+    tibble::rownames_to_column() %>%
+    tidyr::gather(samples, value, -rowname) %>%
+    dplyr::filter(!is.na(value)) %>%
+    dplyr::group_by(samples) %>%
+    dplyr::summarise(mean = mean(value), median = median(value), sd = sd(value),
+      n = dplyr::n(), infin = nrow(se_assay) - dplyr::n())
+  set.seed(123)
+  for (a in seq_len(nrow(stat))) {
+    assay(se)[is.na(assay(se)[, stat$samples[a]]), stat$samples[a]] <-
+      rnorm(stat$infin[a], mean = stat$median[a] - shift * stat$sd[a], sd = stat$sd[a] * scale)
+  }
+  return(se)
+}
+
+impute_customized <- function(se, fun = c("bpca", "knn", "QRILC", "MLE", "RF",
+    "MinDet", "MinProb", "man", "min", "zero", "mixed", "nbavg"), ...) {
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"), is.character(fun))
+  fun <- match.arg(fun)
+  if (any(!c("name", "ID") %in% colnames(rowData(se, use.names = FALSE)))) {
+    stop("'name' and/or 'ID' columns are not present. Run make_unique() and make_se()", call. = FALSE)
+  }
+  rowData(se)$imputed <- apply(is.na(assay(se)), 1, any)
+  rowData(se)$num_NAs <- rowSums(is.na(assay(se)))
+  se <- se[!rowData(se)$num_NAs == dim(se)[2], ]
+  if (!any(is.na(assay(se)))) {
+    warning("No missing values. Returning unchanged object.", call. = FALSE)
+    return(se)
+  }
+  if (fun == "man") {
+    se <- manual_impute_customized(se, ...)
+  } else {
+    MSnSet_data <- as(se, "MSnSet")
+    set.seed(123)
+    MSnSet_imputed <- MSnbase::impute(MSnSet_data, method = fun, ...)
+    assay(se) <- MSnbase::exprs(MSnSet_imputed)
+  }
+  return(se)
 }
 
 # plot_density - from Monash R/customized.R (list of SEs: original, filtered, imputed)
