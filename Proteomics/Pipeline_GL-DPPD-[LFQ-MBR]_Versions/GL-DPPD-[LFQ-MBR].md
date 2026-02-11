@@ -41,7 +41,7 @@ X (X)
     - [3k. IonQuant Label-Free Quantification](#3k-ionquant-label-free-quantification)
   - [**4. Compile FragPipe QC Reports**](#4-compile-fragpipe-qc-reports)
   - [**5. MSstats Differential Abundance Analysis**](#5-msstats-differential-abundance-analysis)
-  - [**6. FragPipe-Analyst QC and Differential Expression**](#6-fragpipe-analyst-qc-and-differential-expression)
+  - [**6. FragPipe-Analyst Downstream Analysis**](#6-fragpipe-analyst-downstream-analysis)
 
 ---
 
@@ -62,7 +62,7 @@ X (X)
 |MSstats|4.18.0|[https://www.bioconductor.org/packages/release/bioc/html/MSstats.html](https://www.bioconductor.org/packages/release/bioc/html/MSstats.html)|
 |MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
-|FragPipeAnalystR|1.1.0|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
+|FragPipe-Analyst|1.1.0|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
 
 ---
@@ -795,7 +795,7 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 ---
 
-## 6. FragPipe-Analyst QC and Differential Expression
+## 6. FragPipe-Analyst Downstream Analysis
 
 ```bash
 Rscript fp_analyst_analysis.R \
