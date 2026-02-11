@@ -756,8 +756,8 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 - psm.tsv (sample-specific PSM reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - ion.tsv (sample-specific ion reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- **combined_protein.tsv** (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- **combined_peptide.tsv** (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - combined_ion.tsv (combined ion report, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - *.workflow (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
 - fragger.params (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
@@ -792,9 +792,9 @@ msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
 
 **Output Data:**
 
-- msstats_comparison_*.csv (pairwise differential abundance comparison results)
-- msstats_comparison_all.csv (all pairwise comparisons combined)
-- msstats_contrasts.csv (contrast definitions)
+- **msstats_comparison_*.csv** (pairwise differential abundance comparison results)
+- **msstats_comparison_all.csv** (all pairwise comparisons combined)
+- **msstats_contrasts.csv** (contrast definitions)
 
 <br>
 
