@@ -946,7 +946,7 @@ impute_customized <- function(se, fun = c("bpca", "knn", "QRILC", "MLE", "RF",
 }
 
 # plot_density - from Monash R/customized.R (list of SEs: original, filtered, imputed)
-# Overlaid density curves colored by condition (Control, Ubi, etc.)
+# Overlaid density curves colored by condition
 plot_density_monash <- function(ses) {
   gather_join <- function(se) {
     cd <- as.data.frame(colData(se))
