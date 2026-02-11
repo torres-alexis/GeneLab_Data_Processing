@@ -101,7 +101,7 @@ de_lfc = opt$de_lfc
 # Normalize FDR: accept "Benjamini Hochberg","BH","bh" -> BH; "Local and tail area-based","fdrtool" -> Local and tail area-based
 de_fdr_raw = trimws(if (is.null(opt$de_fdr) || is.na(opt$de_fdr) || opt$de_fdr == "") "Benjamini Hochberg" else opt$de_fdr)
 de_fdr = if (tolower(de_fdr_raw) %in% c("benjamini hochberg", "bh", "benjamini-hochberg")) "Benjamini Hochberg" else if (tolower(de_fdr_raw) %in% c("local and tail area-based", "fdrtool", "local_tail")) "Local and tail area-based" else de_fdr_raw
-# Imputation: none, man (Perseus-type), knn, MLE, min, zero (matches FragPipe GUI)
+# Imputation: none, man (Perseus-type), knn, MLE, min, zero
 imputation_type_raw = trimws(if (is.null(opt$imputation_type) || is.na(opt$imputation_type) || opt$imputation_type == "") "man" else opt$imputation_type)
 imputation_type = if (tolower(imputation_type_raw) %in% c("none", "no")) "none" else if (tolower(imputation_type_raw) %in% c("man", "perseus", "perseus-type", "perseus_type")) "man" else if (tolower(imputation_type_raw) %in% c("knn", "min", "zero")) tolower(imputation_type_raw) else if (tolower(imputation_type_raw) == "mle") "MLE" else imputation_type_raw
 min_global_appearance = opt$min_global_appearance
