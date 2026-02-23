@@ -23,6 +23,12 @@
 | Source Name | string | Biological replicate identifier. Multiple fractions from the same biological sample should share the same Source Name. | RR-10_BL-01 |
 | Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Basal Control |
 
+## Optional columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| Bioreplicate | string | Alphanumeric replicate identifier for the FragPipe manifest (sample = Experiment_Bioreplicate). If omitted, inferred per-condition from row order (1,2,3...). | 2 |
+
 ## TMT-specific columns (required for TMT workflows)
 
 | Column Name | Type | Description | Example |

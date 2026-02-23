@@ -1,7 +1,7 @@
 process RAWBEANS_QC {
     tag "${meta.id}"
     
-    publishDir "${output_dir}/RawBeans_QC/${meta.id}/",
+    publishDir "${output_dir}/RawBeans_QC/",
         mode: params.publish_dir_mode,
         pattern: "${meta.id}${params.assay_suffix}_qc-report.zip"
 
@@ -23,14 +23,14 @@ process RAWBEANS_QC {
         --cores ${task.cpus}
 
     # Create zip file with HTML and resources folder (cd to get files at root level)
-    cd ${meta.id}${params.assay_suffix}
+    # create-qc-report.py creates folder from input basename (meta.id)
+    cd ${meta.id}
     zip -r ../${meta.id}${params.assay_suffix}_qc-report.zip qc-report.html resources/
     cd ..
 
     # Version info
     echo '"${task.process}":' > versions.yml
-    echo "    protqc: \$(pip show protqc | grep Version | cut -d' ' -f2)" >> versions.yml
-    echo "    python: \$(python --version 2>&1 | sed 's/Python //g')" >> versions.yml
+    echo "    rawbeans: \$(pip show protqc | grep Version | cut -d' ' -f2)" >> versions.yml
     """
 }
 
@@ -61,7 +61,6 @@ process RAWBEANS_QC_ALL {
 
     # Version info
     echo '"${task.process}":' > versions.yml
-    echo "    protqc: \$(pip show protqc | grep Version | cut -d' ' -f2)" >> versions.yml
-    echo "    python: \$(python --version 2>&1 | sed 's/Python //g')" >> versions.yml
+    echo "    rawbeans: \$(pip show protqc | grep Version | cut -d' ' -f2)" >> versions.yml
     """
 }

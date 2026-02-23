@@ -3,7 +3,8 @@ process STAGE_INPUT {
     
     publishDir "${output_dir}/RawData",
         mode: params.publish_dir_mode,
-        pattern: "*.mzML"
+        pattern: "*.mzML",
+        saveAs: { filename -> filename.toString().replaceAll(/\.mzML$/, (params.assay_suffix ?: '') + '.mzML') }
 
     input:
     val(output_dir)
@@ -47,25 +48,25 @@ process STAGE_INPUT {
         echo "Extracting ZIP archive..."
         unzip -q raw_file
         # Find mzML files in extracted content
-        find . -name "*.mzML" -exec mv {} ${meta.id}${params.assay_suffix}.mzML \\;
+        find . -name "*.mzML" -exec mv {} ${meta.id}.mzML \\;
     elif [[ \$file_type == *"gzip compressed"* ]]; then
         echo "Extracting gzipped file..."
-        gunzip -c raw_file > ${meta.id}${params.assay_suffix}.mzML
+        gunzip -c raw_file > ${meta.id}.mzML
     elif [[ "${file_url}" == *.mzML ]]; then
         echo "Already mzML format"
-        mv raw_file ${meta.id}${params.assay_suffix}.mzML
+        mv raw_file ${meta.id}.mzML
     else
         echo "WARNING: Unknown format, assuming mzML"
-        mv raw_file ${meta.id}${params.assay_suffix}.mzML
+        mv raw_file ${meta.id}.mzML
     fi
     
     # Verify final mzML file exists
-    if [[ ! -f ${meta.id}${params.assay_suffix}.mzML ]]; then
+    if [[ ! -f ${meta.id}.mzML ]]; then
         echo "ERROR: Failed to create standardized mzML file"
         exit 1
     fi
     
-    echo "Successfully staged and standardized: ${meta.id}${params.assay_suffix}.mzML"
+    echo "Successfully staged and standardized: ${meta.id}.mzML"
     
     # Version info
     echo '"${task.process}":' > versions.yml

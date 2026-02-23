@@ -3,12 +3,13 @@ process RUNSHEET_TO_MANIFEST {
         mode: params.publish_dir_mode,
         pattern: "*.tsv"
 
-    input: 
+    input:
     val(ch_outdir)
     path(runsheet)
 
     output:
     path("*.tsv"), emit: manifest
+    path("versions.yml"), emit: versions
 
     script:
     def assay_suffix_flag = params.assay_suffix ? "--assay_suffix ${params.assay_suffix}" : ""
@@ -17,5 +18,8 @@ process RUNSHEET_TO_MANIFEST {
     def output_filename = "manifest${params.assay_suffix ?: ''}.tsv"
     """
     runsheet_to_manifest.py --runsheet ${runsheet} --output ${output_filename} ${assay_suffix_flag} ${mode_flag}
+
+    echo '"${task.process}":' > versions.yml
+    echo "    dp_tools: \$(pip show dp_tools 2>/dev/null | grep '^Version:' | sed 's/Version: //')" >> versions.yml
     """
 }
