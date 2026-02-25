@@ -830,7 +830,7 @@ FragPipe-Analyst is ran twice: once at **protein** level (`combined_protein.tsv`
 **Protein run:**
 
 ```bash
-Rscript fp_analyst_analysis.R \
+Rscript fp_analyst_main.R \
   --experiment_annotation "experiment_annotation.tsv" \
   --quantification_file "combined_protein.tsv" \
   --mode "LFQ" \
@@ -851,15 +851,16 @@ Rscript fp_analyst_analysis.R \
   --imputation_type "Perseus-type" \
   --min_global_appearance 0 \
   --min_appearance_one_condition 0 \
-  --qc_show_imputed "true" \
+  --qc_plot_data "nonimputed" \
   --qc_include_both "false" \
+  --sample_cvs_full_range "false" \
   --output_dir "output/"
 ```
 
 **Peptide run:**
 
 ```bash
-Rscript fp_analyst_analysis.R \
+Rscript fp_analyst_main.R \
   --experiment_annotation "experiment_annotation.tsv" \
   --quantification_file "combined_peptide.tsv" \
   --mode "LFQ" \
@@ -878,8 +879,9 @@ Rscript fp_analyst_analysis.R \
   --imputation_type "Perseus-type" \
   --min_global_appearance 0 \
   --min_appearance_one_condition 0 \
-  --qc_show_imputed "true" \
+  --qc_plot_data "nonimputed" \
   --qc_include_both "false" \
+  --sample_cvs_full_range "false" \
   --output_dir "output/"
 ```
 
@@ -891,8 +893,8 @@ Rscript fp_analyst_analysis.R \
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
 - `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ` (default: `Intensity`).
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
-- `--min_global_appearance` – at least X% non-missing across all samples (0–100). 0 = no filter
-- `--min_appearance_one_condition` – at least X% non-missing in at least one condition (0–100). 0 = no filter
+- `--min_global_appearance` – at least X% present across all samples (0–100). 0 = no filter
+- `--min_appearance_one_condition` – at least X% present in at least one condition (0–100). 0 = no filter
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
 - `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based`
@@ -903,15 +905,16 @@ Rscript fp_analyst_analysis.R \
 - `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID (default: 10)
 - `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene (default: 10)
 - `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID (default: 10)
-- `--qc_show_imputed` – use imputed data for QC plots when `--qc_include_both` is false (`true`/`false`)
-- `--qc_include_both` – generate both imputed and unimputed QC plots (`true`/`false`)
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs, report: `imputed` or `nonimputed` (default: `nonimputed`)
+- `--qc_include_both` – generate both imputed and unimputed QC files (`true`/`false`)
+- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`, matches GUI "Show full range")
 - `--volcano_display_names` – display names on significant volcano points (`true`/`false`, default: `true`)
 - `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide.
 - `--volcano_highlight_feature` – comma-delimited feature IDs to highlight on volcano (default: empty)
 - `--volcano_show_other_peptides` – peptide/site volcano: when highlighting, also show other peptides from same protein in blue (`true`/`false`, default: `true`). `false` = don't color
-- `--pathway_database` – pathway enrichment database(s): comma-separated list. Friendly names: `Hallmark`, `KEGG`, `KEGG Mouse`, `Reactome`, `WikiPathways Mouse`. Or any [Enrichr libraryName](https://maayanlab.cloud/Enrichr/datasetStatistics) (e.g. `KEGG_2026`, `MSigDB_Hallmark_2020`). Empty = skip
+- `--pathway_database` – pathway enrichment database(s): `Hallmark`, `KEGG`, `KEGG Mouse`, `Reactome`, `WikiPathways Mouse`, or any [Enrichr libraryName](https://maayanlab.cloud/Enrichr/datasetStatistics), comma-separated list for multiple. Empty = skip
 - `--pathway_direction` – pathway enrichment direction: `Up`, `Down`, or `Both`
-- `--go_database` – Gene Ontology enrichment database(s): comma-separated list. Friendly names: `GO Biological Process`, `GO Cellular Component`, `GO Molecular Function`. Or any Enrichr libraryName. Empty = skip
+- `--go_database` – Gene Ontology enrichment database(s): `GO Biological Process`, `GO Cellular Component`, `GO Molecular Function`, or any Enrichr libraryName, comma-separated list for multiple. Empty = skip
 - `--go_direction` – GO enrichment direction: `Up`, `Down`, or `Both`
 - `--output_dir` – output directory for results
 
@@ -936,16 +939,70 @@ Rscript fp_analyst_analysis.R \
   - density.pdf, density.png (intensity distribution)
 - comparison/ (comparison plots folder)
   - correlation_heatmap.pdf, correlation_heatmap.png (sample correlation heatmap)
-  - jaccard.pdf, jaccard.png (Jaccard similarity; LFQ/DIA only, ≥2 conditions)
-  - upset.pdf, upset.png (UpSet plot; LFQ/DIA only)
-  - venndiagram/ (pairwise Venn diagrams; LFQ/DIA only)
+  - jaccard.pdf, jaccard.png (Jaccard similarity; ≥2 conditions)
+  - upset.pdf, upset.png (UpSet plot)
+  - venndiagram/ (pairwise Venn diagrams)
   - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (top N by protein ID and gene; filenames boxplot_feature_*.pdf, violinplot_feature_*.pdf)
   - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top N by peptide ID)
 - de/ (differential expression folder; when ≥2 conditions)
-  - DE_results.csv (Protein ID, Gene Name, per-contrast log2 fold change and p.val, p.adj, per-contrast significant, global significant, imputed, num_NAs, Description)
+  - DE_results.csv (differential expression results table containing the following columns):
+    - Shared (all LFQ levels):
+      - Sample.Intensity (per-sample raw precursor intensity from IonQuant)
+      - Sample.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity from IonQuant)
+      - Sample.Spectral.Count (per-sample PSM count)
+      - name (display name for plots)
+      - ID (unique row identifier)
+      - imputed (whether row had imputed values)
+      - num_NAs (count of missing values before imputation)
+    - LFQ protein level (identifier and annotation columns):
+      - Protein (protein sequence header from the search database FASTA, e.g. sp|A0A075B6R9|KVD24_HUMAN; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
+      - Protein.ID (UniProt primary accession number; second pipe-delimited field of Protein)
+      - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
+      - Gene (gene name)
+      - Protein.Length (number of amino acids in protein)
+      - Organism (species)
+      - Protein.Existence (UniProt evidence type)
+      - Description (protein name)
+      - Protein.Probability (ProteinProphet confidence)
+      - Top.Peptide.Probability (highest PeptideProphet score among mapped peptides)
+      - Combined.Total.Peptides (number of peptides mappable to protein)
+      - Combined.Spectral.Count (PSMs for razor peptides)
+      - Combined.Unique.Spectral.Count (PSMs for unique peptides)
+      - Combined.Total.Spectral.Count (PSMs for total peptides)
+      - Indistinguishable.Proteins (proteins not distinguishable from selected given evidence)
+      - Sample.Unique.Spectral.Count (per-sample PSMs for unique peptides only; protein level)
+      - Sample.Total.Spectral.Count (per-sample PSMs for all peptides including razor; protein level)
+    - LFQ peptide level (identifier and annotation columns):
+      - Index (Protein ID + Peptide Sequence, unique peptide identifier)
+      - Peptide.Sequence (stripped sequence, no modifications)
+      - Prev.AA (residue preceding peptide in protein)
+      - Next.AA (residue following peptide in protein)
+      - Start (position of peptide start in protein)
+      - End (position of peptide end in protein)
+      - Peptide.Length (number of residues)
+      - Charges (observed charge states)
+      - Protein (protein sequence header; razor protein if maps to multiple)
+      - Protein.ID (UniProt primary accession)
+      - Entry.Name (protein entry name)
+      - Gene (gene name; from razor protein if maps to multiple)
+      - Description (protein name)
+      - Mapped.Genes (additional genes peptide may originate from)
+      - Mapped.Proteins (additional proteins peptide maps to)
+    - For each pairwise group comparison (A)v(B):
+      - CI.L_(A)v(B) (lower bound of log2 fold-change confidence interval)
+      - CI.R_(A)v(B) (upper bound of log2 fold-change confidence interval)
+      - Log2fc_(A)v(B) (log2 fold change)
+      - P.value_(A)v(B) (unadjusted p-value)
+      - Adj.p.value_(A)v(B) (Benjamini-Hochberg adjusted p-value)
+      - Stat_(A)v(B) (limma t-statistic)
+      - Significant_(A)v(B) (boolean at chosen FDR and fold-change thresholds)
+      - significant (global; TRUE if significant in any contrast)
+      - All.mean (mean across all samples)
+      - All.stdev (standard deviation across all samples)
+      - For each group (condition_raw):
+      - Group.Mean_(group) (mean within group)
+      - Group.Stdev_(group) (standard deviation within group)
   - de_heatmap.pdf, de_heatmap.png (DE heatmap)
-  - volcano/ (volcano plots per contrast: `volcano_<contrast>.pdf`, `volcano_<contrast>.png`)
-- enrichment/ (pathway and GO enrichment plots and CSV tables; one set per database when multiple DBs specified, e.g. `pathway_Hallmark_UP.csv`, `pathway_KEGG_UP.csv`, `go_GO_Biological_Process_UP.csv`)
-- report.pdf (FragPipe-Analyst report summarizing QC, DE, enrichment; Rmds in bin/reports/)
-
-<br>
+  - volcano/ (volcano plots per contrast: volcano_\<contrast\>.pdf, volcano_\<contrast\>.png)
+- enrichment/ (pathway and GO enrichment plots and CSV tables; one set per database when multiple DBs specified, e.g. pathway_Hallmark_UP.csv, pathway_KEGG_UP.csv, go_GO_Biological_Process_UP.csv).
+- report.pdf (FragPipe-Analyst report: method details, parameters, QC, DE)
