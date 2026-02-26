@@ -1,5 +1,5 @@
 # fp_enrichment_helper.R
-# Enrichment: or_test, plot_or. From FragPipeAnalystR.
+# Enrichment: or_test, plot_or. FragPipeAnalystR.
 # Uses Enrichr API (human DBs). Deps: httr, dplyr, assertthat, ggplot2.
 
 library(httr)
@@ -176,7 +176,7 @@ test_ora_mod <- function(dep, databases, contrasts = TRUE, direction = "UP",
   df_enrich
 }
 
-# or_test: over-representation test. Enrichr backend. From FragPipeAnalystR.
+# or_test: over-representation test. Enrichr backend. FragPipeAnalystR.
 # database: friendly name (mapped below) or any Enrichr libraryName from
 # https://maayanlab.cloud/Enrichr/datasetStatistics (passthrough).
 or_test <- function(se, database = "GO Biological Process", backend = "enrichr",
@@ -215,7 +215,7 @@ or_test <- function(se, database = "GO Biological Process", backend = "enrichr",
   NULL
 }
 
-# plot_or: bar plot of enrichment results. From FragPipeAnalystR.
+# plot_or: bar plot of enrichment results. FragPipeAnalystR.
 plot_or <- function(or_result, number = 10, alpha = 0.05, contrasts = NULL, databases = NULL,
   adjust = FALSE, use_whole_proteome = FALSE, nrow = 1, term_size = 8) {
   assertthat::assert_that(is.data.frame(or_result), is.numeric(number), length(number) == 1,

@@ -891,7 +891,7 @@ Rscript fp_analyst_main.R \
 - `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
-- `--lfq_type` – LFQ column type: `Intensity` or `MaxLFQ` (default: `Intensity`).
+- `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`).
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
 - `--min_global_appearance` – at least X% present across all samples (0–100). 0 = no filter
 - `--min_appearance_one_condition` – at least X% present in at least one condition (0–100). 0 = no filter
@@ -907,7 +907,7 @@ Rscript fp_analyst_main.R \
 - `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID (default: 10)
 - `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs, report: `imputed` or `nonimputed` (default: `nonimputed`)
 - `--qc_include_both` – generate both imputed and unimputed QC files (`true`/`false`)
-- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`, matches GUI "Show full range")
+- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`)
 - `--volcano_display_names` – display names on significant volcano points (`true`/`false`, default: `true`)
 - `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide.
 - `--volcano_highlight_feature` – comma-delimited feature IDs to highlight on volcano (default: empty)
@@ -955,10 +955,10 @@ Rscript fp_analyst_main.R \
       - imputed (whether row had imputed values)
       - num_NAs (count of missing values before imputation)
     - LFQ protein level (identifier and annotation columns):
-      - Protein (protein sequence header from the search database FASTA, e.g. sp|A0A075B6R9|KVD24_HUMAN; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
-      - Protein.ID (UniProt primary accession number; second pipe-delimited field of Protein)
+      - Protein (protein sequence header from the search database FASTA; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
+      - Protein.ID (UniProt primary accession; second pipe-delimited field of Protein)
       - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
-      - Gene (gene name)
+      - Gene (gene name; from razor protein when peptide maps to multiple)
       - Protein.Length (number of amino acids in protein)
       - Organism (species)
       - Protein.Existence (UniProt evidence type)
@@ -981,10 +981,10 @@ Rscript fp_analyst_main.R \
       - End (position of peptide end in protein)
       - Peptide.Length (number of residues)
       - Charges (observed charge states)
-      - Protein (protein sequence header; razor protein if maps to multiple)
-      - Protein.ID (UniProt primary accession)
-      - Entry.Name (protein entry name)
-      - Gene (gene name; from razor protein if maps to multiple)
+      - Protein (protein sequence header from the search database FASTA; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
+      - Protein.ID (UniProt primary accession; second pipe-delimited field of Protein)
+      - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
+      - Gene (gene name; from razor protein when peptide maps to multiple)
       - Description (protein name)
       - Mapped.Genes (additional genes peptide may originate from)
       - Mapped.Proteins (additional proteins peptide maps to)
@@ -999,9 +999,9 @@ Rscript fp_analyst_main.R \
       - significant (global; TRUE if significant in any contrast)
       - All.mean (mean across all samples)
       - All.stdev (standard deviation across all samples)
-      - For each group (condition_raw):
-      - Group.Mean_(group) (mean within group)
-      - Group.Stdev_(group) (standard deviation within group)
+      - For each group:
+        - Group.Mean_(group) (mean within group)
+        - Group.Stdev_(group) (standard deviation within group)
   - de_heatmap.pdf, de_heatmap.png (DE heatmap)
   - volcano/ (volcano plots per contrast: volcano_\<contrast\>.pdf, volcano_\<contrast\>.png)
 - enrichment/ (pathway and GO enrichment plots and CSV tables; one set per database when multiple DBs specified, e.g. pathway_Hallmark_UP.csv, pathway_KEGG_UP.csv, go_GO_Biological_Process_UP.csv).

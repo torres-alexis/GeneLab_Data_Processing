@@ -1,5 +1,5 @@
 # fp_plot_helper.R
-# QC plot functions for FragPipe-Analyst. From FragPipeAnalystR, FragPipe-Analyst.
+# QC plot functions for FragPipe-Analyst. FragPipeAnalystR, FragPipe-Analyst.
 
 library(ggplot2)
 library(dplyr)
@@ -8,7 +8,7 @@ library(tidyr)
 library(purrr)
 library(assertthat)
 
-# plot_pca_custom: from FragPipeAnalystR.
+# plot_pca_custom: FragPipeAnalystR.
 # complete.cases, top n variable by SD, prcomp(t(df), scale=F), color by indicate.
 plot_pca_custom <- function(dep, x = 1, y = 2, indicate = "condition",
   n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", scale = FALSE) {
@@ -51,9 +51,11 @@ plot_pca_custom <- function(dep, x = 1, y = 2, indicate = "condition",
 
   percent <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
 
+  col_var <- if (length(indicate) >= 1 && indicate[1] == "condition" && "condition_raw" %in% colnames(pca_df)) "condition_raw" else indicate[1]
   for (feat in indicate) {
     if (feat %in% colnames(pca_df)) pca_df[[feat]] <- as.factor(pca_df[[feat]])
   }
+  if (col_var %in% colnames(pca_df)) pca_df[[col_var]] <- as.factor(pca_df[[col_var]])
 
   p <- ggplot2::ggplot(pca_df, ggplot2::aes(get(paste0("PC", x)), get(paste0("PC", y)))) +
     ggplot2::labs(
@@ -67,12 +69,28 @@ plot_pca_custom <- function(dep, x = 1, y = 2, indicate = "condition",
   if (length(indicate) == 0 || !indicate[1] %in% colnames(pca_df)) {
     p <- p + ggplot2::geom_point(size = point_size)
   } else if (length(indicate) >= 2 && indicate[2] %in% colnames(pca_df)) {
-    p <- p + ggplot2::geom_point(ggplot2::aes(col = .data[[indicate[1]]], shape = .data[[indicate[2]]]),
+    p <- p + ggplot2::geom_point(ggplot2::aes(col = .data[[col_var]], shape = .data[[indicate[2]]]),
       size = point_size) +
       ggplot2::labs(col = indicate[1], shape = indicate[2])
   } else {
-    p <- p + ggplot2::geom_point(ggplot2::aes(col = .data[[indicate[1]]]), size = point_size) +
+    p <- p + ggplot2::geom_point(ggplot2::aes(col = .data[[col_var]]), size = point_size) +
       ggplot2::labs(col = indicate[1])
+  }
+
+  # Scale legend font when condition/replicate labels exceed 10 chars (min 5pt)
+  if (length(indicate) > 0 && col_var %in% colnames(pca_df)) {
+    label_lens <- nchar(as.character(unique(pca_df[[col_var]])))
+    if (length(indicate) >= 2 && indicate[2] %in% colnames(pca_df)) {
+      label_lens <- c(label_lens, nchar(as.character(unique(pca_df[[indicate[2]]]))))
+    }
+    max_len <- max(label_lens, 0)
+    if (max_len > 10) {
+      leg_size <- max(5, 12 - 0.25 * (max_len - 10))
+      p <- p + ggplot2::theme(
+        legend.text = ggplot2::element_text(size = leg_size),
+        legend.title = ggplot2::element_text(size = min(14, leg_size + 2))
+      )
+    }
   }
 
   if (plot) p else pca_df
@@ -97,7 +115,7 @@ theme_DEP1 <- function() {
   theme
 }
 
-# plot_cor_customized: from FragPipe-Analyst.
+# plot_cor_customized: FragPipe-Analyst.
 plot_cor_customized <- function(dep, significant = FALSE, lower = -1, upper = 1,
   pal = "PRGn", pal_rev = FALSE, indicate = "condition", font_size = 12, plot = FALSE, ...) {
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"),
@@ -128,6 +146,9 @@ plot_cor_customized <- function(dep, significant = FALSE, lower = -1, upper = 1,
   ha1 <- NULL
   if (!is.null(indicate) && indicate %in% colnames(temp)) {
     anno <- as.data.frame(colData(dep)) %>% dplyr::select(dplyr::all_of(indicate))
+    if (indicate == "condition" && "condition_raw" %in% colnames(colData(dep))) {
+      anno[[1]] <- colData(dep)$condition_raw
+    }
     var <- sort(unique(anno[[1]]))
     nv <- length(var)
     cols <- if (nv == 1) c("black") else if (nv == 2) c("orangered", "cornflowerblue") else
@@ -151,7 +172,7 @@ plot_cor_customized <- function(dep, significant = FALSE, lower = -1, upper = 1,
   ht1
 }
 
-# plot_missval_customized: from FragPipe-Analyst.
+# plot_missval_customized: FragPipe-Analyst.
 plot_missval_customized <- function(se) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   se_assay <- assay(se)
@@ -161,7 +182,7 @@ plot_missval_customized <- function(se) {
   missval <- ifelse(is.na(missval), 0, 1)
   temp <- as.data.frame(colData(se))
   if ("label" %in% colnames(temp) && "sample_name" %in% colnames(temp)) {
-    # Use rownames that match assay colnames (we use sample_name; Monash uses label)
+    # Use rownames that match assay colnames (sample_name vs label)
     idx_col <- if (all(colnames(missval) %in% temp$sample_name)) "sample_name"
       else if (all(colnames(missval) %in% temp$label)) "label"
       else "label"
@@ -169,7 +190,7 @@ plot_missval_customized <- function(se) {
     new_cn <- temp[colnames(missval), "sample_name"]
     if (!any(is.na(new_cn))) colnames(missval) <- new_cn
   }
-  # Strip LFQ suffix for display (match FragPipe-Analyst / plot_cor_customized)
+  # Strip LFQ suffix for display (match plot_cor_customized)
   cn <- colnames(missval)
   cn <- gsub("_MaxLFQ\\.Intensity$| MaxLFQ\\.Intensity$", "", cn)
   cn <- gsub("_Intensity$| Intensity$", "", cn)
@@ -199,22 +220,34 @@ plot_missval_customized <- function(se) {
   ComplexHeatmap::draw(ht2, heatmap_legend_side = "top")
 }
 
-# plot_cvs_custom: from FragPipeAnalystR. Sample CV distribution per condition.
+# plot_cvs_custom: FragPipeAnalystR. Sample CV distribution per condition.
 coef_variation <- function(x) {
   m <- mean(x, na.rm = TRUE)
   if (is.na(m) || m == 0) return(NA)
   sd(x, na.rm = TRUE) / m
 }
 
-plot_cvs_custom <- function(se, id = "sample_name", scale = TRUE, check.names = FALSE) {
+plot_cvs_custom <- function(se, id = NULL, scale = TRUE, check.names = FALSE) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   untransformed_intensity <- 2^(assay(se))
   exp_design <- as.data.frame(colData(se))
+  exp_design$assay_id <- rownames(colData(se))
+  assay_ids <- colnames(untransformed_intensity)
+  # Auto-detect join column: assay colnames = rownames(colData) or sample_name or label
+  id_col <- if (!is.null(id)) id else {
+    if (all(assay_ids %in% exp_design$assay_id)) "assay_id"
+    else if ("sample_name" %in% colnames(exp_design) && all(assay_ids %in% exp_design$sample_name)) "sample_name"
+    else if ("label" %in% colnames(exp_design) && all(assay_ids %in% exp_design$label)) "label"
+    else if (all(assay_ids %in% exp_design$assay_id)) "assay_id"
+    else "sample_name"
+  }
   cvs_group <- untransformed_intensity %>%
     data.frame(check.names = check.names) %>%
     tibble::rownames_to_column() %>%
     tidyr::gather("ID", "Intensity", -rowname) %>%
-    dplyr::left_join(exp_design, by = c("ID" = id)) %>%
+    dplyr::left_join(exp_design, by = c("ID" = id_col))
+  if ("condition_raw" %in% colnames(cvs_group)) cvs_group$condition <- cvs_group$condition_raw
+  cvs_group <- cvs_group %>%
     dplyr::group_by(rowname, condition) %>%
     dplyr::summarise(cvs = coef_variation(Intensity), .groups = "drop") %>%
     dplyr::group_by(condition) %>%
@@ -249,24 +282,26 @@ plot_cvs_custom <- function(se, id = "sample_name", scale = TRUE, check.names = 
   label_df <- cvs_group %>% dplyr::distinct(condition, condition_median)
   p1 + ggplot2::geom_text(ggplot2::aes(x = 0.9, y = ymax, color = condition,
     label = paste0("Median = ", round(condition_median, 2) * 100, "%")),
-    show.legend = FALSE, size = 4, inherit.aes = FALSE,
+    show.legend = FALSE, size = 4, hjust = 1, inherit.aes = FALSE,
     data = label_df)
 }
 
-# plot_feature_numbers_custom: from FragPipe-Analyst.
+# plot_feature_numbers_custom: FragPipe-Analyst.
 plot_feature_numbers_custom <- function(se, fill = "condition") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   df <- assay(se) %>% data.frame(check.names = FALSE) %>% tibble::rownames_to_column() %>%
     tidyr::gather(ID, bin, -rowname) %>% dplyr::mutate(bin = ifelse(is.na(bin), 0, 1))
   stat <- df %>% dplyr::group_by(ID) %>% dplyr::summarize(n = dplyr::n(), sum = sum(bin))
   cd <- as.data.frame(colData(se))
-  # Use column that matches assay colnames (we use sample_name for display; Monash uses label)
-  id_col <- if ("sample_name" %in% colnames(cd) && all(stat$ID %in% cd$sample_name)) "sample_name"
+  cd$assay_id <- rownames(colData(se))
+  id_col <- if (all(stat$ID %in% cd$assay_id)) "assay_id"
+    else if ("sample_name" %in% colnames(cd) && all(stat$ID %in% cd$sample_name)) "sample_name"
     else if ("label" %in% colnames(cd) && all(stat$ID %in% cd$label)) "label"
-    else if ("label" %in% colnames(cd)) "label"
+    else if (all(stat$ID %in% cd$assay_id)) "assay_id"
     else "sample_name"
   stat <- dplyr::left_join(stat, cd, by = c("ID" = id_col))
-  # Strip LFQ suffix for display (match FragPipe-Analyst)
+  if ("condition_raw" %in% colnames(stat)) stat$condition <- stat$condition_raw
+  # Strip LFQ suffix for display (match plot_cor_customized)
   stat$display_name <- gsub("_MaxLFQ\\.Intensity$| MaxLFQ\\.Intensity$", "", stat$ID)
   stat$display_name <- gsub("_Intensity$| Intensity$", "", stat$display_name)
   stat$display_name <- gsub("_Spectral\\.Count$| Spectral\\.Count$", "", stat$display_name)
@@ -300,21 +335,25 @@ plot_density_custom <- function(ses) {
   }
   df <- purrr::map_df(ses, gather_join, .id = "var") %>%
     dplyr::mutate(var = factor(var, levels = names(ses)))
-  ggplot2::ggplot(df, ggplot2::aes(val, col = condition)) +
+  col_var <- if ("condition_raw" %in% colnames(df)) "condition_raw" else "condition"
+  ggplot2::ggplot(df, ggplot2::aes(val, col = .data[[col_var]])) +
     ggplot2::geom_density(na.rm = TRUE) +
     ggplot2::facet_wrap(~var, ncol = 1, strip.position = "top") +
-    ggplot2::labs(x = expression(log[2] ~ "Intensity"), y = "Density") + theme_DEP1()
+    ggplot2::labs(x = expression(log[2] ~ "Intensity"), y = "Density", col = "Condition") + theme_DEP1()
 }
 
 # ---- Comparison plots (Jaccard, Venn, UpSet, feature) ----
 
-# data_attendance_custom: occurrence matrix for Venn/UpSet. From FragPipe-Analyst.
+# data_attendance_custom: occurrence matrix for Venn/UpSet. FragPipe-Analyst.
 data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   df <- as.data.frame(assay(se), check.names = FALSE)
   col_data <- as.data.frame(colData(se))
   sample_cols <- colnames(df)
   conditions <- unique(col_data$condition)
+  cond_display <- if ("condition_raw" %in% colnames(col_data)) {
+    setNames(col_data$condition_raw[match(conditions, col_data$condition)], conditions)
+  } else setNames(conditions, conditions)
   id_col <- if ("label" %in% colnames(col_data)) "label" else "sample_name"
   if (exp == "LFQ") {
     rd <- as.data.frame(rowData(se))
@@ -324,9 +363,10 @@ data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
     df <- df[rowSums(!is.na(df[, sample_cols, drop = FALSE])) != 0, ]
     for (i in seq_along(conditions)) {
       cond <- conditions[i]
+      disp <- cond_display[[cond]]
       temp <- col_data[col_data$condition == cond, , drop = FALSE]
       sel_cols <- intersect(rownames(temp), colnames(df))
-      if (length(sel_cols) > 0) df[[paste0("#Occurences_", cond)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
+      if (length(sel_cols) > 0) df[[paste0("#Occurences_", disp)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
     }
     df <- dplyr::relocate(df, Protein, Gene, .before = 1)
   } else if (exp == "DIA" && level == "protein") {
@@ -336,9 +376,10 @@ data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
     df <- df[rowSums(!is.na(df[, sample_cols, drop = FALSE])) != 0, ]
     for (i in seq_along(conditions)) {
       cond <- conditions[i]
+      disp <- cond_display[[cond]]
       temp <- col_data[col_data$condition == cond, , drop = FALSE]
       sel_cols <- intersect(temp[[id_col]], colnames(df))
-      if (length(sel_cols) > 0) df[[paste0("#Occurences_", cond)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
+      if (length(sel_cols) > 0) df[[paste0("#Occurences_", disp)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
     }
     df <- dplyr::relocate(df, Protein, Gene, .before = 1)
   } else {
@@ -348,9 +389,10 @@ data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
     df <- df[rowSums(!is.na(df[, sample_cols, drop = FALSE])) != 0, ]
     for (i in seq_along(conditions)) {
       cond <- conditions[i]
+      disp <- cond_display[[cond]]
       temp <- col_data[col_data$condition == cond, , drop = FALSE]
       sel_cols <- intersect(temp[[id_col]], colnames(df))
-      if (length(sel_cols) > 0) df[[paste0("#Occurences_", cond)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
+      if (length(sel_cols) > 0) df[[paste0("#Occurences_", disp)]] <- rowSums(!is.na(df[, sel_cols, drop = FALSE]))
     }
     df <- dplyr::relocate(df, Gene, .before = 1)
   }
@@ -358,7 +400,7 @@ data_attendance_custom <- function(se, exp = "LFQ", level = "protein") {
   df
 }
 
-# plot_Jaccard_custom: sample-level Jaccard similarity heatmap. From FragPipe-Analyst.
+# plot_Jaccard_custom: sample-level Jaccard similarity heatmap. FragPipe-Analyst.
 plot_Jaccard_custom <- function(dep, plot = TRUE, indicate = "condition") {
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"))
   if (!requireNamespace("vegan", quietly = TRUE)) return(NULL)
@@ -379,7 +421,9 @@ plot_Jaccard_custom <- function(dep, plot = TRUE, indicate = "condition") {
   lower <- min(cor_mat); upper <- max(cor_mat)
   ha1 <- NULL
   if (!is.null(indicate) && indicate %in% colnames(cd)) {
-    anno <- cd[, indicate, drop = FALSE]; rownames(anno) <- colnames(cor_mat)
+    anno <- cd[, indicate, drop = FALSE]
+    if (indicate == "condition" && "condition_raw" %in% colnames(cd)) anno[[1]] <- cd$condition_raw
+    rownames(anno) <- colnames(cor_mat)
     var <- unique(anno[[1]])
     cols <- if (length(var) == 1) c("black") else if (length(var) == 2) c("orangered", "cornflowerblue") else
       if (length(var) < 7) RColorBrewer::brewer.pal(max(3, length(var)), "Pastel1")[seq_len(length(var))] else
@@ -408,38 +452,45 @@ plot_venn_custom <- function(df, cond1, cond2, cond3 = NULL) {
     x <- list(set1, set2, set3); names(x) <- c(cond1, cond2, cond3)
   }
   max_cond_len <- max(nchar(c(cond1, cond2, if (!is.null(cond3) && cond3 != "NONE") cond3 else character(0))), 0)
-  set_size <- if (max_cond_len > 10) round(max(3, 12 - (max_cond_len - 10) / 3)) else NULL
-  venn_args <- list(x = x, label_alpha = 0)
-  if (!is.null(set_size)) venn_args$set_size <- set_size
+  # Scale set label font: min 2, max 6; aggressive shrink for long names to avoid overlap
+  set_size <- max(2, min(6, 8 - max_cond_len / 6))
+  venn_args <- list(x = x, label_alpha = 0, set_size = set_size)
+  expand_mult <- if (max_cond_len > 25) 0.5 else 0.3
   do.call(ggVennDiagram::ggVennDiagram, venn_args) +
     ggplot2::scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") +
-    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.3)) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = expand_mult)) +
     ggplot2::coord_flip() +
     ggplot2::theme(plot.margin = ggplot2::margin(12, 24, 12, 12, "pt"))
 }
 
-# plot_upset_custom: UpSetR (grid-based; must print() to render to device)
+# plot_upset_custom: UpSetR (grid-based; must print() to render to device).
+# Uses fromList() with raw set names to avoid UpSetR's count() sanitizing column names.
 plot_upset_custom <- function(df) {
   if (!requireNamespace("UpSetR", quietly = TRUE)) return(invisible(NULL))
-  df <- df[, grep("Occurences", colnames(df)), drop = FALSE]
-  df <- ifelse(df != 0, 1, 0)
-  df <- data.frame(df)
-  colnames(df) <- gsub("X.Occurences_|#Occurences_", "", colnames(df))
-  if (sum(colSums(df) != 0) <= 1) return(invisible(NULL))
-  p <- UpSetR::upset(df, nsets = ncol(df), mb.ratio = c(0.6, 0.4), text.scale = 1.5, point.size = 3,
-    order.by = "freq", decreasing = TRUE, nintersects = NA, mainbar.y.label = "#Features in intersection",
-    sets.x.label = "#Features", set_size.scale_max = nrow(df) + 1000, set_size.show = TRUE)
+  occ_cols <- grep("Occurences", colnames(df), value = TRUE)
+  if (length(occ_cols) < 2 || !"Gene" %in% colnames(df)) return(invisible(NULL))
+  set_names <- gsub("^X\\.Occurences_|^#Occurences_", "", occ_cols)
+  list_input <- setNames(
+    lapply(occ_cols, function(col) unique(df$Gene[df[[col]] != 0])),
+    set_names
+  )
+  if (sum(vapply(list_input, length, 0L) != 0) <= 1) return(invisible(NULL))
+  from_list_df <- UpSetR::fromList(list_input)
+  p <- UpSetR::upset(from_list_df, nsets = ncol(from_list_df), mb.ratio = c(0.6, 0.4),
+    text.scale = 1.5, point.size = 3, order.by = "freq", decreasing = TRUE, nintersects = NA,
+    mainbar.y.label = "#Features in intersection", sets.x.label = "#Features",
+    set_size.scale_max = nrow(from_list_df) + 1000, set_size.show = TRUE)
   print(p)
   invisible(NULL)
 }
 
-# plot_feature_custom: boxplot or violin per feature. From FragPipe-Analyst.
+# plot_feature_custom: boxplot or violin per feature. FragPipe-Analyst.
 plot_feature_custom <- function(dep, protein, type = "boxplot", id = NULL, show_gene = FALSE) {
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"), is.character(protein), is.character(type))
   subset <- dep[protein, ]
   cd <- as.data.frame(colData(subset))
   assay_ids <- unique(colnames(assay(subset)))
-  # Use column that matches assay colnames (make_se renames to sample_name; Monash uses label)
+  # Use column that matches assay colnames (make_se renames to sample_name)
   id_col <- if (!is.null(id)) id
     else if ("sample_name" %in% colnames(cd) && all(assay_ids %in% cd$sample_name)) "sample_name"
     else if ("label" %in% colnames(cd) && all(assay_ids %in% cd$label)) "label"

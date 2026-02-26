@@ -1,5 +1,5 @@
 # fp_de_helper.R
-# Differential expression: limma + BH or fdrtool. From FragPipe-Analyst.
+# Differential expression: limma + BH or fdrtool. FragPipe-Analyst.
 # Dependencies: limma, fdrtool (only for test_diff_customized), assertthat, dplyr, tidyr, purrr, tibble.
 
 # test_limma_customized: Benjamini-Hochberg FDR via limma topTable.
@@ -102,8 +102,8 @@ test_limma_customized <- function(se, type = c("control", "all", "others", "manu
       contrast_fit <- limma::contrasts.fit(fit, made_contrasts)
       eB_fit <- limma::eBayes(contrast_fit)
       temp <- limma::topTable(eB_fit, sort.by = "t", adjust.method = "BH", coef = paste0(c, "-", "NOT_", c), number = Inf, confint = TRUE)
-      temp <- temp[, c("logFC", "CI.L", "CI.R", "P.Value", "adj.P.Val")]
-      colnames(temp) <- c("diff", "CI.L", "CI.R", "p.val", "p.adj")
+      temp <- temp[, c("logFC", "CI.L", "CI.R", "P.Value", "adj.P.Val", "t")]
+      colnames(temp) <- c("diff", "CI.L", "CI.R", "p.val", "p.adj", "t")
       colnames(temp) <- paste0(c, "_vs_others_", colnames(temp))
       temp <- tibble::rownames_to_column(temp, "Row.names")
       if (nrow(limma_res) == 0) {
@@ -143,10 +143,10 @@ test_limma_customized <- function(se, type = c("control", "all", "others", "manu
     limma_res <- purrr::map_df(cntrst, retrieve_fun)
 
     table <- limma_res %>%
-      dplyr::select(rowname, logFC, CI.L, CI.R, P.Value, adj.P.Val, comparison) %>%
+      dplyr::select(rowname, logFC, CI.L, CI.R, P.Value, adj.P.Val, t, comparison) %>%
       dplyr::mutate(comparison = gsub(" - ", "_vs_", comparison)) %>%
       tidyr::gather(variable, value, -c(rowname, comparison)) %>%
-      dplyr::mutate(variable = dplyr::recode(variable, logFC = "diff", P.Value = "p.val", adj.P.Val = "p.adj")) %>%
+      dplyr::mutate(variable = dplyr::recode(variable, logFC = "diff", P.Value = "p.val", adj.P.Val = "p.adj", t = "t")) %>%
       tidyr::unite(temp, comparison, variable) %>%
       tidyr::spread(temp, value)
     rowData(se) <- as.data.frame(dplyr::left_join(as.data.frame(rowData(se)), table, by = c("ID" = "rowname")))
@@ -239,8 +239,8 @@ test_diff_customized <- function(se, type = c("control", "all", "others", "manua
       temp <- temp[!is.na(temp$t), ]
       fdr_res <- fdrtool::fdrtool(temp$t, plot = FALSE, verbose = FALSE)
       temp$qval <- fdr_res$qval
-      temp <- temp[, c("logFC", "CI.L", "CI.R", "P.Value", "qval")]
-      colnames(temp) <- c("diff", "CI.L", "CI.R", "p.val", "p.adj")
+      temp <- temp[, c("logFC", "CI.L", "CI.R", "P.Value", "qval", "t")]
+      colnames(temp) <- c("diff", "CI.L", "CI.R", "p.val", "p.adj", "t")
       colnames(temp) <- paste0(c, "_vs_others_", colnames(temp))
       temp <- tibble::rownames_to_column(temp, "Row.names")
       if (nrow(limma_res) == 0) {
@@ -280,10 +280,10 @@ test_diff_customized <- function(se, type = c("control", "all", "others", "manua
     limma_res <- purrr::map_df(cntrst, retrieve_fun)
 
     table <- limma_res %>%
-      dplyr::select(rowname, logFC, CI.L, CI.R, P.Value, qval, comparison) %>%
+      dplyr::select(rowname, logFC, CI.L, CI.R, P.Value, qval, t, comparison) %>%
       dplyr::mutate(comparison = gsub(" - ", "_vs_", comparison)) %>%
       tidyr::gather(variable, value, -c(rowname, comparison)) %>%
-      dplyr::mutate(variable = dplyr::recode(variable, logFC = "diff", P.Value = "p.val", qval = "p.adj")) %>%
+      dplyr::mutate(variable = dplyr::recode(variable, logFC = "diff", P.Value = "p.val", qval = "p.adj", t = "t")) %>%
       tidyr::unite(temp, comparison, variable) %>%
       tidyr::spread(temp, value)
     rowData(se) <- as.data.frame(dplyr::left_join(as.data.frame(rowData(se)), table, by = c("ID" = "rowname")))
@@ -317,14 +317,22 @@ add_groupwise_stats <- function(se) {
   out
 }
 
-# get_de_results_extended: full DE table (rowData + assay) with CI.L, CI.R, diff, p.val, p.adj, significant per contrast.
-# Extended format, not the short FragPipe-Analyst GUI export.
-# add_group_stats: if TRUE, append Mean_<condition> and Stdev_<condition> columns (meeting spec).
+# get_de_results_extended: full DE table (rowData + assay) with CI.L, CI.R, diff, p.val, p.adj, t (Stat), significant per contrast.
+# Extended format (full rowData + assay).
+# add_group_stats: if TRUE, append All.mean, All.stdev, Mean_<condition>, Stdev_<condition> (meeting spec).
 get_de_results_extended <- function(se, add_group_stats = TRUE) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   rd <- as.data.frame(rowData(se, use.names = FALSE))
   asy <- as.data.frame(assay(se))
   de_df <- cbind(rd, asy)
+  # All.mean and All.stdev: mean and sd across all samples (RNA-seq parity)
+  assay_mat <- as.matrix(assay(se))
+  all_mean <- rowMeans(assay_mat, na.rm = TRUE)
+  all_stdev <- matrixStats::rowSds(assay_mat, na.rm = TRUE)
+  all_stats <- data.frame(All.mean = all_mean, All.stdev = all_stdev)
+  all_stats_aligned <- all_stats[match(rd$ID, rownames(assay_mat)), , drop = FALSE]
+  rownames(all_stats_aligned) <- NULL
+  de_df <- cbind(de_df, all_stats_aligned)
   if (add_group_stats) {
     gs <- add_groupwise_stats(se)
     if (!is.null(gs)) {
@@ -333,6 +341,104 @@ get_de_results_extended <- function(se, add_group_stats = TRUE) {
       de_df <- cbind(de_df, gs_aligned)
     }
   }
+  de_df
+}
+
+# add_sample_suffix_to_export: rename sample columns in df for export (FragPipe parity).
+# LFQ: .Intensity, .MaxLFQ.Intensity, .Spectral.Count. TMT: suffix from metadata or channel.
+# sample_cols = colnames(assay(se)), suffix = e.g. "Intensity" for LFQ Intensity mode.
+add_sample_suffix_to_export <- function(df, sample_cols, suffix) {
+  if (is.null(suffix) || !nzchar(suffix)) return(df)
+  idx <- colnames(df) %in% sample_cols
+  if (!any(idx)) return(df)
+  colnames(df)[idx] <- paste0(colnames(df)[idx], ".", suffix)
+  df
+}
+
+# sanitized_to_raw_map: build map from condition (design matrix) -> condition_raw (display).
+# Uses (condition, condition_raw) pairs from colData so lookup matches contrast names exactly.
+sanitized_to_raw_map <- function(se) {
+  if (!inherits(se, "SummarizedExperiment") || !"condition" %in% colnames(colData(se))) return(NULL)
+  cd <- as.data.frame(colData(se))
+  if ("condition_raw" %in% colnames(cd) && all(nzchar(trimws(cd$condition_raw)))) {
+    # Direct map: condition -> condition_raw from colData (matches contrast names exactly)
+    pairs <- unique(cd[, c("condition", "condition_raw")])
+    m <- setNames(as.character(pairs$condition_raw), as.character(pairs$condition))
+  } else {
+    m <- setNames(as.character(unique(cd$condition)), as.character(unique(cd$condition)))
+  }
+  if (length(m) == 0) return(NULL)
+  function(sanitized) {
+    if (is.na(sanitized) || !nzchar(sanitized)) return(sanitized)
+    if (!is.na(m[sanitized])) return(m[sanitized])
+    sanitized
+  }
+}
+
+# contrast_to_display: convert sanitized contrast "A_vs_B" to display string "rawA vs rawB".
+contrast_to_display <- function(contrast, se) {
+  f <- sanitized_to_raw_map(se)
+  if (is.null(f)) return(contrast)
+  if (grepl("_vs_others$", contrast)) {
+    a <- sub("_vs_others$", "", contrast)
+    return(paste0(f(a), " vs Others"))
+  }
+  if (grepl("_vs_", contrast)) {
+    parts <- strsplit(contrast, "_vs_")[[1]]
+    if (length(parts) == 2) return(paste0(f(parts[1]), " vs ", f(parts[2])))
+  }
+  contrast
+}
+
+# apply_rnaseq_headers: rename DE and group columns to RNA-seq format for export.
+# Contrast: [A_vs_B]_diff -> Log2fc_(A)v(B), _t -> Stat_, _p.val -> P.value_, _p.adj -> Adj.p.value_
+# Group: Mean_X -> Group.Mean_(X), Stdev_X -> Group.Stdev_(X) (X = original condition name)
+# Requires se (SummarizedExperiment) for condition names.
+apply_rnaseq_headers <- function(de_df, se) {
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+  conds <- as.character(unique(colData(se)$condition))
+  if (length(conds) == 0) return(de_df)
+  orig_name <- sanitized_to_raw_map(se)
+  if (is.null(orig_name)) orig_name <- function(x) x
+
+  new_names <- colnames(de_df)
+  # DE contrast columns: A_vs_B or A_vs_others
+  for (suffix in c("_diff", "_t", "_p.val", "_p.adj", "_CI.L", "_CI.R", "_significant")) {
+    cols <- grep(paste0(suffix, "$"), colnames(de_df), value = TRUE)
+    for (c in cols) {
+      base <- sub(suffix, "", c)
+      if (grepl("_vs_others$", base)) {
+        a <- sub("_vs_others$", "", base)
+        rnaseq_contrast <- paste0("(", orig_name(a), ")v(Others)")
+      } else if (grepl("_vs_", base)) {
+        parts <- strsplit(base, "_vs_")[[1]]
+        if (length(parts) == 2) {
+          rnaseq_contrast <- paste0("(", orig_name(parts[1]), ")v(", orig_name(parts[2]), ")")
+        } else {
+          next
+        }
+      } else {
+        next
+      }
+      prefix <- switch(suffix,
+        `_diff` = "Log2fc_", `_t` = "Stat_", `_p.val` = "P.value_",
+        `_p.adj` = "Adj.p.value_", `_CI.L` = "CI.L_", `_CI.R` = "CI.R_",
+        `_significant` = "Significant_", suffix)
+      new_names[colnames(de_df) == c] <- paste0(prefix, rnaseq_contrast)
+    }
+  }
+  # Group stats: Mean_X -> Group.Mean_(X), Stdev_X -> Group.Stdev_(X)
+  mean_cols <- grep("^Mean_", colnames(de_df), value = TRUE)
+  for (c in mean_cols) {
+    x <- sub("^Mean_", "", c)
+    new_names[colnames(de_df) == c] <- paste0("Group.Mean_(", orig_name(x), ")")
+  }
+  stdev_cols <- grep("^Stdev_", colnames(de_df), value = TRUE)
+  for (c in stdev_cols) {
+    x <- sub("^Stdev_", "", c)
+    new_names[colnames(de_df) == c] <- paste0("Group.Stdev_(", orig_name(x), ")")
+  }
+  colnames(de_df) <- new_names
   de_df
 }
 
@@ -379,13 +485,13 @@ add_rejections_customized <- function(diff, alpha = 0.05, lfc = 1) {
 }
 
 
-# get_cluster_heatmap_customized: DE heatmap of significant features. From FragPipeAnalystR.
+# get_cluster_heatmap_customized: DE heatmap of significant features. FragPipeAnalystR.
 get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered"),
                                            kmeans = FALSE, k = 6, col_limit = 6, indicate = NULL,
-                                           alpha = 0.01, lfc = 1,
+                                           alpha = 0.01, lfc = 1, plot = TRUE,
                                            clustering_distance = c("euclidean", "maximum", "manhattan",
                                                "canberra", "binary", "minkowski", "pearson", "spearman", "kendall", "gower"),
-                                           row_font_size = 6, col_font_size = 10, plot = TRUE, ...) {
+                                           row_font_size = 6, col_font_size = 10, ...) {
   if (is.integer(k)) k <- as.numeric(k)
   if (is.integer(col_limit)) col_limit <- as.numeric(col_limit)
   if (is.integer(row_font_size)) row_font_size <- as.numeric(row_font_size)
@@ -414,6 +520,7 @@ get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered")
   ha1 <- NULL
   if (!is.null(indicate) && indicate %in% colnames(col_data) && type == "centered") {
     anno <- as.data.frame(colData(dep)) %>% dplyr::select(dplyr::all_of(indicate))
+    if (indicate == "condition" && "condition_raw" %in% colnames(col_data)) anno[[1]] <- col_data$condition_raw
     var <- sort(unique(anno[[1]]))
     nv <- length(var)
     cols <- if (nv == 1) c("black") else if (nv == 2) c("orangered", "cornflowerblue") else
@@ -453,6 +560,18 @@ get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered")
       tibble::column_to_rownames(var = "name") %>%
       dplyr::select(dplyr::ends_with("_diff"))
     colnames(df) <- gsub("_vs_", " vs ", gsub("_diff", "", colnames(df)))
+    raw_map <- sanitized_to_raw_map(dep)
+    if (!is.null(raw_map)) {
+      for (i in seq_along(colnames(df))) {
+        cn <- colnames(df)[i]
+        if (grepl(" vs ", cn)) {
+          parts <- strsplit(cn, " vs ")[[1]]
+          if (length(parts) == 2) {
+            colnames(df)[i] <- paste0(raw_map(trimws(parts[1])), " vs ", raw_map(trimws(parts[2])))
+          }
+        }
+      }
+    }
   }
 
   if (kmeans && obs_NA) kmeans <- FALSE
@@ -494,12 +613,46 @@ get_cluster_heatmap_customized <- function(dep, type = c("contrast", "centered")
     column_names_gp = grid::gpar(fontsize = col_font_size),
     top_annotation = ha1,
     ...)
+  if (!plot) return(ht1)
   p <- ComplexHeatmap::draw(ht1, heatmap_legend_side = "top")
   list(ht1, ComplexHeatmap::row_order(p))
 }
 
 
-# plot_peptide_volcano: peptide/site volcano with highlight + show_other_peptides. From FragPipeAnalystR.
+# volcano_font_sizes: scale title and corner-label font sizes for long condition names.
+# Returns list(title_size, corner_size). Use when display/name1/name2 exceed thresholds.
+volcano_font_sizes <- function(display, name1, name2,
+                               title_thresh = 40, corner_thresh = 30,
+                               title_base = 12, title_min = 7, corner_base = 5, corner_min = 2.5) {
+  title_len <- nchar(display)
+  corner_len <- max(nchar(name1), nchar(name2))
+  title_size <- if (title_len > title_thresh) {
+    extra <- title_len - title_thresh
+    max(title_min, title_base - 0.15 * extra)
+  } else title_base
+  corner_size <- if (corner_len > corner_thresh) {
+    extra <- corner_len - corner_thresh
+    max(corner_min, corner_base - 0.1 * extra)
+  } else corner_base
+  list(title_size = title_size, corner_size = corner_size)
+}
+
+# volcano_plot_dims: suggest width/height for ggsave when condition names are long.
+volcano_plot_dims <- function(contrast, dep, base_width = 8, base_height = 6) {
+  display <- contrast_to_display(contrast, dep)
+  name1 <- gsub("_vs_.*", "", contrast)
+  name2 <- gsub(".*_vs_", "", contrast)
+  raw_map <- sanitized_to_raw_map(dep)
+  if (!is.null(raw_map)) { name1 <- raw_map(name1); name2 <- raw_map(name2) }
+  max_len <- max(nchar(display), nchar(name1), nchar(name2))
+  if (max_len <= 45) return(c(base_width, base_height))
+  extra <- max_len - 45
+  w <- min(14, base_width + 0.08 * extra)
+  h <- min(9, base_height + 0.04 * extra)
+  c(w, h)
+}
+
+# plot_peptide_volcano: peptide/site volcano with highlight + show_other_peptides. FragPipeAnalystR.
 # peptides: IDs to highlight (maroon). show_other_peptides=T: also show other peptides from same protein (blue); ID prefix = protein.
 # When peptides is NA or empty, falls back to plot_volcano_customized.
 plot_peptide_volcano <- function(dep, contrast, peptides = NA, show_other_peptides = TRUE, show_gene = FALSE,
@@ -535,16 +688,24 @@ plot_peptide_volcano <- function(dep, contrast, peptides = NA, show_other_peptid
   df <- df %>% dplyr::filter(!is.na(signif)) %>% dplyr::arrange(signif)
   name1 <- gsub("_vs_.*", "", contrast)
   name2 <- gsub(".*_vs_", "", contrast)
+  raw_map <- sanitized_to_raw_map(dep)
+  if (!is.null(raw_map)) {
+    name1 <- raw_map(name1)
+    name2 <- raw_map(name2)
+  }
+  display <- contrast_to_display(contrast, dep)
   if (show_gene) df$ID_new <- paste0(df$Gene, gsub(".*_", "_", df$ID))
   label_col <- if (show_gene) "ID_new" else "ID"
+  fs <- volcano_font_sizes(display, name1, name2)
   p <- ggplot2::ggplot(df, ggplot2::aes(diff, p_values)) +
     ggplot2::geom_vline(xintercept = 0) +
     ggplot2::geom_point(ggplot2::aes(col = signif)) +
     ggplot2::geom_text(data = data.frame(), ggplot2::aes(x = c(Inf, -Inf), y = c(-Inf, -Inf), hjust = c(1, 0), vjust = c(-1, -1),
-      label = c(name1, name2), size = 5, fontface = "bold")) +
-    ggplot2::labs(title = contrast, x = expression(log[2] ~ "Fold change")) +
+      label = c(name1, name2), size = fs$corner_size, fontface = "bold")) +
+    ggplot2::labs(title = display, x = expression(log[2] ~ "Fold change")) +
     ggplot2::theme_bw() +
-    ggplot2::theme(panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+    ggplot2::theme(plot.title = ggplot2::element_text(size = fs$title_size),
+      panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"), legend.position = "none") +
     ggplot2::scale_color_manual(values = c("TRUE" = "black", "FALSE" = "grey"))
   if (show_other_peptides && length(pep_vec) > 0) {
@@ -572,7 +733,7 @@ plot_peptide_volcano <- function(dep, contrast, peptides = NA, show_other_peptid
   p
 }
 
-# plot_volcano_customized: volcano plot per contrast. From FragPipe-Analyst.
+# plot_volcano_customized: volcano plot per contrast. FragPipe-Analyst.
 plot_volcano_customized <- function(dep, contrast, label_size = 3, name_col = NULL,
                                     add_names = TRUE, adjusted = TRUE, lfc = 1, alpha = 0.05,
                                     plot = TRUE, show_gene = FALSE, selected = NULL) {
@@ -693,17 +854,24 @@ plot_volcano_customized <- function(dep, contrast, label_size = 3, name_col = NU
     }
   }
   df <- df_tmp %>% data.frame() %>% dplyr::filter(!is.na(signif)) %>% dplyr::arrange(signif)
+  display <- contrast_to_display(contrast, dep)
   name1 <- gsub("_vs_.*", "", contrast)
   name2 <- gsub(".*_vs_", "", contrast)
+  raw_map <- sanitized_to_raw_map(dep)
+  if (!is.null(raw_map)) {
+    name1 <- raw_map(name1)
+    name2 <- raw_map(name2)
+  }
+  fs <- volcano_font_sizes(display, name1, name2)
   p <- ggplot2::ggplot(df, ggplot2::aes(diff, p_values)) +
     ggplot2::geom_vline(xintercept = 0) +
     ggplot2::geom_point(ggplot2::aes(col = signif)) +
     ggplot2::geom_text(data = data.frame(), ggplot2::aes(x = c(Inf, -Inf), y = c(-Inf, -Inf),
                                                        hjust = c(1, 0), vjust = c(-1, -1),
-                                                       label = c(name1, name2), size = 5, fontface = "bold")) +
-    ggplot2::labs(title = contrast, x = expression(log[2] ~ "Fold change")) +
+                                                       label = c(name1, name2), size = fs$corner_size, fontface = "bold")) +
+    ggplot2::labs(title = display, x = expression(log[2] ~ "Fold change")) +
     ggplot2::theme_bw() +
-    ggplot2::theme(legend.position = "none") +
+    ggplot2::theme(plot.title = ggplot2::element_text(size = fs$title_size), legend.position = "none") +
     ggplot2::scale_color_manual(values = c("TRUE" = "black", "FALSE" = "grey"))
   if (add_names) {
     if (!is.null(selected)) {

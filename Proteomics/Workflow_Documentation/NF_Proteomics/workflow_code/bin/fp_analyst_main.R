@@ -1,6 +1,5 @@
 #!/usr/bin/Rscript
-# FragPipe-Analyst downstream analysis (refactored).
-# Original full script in Reference_Repos/Old_implementation/
+# FragPipe-Analyst downstream analysis.
 # Phase 1: params logger – parse all NF-passed args and write to fp_analyst_parameters.txt
 
 library(optparse)
@@ -17,7 +16,7 @@ option_list <- list(
   make_option(c("--output_dir"), type = "character", default = "output/",
     help = "Output directory", metavar = "DIR"),
   make_option(c("--lfq_type"), type = "character", default = "Intensity",
-    help = "LFQ column type: Intensity or MaxLFQ (LFQ mode only)", metavar = "STRING"),
+    help = "LFQ column type: Intensity, MaxLFQ, or Spectral Count (LFQ mode only)", metavar = "STRING"),
   make_option(c("--normalization_method"), type = "character", default = "none",
     help = "Normalization: none, vsn, MD, or GN", metavar = "STRING"),
   make_option(c("--feature_list_protein"), type = "character", default = "",
@@ -53,13 +52,15 @@ option_list <- list(
   make_option(c("--imputation_type"), type = "character", default = "Perseus-type",
     help = "Imputation: none, Perseus-type, knn, MLE, min, zero, bpca, QRILC, MinDet, MinProb, RF, nbavg, mixed", metavar = "STRING"),
   make_option(c("--min_global_appearance"), type = "numeric", default = 0,
-    help = "Min %% non-missing across all samples (0-100)", metavar = "NUMERIC"),
+    help = "Min %% present across all samples (0-100)", metavar = "NUMERIC"),
   make_option(c("--min_appearance_one_condition"), type = "numeric", default = 0,
-    help = "Min %% non-missing in at least one condition (0-100)", metavar = "NUMERIC"),
-  make_option(c("--qc_show_imputed"), type = "character", default = "true",
-    help = "Use imputed data for QC plots: true/false", metavar = "STRING"),
+    help = "Min %% present in at least one condition (0-100)", metavar = "NUMERIC"),
+  make_option(c("--qc_plot_data"), type = "character", default = "nonimputed",
+    help = "Data for PCA, correlation, feature, CVs, report: imputed or nonimputed", metavar = "STRING"),
   make_option(c("--qc_include_both"), type = "character", default = "false",
-    help = "Generate both imputed and unimputed QC: true/false", metavar = "STRING"),
+    help = "Generate both imputed and unimputed QC files (true/false)", metavar = "STRING"),
+  make_option(c("--sample_cvs_full_range"), type = "character", default = "false",
+    help = "Sample CVs: true = full range, false = 0-1", metavar = "STRING"),
   make_option(c("--volcano_display_names"), type = "character", default = "true",
     help = "Volcano: display names on significant points: true/false", metavar = "STRING"),
   make_option(c("--volcano_show_gene"), type = "character", default = "true",
@@ -87,8 +88,9 @@ if (is.null(opt$experiment_annotation) || is.null(opt$quantification_file) || is
 mode <- .oneof(opt$mode, c("LFQ", "TMT", "DIA"), "mode")
 level <- .oneof(opt$level, c("protein", "peptide", "gene", "site"), "level")
 
-output_dir <- opt$output_dir
-dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+output_dir <- normalizePath(opt$output_dir, mustWork = FALSE)
+if (!dir.exists(output_dir)) dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+output_dir <- normalizePath(output_dir, mustWork = TRUE)
 qc_dir <- file.path(output_dir, "qc")
 dir.create(qc_dir, showWarnings = FALSE, recursive = TRUE)
 comparison_dir <- file.path(output_dir, "comparison")
@@ -124,8 +126,9 @@ lines <- c(
   paste("imputation_type:", opt$imputation_type),
   paste("min_global_appearance:", opt$min_global_appearance),
   paste("min_appearance_one_condition:", opt$min_appearance_one_condition),
-  paste("qc_show_imputed:", opt$qc_show_imputed),
+  paste("qc_plot_data:", opt$qc_plot_data),
   paste("qc_include_both:", opt$qc_include_both),
+  paste("sample_cvs_full_range:", opt$sample_cvs_full_range),
   paste("volcano_display_names:", opt$volcano_display_names),
   paste("volcano_show_gene:", opt$volcano_show_gene),
   paste("volcano_highlight_feature:", opt$volcano_highlight_feature),
@@ -191,15 +194,19 @@ normalization_method <- if (normalization_method_raw %in% c("none", "")) "none" 
 min_global_appearance <- as.numeric(.or(opt$min_global_appearance, 0))
 min_appearance_one_condition <- as.numeric(.or(opt$min_appearance_one_condition, 0))
 
-qc_show_imputed <- .oneof(.or(opt$qc_show_imputed, "true"), c("true", "false"), "qc_show_imputed") == "true"
+qc_plot_data_raw <- tolower(trimws(.or(opt$qc_plot_data, "nonimputed")))
+qc_plot_data <- if (!nzchar(qc_plot_data_raw)) "nonimputed" else
+  .oneof(qc_plot_data_raw, c("imputed", "nonimputed"), "qc_plot_data")
 qc_include_both <- .oneof(.or(opt$qc_include_both, "false"), c("true", "false"), "qc_include_both") == "true"
+sample_cvs_full_range <- .oneof(.or(opt$sample_cvs_full_range, "false"), c("true", "false"), "sample_cvs_full_range") == "true"
+cvs_scale <- !sample_cvs_full_range
 volcano_display_names <- .oneof(.or(opt$volcano_display_names, "true"), c("true", "false"), "volcano_display_names") == "true"
 volcano_show_gene <- .oneof(.or(opt$volcano_show_gene, "true"), c("true", "false"), "volcano_show_gene") == "true"
 volcano_highlight_feature <- if (!nzchar(trimws(.or(opt$volcano_highlight_feature, "")))) character(0) else
   trimws(strsplit(trimws(opt$volcano_highlight_feature), "\\s*,\\s*")[[1]])
 volcano_show_other_peptides <- .oneof(.or(opt$volcano_show_other_peptides, "true"), c("true", "false"), "volcano_show_other_peptides") == "true"
 
-# Print parsed (for testing)
+# Print parsed params
 cat("--- Parsed (normalized) ---\n")
 cat("experiment_annotation:", opt$experiment_annotation, "\n")
 cat("quantification_file:", opt$quantification_file, "\n")
@@ -211,7 +218,7 @@ cat("feature_list_gene:", paste(feature_list_gene, collapse = ", "), "\n")
 cat("feature_list_peptide:", paste(feature_list_peptide, collapse = ", "), "\n")
 cat("feature_list_site:", paste(feature_list_site, collapse = ", "), "\n")
 cat("top_n_protein:", top_n_protein, "| top_n_gene:", top_n_gene, "| top_n_peptide:", top_n_peptide, "| top_n_site:", top_n_site, "\n")
-cat("qc_show_imputed:", qc_show_imputed, "| qc_include_both:", qc_include_both, "\n")
+cat("qc_plot_data:", qc_plot_data, "| qc_include_both:", qc_include_both, "| sample_cvs_full_range:", sample_cvs_full_range, "\n")
 cat("volcano_display_names:", volcano_display_names, "| volcano_show_gene:", volcano_show_gene, "\n")
 cat("volcano_highlight_feature:", paste(volcano_highlight_feature, collapse = ", "), "| volcano_show_other_peptides:", volcano_show_other_peptides, "\n")
 
@@ -241,15 +248,21 @@ if (is.null(data_se)) stop("SE creation returned NULL")
 cat("SE created:", nrow(data_se), "features x", ncol(data_se), "samples\n")
 
 # Phase 3: Export Raw_matrix (raw intensities before filter/norm/impute), apply filter, export Filtered_matrix
+# Export-only: add .Intensity / .MaxLFQ.Intensity / .Spectral.Count to sample cols (LFQ only)
+assay_cols <- colnames(assay(data_se))
+export_suffix <- if (mode == "LFQ") {
+  if (lfq_type == "Intensity") "Intensity" else if (lfq_type == "MaxLFQ") "MaxLFQ.Intensity" else if (lfq_type == "Spectral Count") "Spectral.Count" else NULL
+} else NULL
 original_se <- data_se
 original_df <- cbind(as.data.frame(rowData(data_se)), as.data.frame(assay(data_se)))
+original_df <- add_sample_suffix_to_export(original_df, assay_cols, export_suffix)
 write.csv(original_df, file.path(output_dir, "Raw_matrix.csv"), row.names = FALSE)
 cat("Raw_matrix.csv:", nrow(original_df), "features\n")
 
 filtered_se <- data_se
 if (min_global_appearance > 0) {
   filtered_se <- global_filter(filtered_se, 100 - min_global_appearance)
-  cat("global_filter: kept", nrow(filtered_se), "features (min", min_global_appearance, "% non-missing globally)\n")
+  cat("global_filter: kept", nrow(filtered_se), "features (min", min_global_appearance, "% present globally)\n")
 }
 if (min_appearance_one_condition > 0) {
   filtered_se <- filter_by_condition(filtered_se, min_appearance_one_condition)
@@ -257,23 +270,26 @@ if (min_appearance_one_condition > 0) {
 }
 
 filtered_df <- cbind(as.data.frame(rowData(filtered_se)), as.data.frame(assay(filtered_se)))
+filtered_df <- add_sample_suffix_to_export(filtered_df, assay_cols, export_suffix)
 write.csv(filtered_df, file.path(output_dir, "Filtered_matrix.csv"), row.names = FALSE)
 cat("Filtered_matrix.csv:", nrow(filtered_df), "features\n")
 
-# Phase 4: Normalize, export Normalized_matrix (only when normalization applied; else redundant with Filtered_matrix)
+# Phase 4: Normalize, export Normalized_matrix (only when normalization applied; else redundant with Filtered_matrix and not exported)
 normalized_se <- normalize_se(filtered_se, normalization_method)
 if (normalization_method != "none") {
   cat("normalize_se:", normalization_method, "applied\n")
   normalized_df <- cbind(as.data.frame(rowData(normalized_se)), as.data.frame(assay(normalized_se)))
+  normalized_df <- add_sample_suffix_to_export(normalized_df, assay_cols, export_suffix)
   write.csv(normalized_df, file.path(output_dir, "Normalized_matrix.csv"), row.names = FALSE)
   cat("Normalized_matrix.csv:", nrow(normalized_df), "features\n")
 }
 
-# Phase 5: Impute (if requested), export Imputed_matrix
+# Phase 5: Impute (if not none), export Imputed_matrix
 imputed_se <- NULL
 if (imputation_type != "none") {
   imputed_se <- impute_se(normalized_se, fun = imputation_type)
   imputed_df <- cbind(as.data.frame(rowData(imputed_se)), as.data.frame(assay(imputed_se)))
+  imputed_df <- add_sample_suffix_to_export(imputed_df, assay_cols, export_suffix)
   write.csv(imputed_df, file.path(output_dir, "Imputed_matrix.csv"), row.names = FALSE)
   cat("impute_se:", imputation_type, "applied | Imputed_matrix.csv:", nrow(imputed_df), "features\n")
   data_se <- imputed_se
@@ -282,8 +298,13 @@ if (imputation_type != "none") {
 }
 
 # Phase 6: QC plots (PCA, correlation, missing heatmap, feature numbers, coverage, density)
+failed_plots <- character(0)
 has_missing <- any(is.na(assay(filtered_se)))
-se_for_qc <- if (qc_show_imputed && !is.null(imputed_se)) imputed_se else normalized_se
+se_for_qc <- if (qc_include_both && !is.null(imputed_se)) {
+  imputed_se
+} else {
+  if (qc_plot_data == "imputed" && !is.null(imputed_se)) imputed_se else normalized_se
+}
 qc_versions <- if (qc_include_both && !is.null(imputed_se)) {
   list(
     list(se = imputed_se, suffix = "_imputed", desc = "imputed"),
@@ -293,7 +314,8 @@ qc_versions <- if (qc_include_both && !is.null(imputed_se)) {
   list(list(se = se_for_qc, suffix = "", desc = ""))
 }
 
-cat("QC plots using:", if (qc_show_imputed && !is.null(imputed_se)) "imputed" else "unimputed", "data\n")
+cat("QC plots using:", if (qc_include_both && !is.null(imputed_se)) "both (imputed + unimputed)" else
+  if (qc_plot_data == "imputed" && !is.null(imputed_se)) "imputed" else "nonimputed", "data\n")
 
 for (vv in qc_versions) {
   tryCatch({
@@ -305,7 +327,7 @@ for (vv in qc_versions) {
     ggplot2::ggsave(file.path(qc_dir, paste0(base, ".pdf")), p_pca, width = 8, height = 6)
     ggplot2::ggsave(file.path(qc_dir, paste0(base, ".png")), p_pca, width = 8, height = 6, dpi = 150)
     cat("PCA saved:", base, vv$desc, "\n")
-  }, error = function(e) warning("PCA failed: ", conditionMessage(e)))
+  }, error = function(e) { failed_plots <<- c(failed_plots, paste0("qc/pca", vv$suffix)); warning("PCA failed: ", conditionMessage(e)) })
 }
 
 for (vv in qc_versions) {
@@ -322,7 +344,7 @@ for (vv in qc_versions) {
     ComplexHeatmap::draw(ht_corr, heatmap_legend_side = "top")
     dev.off()
     cat("Correlation heatmap saved:", base, "\n")
-  }, error = function(e) warning("Correlation heatmap failed: ", conditionMessage(e)))
+  }, error = function(e) { failed_plots <<- c(failed_plots, paste0("comparison/correlation_heatmap", vv$suffix)); warning("Correlation heatmap failed: ", conditionMessage(e)) })
 }
 
 if (has_missing) {
@@ -334,7 +356,7 @@ if (has_missing) {
     plot_missval_customized(filtered_se)
     dev.off()
     cat("Missing value heatmap saved\n")
-  }, error = function(e) warning("Missing value heatmap failed: ", conditionMessage(e)))
+  }, error = function(e) { failed_plots <<- c(failed_plots, "qc/missing_value_heatmap"); warning("Missing value heatmap failed: ", conditionMessage(e)) })
 }
 
 tryCatch({
@@ -342,23 +364,23 @@ tryCatch({
   ggplot2::ggsave(file.path(qc_dir, "feature_numbers.pdf"), p_fn, width = 8, height = 5)
   ggplot2::ggsave(file.path(qc_dir, "feature_numbers.png"), p_fn, width = 8, height = 5, dpi = 150)
   cat("Feature numbers plot saved\n")
-}, error = function(e) warning("Feature numbers failed: ", conditionMessage(e)))
+}, error = function(e) { failed_plots <<- c(failed_plots, "qc/feature_numbers"); warning("Feature numbers failed: ", conditionMessage(e)) })
 
 tryCatch({
   p_cov <- plot_coverage_customized(filtered_se, plot = TRUE)
   ggplot2::ggsave(file.path(qc_dir, "sample_coverage.pdf"), p_cov, width = 8, height = 5)
   ggplot2::ggsave(file.path(qc_dir, "sample_coverage.png"), p_cov, width = 8, height = 5, dpi = 150)
   cat("Sample coverage plot saved\n")
-}, error = function(e) warning("Sample coverage failed: ", conditionMessage(e)))
+}, error = function(e) { failed_plots <<- c(failed_plots, "qc/sample_coverage"); warning("Sample coverage failed: ", conditionMessage(e)) })
 
 for (vv in qc_versions) {
   tryCatch({
-    p_cvs <- plot_cvs_custom(vv$se, id = "label", scale = TRUE)
+    p_cvs <- plot_cvs_custom(vv$se, scale = cvs_scale)
     base <- paste0("sample_cvs", vv$suffix)
     ggplot2::ggsave(file.path(qc_dir, paste0(base, ".pdf")), p_cvs, width = 8, height = 6)
     ggplot2::ggsave(file.path(qc_dir, paste0(base, ".png")), p_cvs, width = 8, height = 6, dpi = 150)
     cat("Sample CVs saved:", base, "\n")
-  }, error = function(e) warning("Sample CVs failed: ", conditionMessage(e)))
+  }, error = function(e) { failed_plots <<- c(failed_plots, paste0("qc/sample_cvs", vv$suffix)); warning("Sample CVs failed: ", conditionMessage(e)) })
 }
 
 tryCatch({
@@ -368,14 +390,14 @@ tryCatch({
   ggplot2::ggsave(file.path(qc_dir, "density.pdf"), p_dens, width = 8, height = 7)
   ggplot2::ggsave(file.path(qc_dir, "density.png"), p_dens, width = 8, height = 7, dpi = 150)
   cat("Density plot saved\n")
-}, error = function(e) warning("Density plot failed: ", conditionMessage(e)))
+}, error = function(e) { failed_plots <<- c(failed_plots, "qc/density"); warning("Density plot failed: ", conditionMessage(e)) })
 
 # Phase 7: Comparison plots (Jaccard, Venn, UpSet, feature)
 n_conditions <- length(unique(colData(filtered_se)$condition))
 if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
   exp <- if (!is.null(metadata(filtered_se)$exp)) metadata(filtered_se)$exp else mode
   att_df <- data_attendance_custom(filtered_se, exp = exp, level = level)
-  conditions <- unique(colData(filtered_se)$condition)
+  conditions <- if ("condition_raw" %in% colnames(colData(filtered_se))) unique(colData(filtered_se)$condition_raw) else unique(colData(filtered_se)$condition)
   tryCatch({
     pdf(file.path(comparison_dir, "jaccard.pdf"), width = 7, height = 6)
     plot_Jaccard_custom(filtered_se, plot = TRUE)
@@ -384,7 +406,7 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
     plot_Jaccard_custom(filtered_se, plot = TRUE)
     dev.off()
     cat("Jaccard saved\n")
-  }, error = function(e) warning("Jaccard failed: ", conditionMessage(e)))
+  }, error = function(e) { failed_plots <<- c(failed_plots, "comparison/jaccard"); warning("Jaccard failed: ", conditionMessage(e)) })
   vd_dir <- file.path(comparison_dir, "venndiagram")
   dir.create(vd_dir, showWarnings = FALSE, recursive = TRUE)
   for (pr in utils::combn(conditions, 2, simplify = FALSE)) {
@@ -396,7 +418,7 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
         ggplot2::ggsave(file.path(vd_dir, paste0("venn_", safe_name, ".png")), v, width = 6, height = 6, dpi = 150)
         cat("Venn saved:", paste(pr, collapse = " vs "), "\n")
       }
-    }, error = function(e) warning("Venn failed: ", conditionMessage(e)))
+    }, error = function(e) { failed_plots <<- c(failed_plots, paste0("comparison/venndiagram/venn_", gsub("[^A-Za-z0-9_-]", "_", pr[1]), "_vs_", gsub("[^A-Za-z0-9_-]", "_", pr[2]))); warning("Venn failed: ", conditionMessage(e)) })
   }
   if (length(grep("Occurences_", colnames(att_df))) >= 2) {
     tryCatch({
@@ -407,7 +429,7 @@ if (n_conditions >= 2 && mode %in% c("LFQ", "DIA")) {
       plot_upset_custom(att_df)
       dev.off()
       cat("UpSet saved\n")
-    }, error = function(e) warning("UpSet failed: ", conditionMessage(e)))
+    }, error = function(e) { failed_plots <<- c(failed_plots, "comparison/upset"); warning("UpSet failed: ", conditionMessage(e)) })
   }
 }
 
@@ -430,7 +452,7 @@ do_feature_plots <- function(features, feat_index, subdir) {
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".pdf")), p_f, width = 6, height = 4)
           ggplot2::ggsave(file.path(feat_dir, paste0(base, ".png")), p_f, width = 6, height = 4, dpi = 150)
           cat("Feature plot saved:", file.path("feature", subdir, ptype, base), "\n")
-        }, error = function(e) warning("Feature plot failed: ", conditionMessage(e)))
+        }, error = function(e) { failed_plots <<- c(failed_plots, paste0("comparison/feature/", subdir, "/", ptype, "/", ptype, "_feature_", safe_name, vv$suffix)); warning("Feature plot failed: ", conditionMessage(e)) })
       }
     }
   }
@@ -472,18 +494,58 @@ top_n_by_col <- function(se, col, n, mult = 10L) {
 
 if (lvl == "protein") {
   features_protein <- if (length(feature_list_protein) > 0) trimws(feature_list_protein[nzchar(trimws(feature_list_protein))]) else top_n_by_rownames(se_for_qc, top_n_protein)
-  if (length(features_protein) > 0) do_feature_plots(features_protein, feat_index = NULL, subdir = "protein")
+  if (length(features_protein) > 0) {
+    do_feature_plots(features_protein, feat_index = NULL, subdir = "protein")
+    if (length(feature_list_protein) == 0 && length(features_protein) < top_n_protein) {
+      cat("Feature plots (protein): only ", length(features_protein), " of ", top_n_protein, " requested (insufficient variable features)\n", sep = "")
+    }
+  } else if (top_n_protein > 0 || length(feature_list_protein) > 0) {
+    failed_plots <<- c(failed_plots, "comparison/feature/protein (0 features available)")
+    cat("Feature plots (protein): 0 features available, none generated\n")
+  }
   features_gene <- if (length(feature_list_gene) > 0) trimws(feature_list_gene[nzchar(trimws(feature_list_gene))]) else top_n_by_col(se_for_qc, gene_col, top_n_gene)
-  if (length(features_gene) > 0 && !is.null(gene_col)) do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
+  if (length(features_gene) > 0 && !is.null(gene_col)) {
+    do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
+    if (length(feature_list_gene) == 0 && length(features_gene) < top_n_gene) {
+      cat("Feature plots (gene): only ", length(features_gene), " of ", top_n_gene, " requested (insufficient variable features)\n", sep = "")
+    }
+  } else if (!is.null(gene_col) && (top_n_gene > 0 || length(feature_list_gene) > 0)) {
+    failed_plots <<- c(failed_plots, "comparison/feature/gene (0 features available)")
+    cat("Feature plots (gene): 0 features available, none generated\n")
+  }
 } else if (lvl == "gene") {
   features_gene <- if (length(feature_list_gene) > 0) trimws(feature_list_gene[nzchar(trimws(feature_list_gene))]) else top_n_by_col(se_for_qc, gene_col, top_n_gene)
-  if (length(features_gene) > 0 && !is.null(gene_col)) do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
+  if (length(features_gene) > 0 && !is.null(gene_col)) {
+    do_feature_plots(features_gene, feat_index = gene_col, subdir = "gene")
+    if (length(feature_list_gene) == 0 && length(features_gene) < top_n_gene) {
+      cat("Feature plots (gene): only ", length(features_gene), " of ", top_n_gene, " requested (insufficient variable features)\n", sep = "")
+    }
+  } else if (!is.null(gene_col) && (top_n_gene > 0 || length(feature_list_gene) > 0)) {
+    failed_plots <<- c(failed_plots, "comparison/feature/gene (0 features available)")
+    cat("Feature plots (gene): 0 features available, none generated\n")
+  }
 } else if (lvl == "peptide") {
   features_pep <- if (length(feature_list_peptide) > 0) trimws(feature_list_peptide[nzchar(trimws(feature_list_peptide))]) else if (top_n_peptide > 0) top_n_by_rownames(se_for_qc, top_n_peptide) else character(0)
-  if (length(features_pep) > 0) do_feature_plots(features_pep, feat_index = NULL, subdir = "peptide")
+  if (length(features_pep) > 0) {
+    do_feature_plots(features_pep, feat_index = NULL, subdir = "peptide")
+    if (length(feature_list_peptide) == 0 && length(features_pep) < top_n_peptide) {
+      cat("Feature plots (peptide): only ", length(features_pep), " of ", top_n_peptide, " requested (insufficient variable features)\n", sep = "")
+    }
+  } else if (top_n_peptide > 0 || length(feature_list_peptide) > 0) {
+    failed_plots <<- c(failed_plots, "comparison/feature/peptide (0 features available)")
+    cat("Feature plots (peptide): 0 features available, none generated\n")
+  }
 } else if (lvl == "site") {
   features_site <- if (length(feature_list_site) > 0) trimws(feature_list_site[nzchar(trimws(feature_list_site))]) else if (top_n_site > 0) top_n_by_rownames(se_for_qc, top_n_site) else character(0)
-  if (length(features_site) > 0) do_feature_plots(features_site, feat_index = NULL, subdir = "site")
+  if (length(features_site) > 0) {
+    do_feature_plots(features_site, feat_index = NULL, subdir = "site")
+    if (length(feature_list_site) == 0 && length(features_site) < top_n_site) {
+      cat("Feature plots (site): only ", length(features_site), " of ", top_n_site, " requested (insufficient variable features)\n", sep = "")
+    }
+  } else if (top_n_site > 0 || length(feature_list_site) > 0) {
+    failed_plots <<- c(failed_plots, "comparison/feature/site (0 features available)")
+    cat("Feature plots (site): 0 features available, none generated\n")
+  }
 }
 
 # Phase 8: Differential expression (if >= 2 conditions, imputed data required)
@@ -507,6 +569,8 @@ if (n_conditions >= 2) {
       }
       de_result <- add_rejections_customized(de_result, alpha = de_alpha, lfc = de_lfc)
       de_df <- get_de_results_extended(de_result)
+      de_df <- apply_rnaseq_headers(de_df, de_result)
+      de_df <- add_sample_suffix_to_export(de_df, colnames(assay(de_result)), export_suffix)
       de_dir <- file.path(output_dir, "de")
       dir.create(de_dir, showWarnings = FALSE, recursive = TRUE)
       write.csv(de_df, file.path(de_dir, "DE_results.csv"), row.names = FALSE)
@@ -528,10 +592,11 @@ if (n_conditions >= 2) {
               selected = if (length(volcano_highlight_feature) > 0) volcano_highlight_feature else NULL)
           }
           safe_name <- gsub("[^A-Za-z0-9_-]", "_", cntrst)
-          ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".pdf")), p_v, width = 8, height = 6)
-          ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".png")), p_v, width = 8, height = 6, dpi = 150)
+          dims <- volcano_plot_dims(cntrst, de_result)
+          ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".pdf")), p_v, width = dims[1], height = dims[2])
+          ggplot2::ggsave(file.path(volcano_dir, paste0("volcano_", safe_name, ".png")), p_v, width = dims[1], height = dims[2], dpi = 150)
           cat("Volcano saved:", cntrst, "\n")
-        }, error = function(e) warning("Volcano ", cntrst, " failed: ", conditionMessage(e)))
+        }, error = function(e) { failed_plots <<- c(failed_plots, paste0("de/volcano/volcano_", gsub("[^A-Za-z0-9_-]", "_", cntrst))); warning("Volcano ", cntrst, " failed: ", conditionMessage(e)) })
       }
       tryCatch({
         hm_res <- get_cluster_heatmap_customized(de_result, type = "centered", alpha = de_alpha, lfc = de_lfc, indicate = "condition")
@@ -544,9 +609,9 @@ if (n_conditions >= 2) {
           dev.off()
           cat("DE heatmap saved\n")
         }
-      }, error = function(e) warning("DE heatmap failed: ", conditionMessage(e)))
+      }, error = function(e) { failed_plots <<- c(failed_plots, "de/de_heatmap"); warning("DE heatmap failed: ", conditionMessage(e)) })
 
-      # ---------- Pathway and GO enrichment (from FragPipeAnalystR) ----------
+      # ---------- Pathway and GO enrichment ----------
       # pathway_database and go_database are vectors (comma-separated input).
       # Any Enrichr libraryName from maayanlab.cloud/Enrichr/datasetStatistics is supported.
       enr_dir <- file.path(output_dir, "enrichment")
@@ -566,9 +631,10 @@ if (n_conditions >= 2) {
                 ggplot2::ggsave(file.path(enr_dir, paste0("pathway_", safe_name, ".png")), p_or, width = 10, height = 6, dpi = 150)
                 cat("Pathway enrichment saved:", db, dir, "\n")
               } else {
+                failed_plots <<- c(failed_plots, paste0("enrichment/pathway_", gsub("[^A-Za-z0-9_-]", "_", db), "_", dir, " (0 genes)"))
                 cat("No pathway enrichment found for", db, dir, "\n")
               }
-            }, error = function(e) warning("Pathway enrichment failed (", db, " ", dir, "): ", conditionMessage(e)))
+            }, error = function(e) { failed_plots <<- c(failed_plots, paste0("enrichment/pathway_", gsub("[^A-Za-z0-9_-]", "_", db), "_", dir)); warning("Pathway enrichment failed (", db, " ", dir, "): ", conditionMessage(e)) })
           }
         }
       }
@@ -586,9 +652,10 @@ if (n_conditions >= 2) {
                 ggplot2::ggsave(file.path(enr_dir, paste0("go_", safe_name, ".png")), p_or, width = 10, height = 6, dpi = 150)
                 cat("GO enrichment saved:", db, dir, "\n")
               } else {
+                failed_plots <<- c(failed_plots, paste0("enrichment/go_", gsub("[^A-Za-z0-9_-]", "_", db), "_", dir, " (0 genes)"))
                 cat("No GO enrichment found for", db, dir, "\n")
               }
-            }, error = function(e) warning("GO enrichment failed (", db, " ", dir, "): ", conditionMessage(e)))
+            }, error = function(e) { failed_plots <<- c(failed_plots, paste0("enrichment/go_", gsub("[^A-Za-z0-9_-]", "_", db), "_", dir)); warning("GO enrichment failed (", db, " ", dir, "): ", conditionMessage(e)) })
           }
         }
       }
@@ -621,6 +688,14 @@ if (n_conditions >= 2) {
               for (sc in sig_cols) num_signif <- num_signif + sum(de_df_rd[[sc]], na.rm = TRUE)
             }
             imputation_display <- if (imputation_type == "Perseus-type") "Perseus-type" else imputation_type
+            se_report <- if (qc_plot_data == "imputed" && !is.null(imputed_se)) imputed_se else normalized_se
+            n_rep <- if ("replicate" %in% colnames(colData(se_report))) length(unique(as.character(colData(se_report)$replicate))) else 0L
+            pca_indicate <- if (n_rep >= 1L && n_rep <= 6L) c("condition", "replicate") else "condition"
+            ses_dens <- list("original" = original_se, "filtered" = filtered_se)
+            if (!is.null(imputed_se)) ses_dens[["imputed"]] <- imputed_se
+            tested_contrasts_raw <- if (length(valid_cntrsts) > 0) {
+              vapply(valid_cntrsts, function(c) contrast_to_display(c, de_result), character(1))
+            } else character(0)
             report_params <- list(
               output_dir = normalizePath(output_dir, mustWork = TRUE),
               data = data_se,
@@ -631,18 +706,29 @@ if (n_conditions >= 2) {
               imputation = imputation_display,
               fdr_correction = de_fdr,
               num_signif = num_signif,
-              tested_contrasts = paste(valid_cntrsts, collapse = ", "),
-              numbers_input = function() NULL,
-              coverage_input = function() NULL,
-              pca_input = function() NULL,
-              correlation_input = function() NULL,
-              missval_input = function() NULL,
+              tested_contrasts = valid_cntrsts,
+              tested_contrasts_raw = tested_contrasts_raw,
+              numbers_input = function() plot_feature_numbers_custom(filtered_se),
+              coverage_input = function() plot_coverage_customized(filtered_se, plot = TRUE),
+              pca_input = function() plot_pca_custom(se_report, indicate = pca_indicate, plot = TRUE),
+              correlation_input = function() {
+                ht <- plot_cor_customized(se_report, indicate = "condition", plot = FALSE)
+                ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
+                invisible()
+              },
+              missval_input = function() { if (has_missing) plot_missval_customized(filtered_se) },
               detect_input = function() NULL,
-              density_input = function() NULL,
+              density_input = function() plot_density_custom(ses_dens),
               p_hist_input = function() NULL,
-              heatmap_input = function() NULL,
-              cvs_input = function() NULL,
-              volcano_input = function() NULL
+              heatmap_input = function() {
+                ht <- get_cluster_heatmap_customized(de_result, type = "centered", alpha = de_alpha, lfc = de_lfc, indicate = "condition", plot = FALSE)
+                if (!is.null(ht)) ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
+                invisible()
+              },
+              cvs_input = function() plot_cvs_custom(se_report, scale = cvs_scale),
+              volcano_input = function() NULL,
+              volcano_display_names = volcano_display_names,
+              volcano_show_gene = volcano_show_gene
             )
             owd <- getwd()
             on.exit(setwd(owd), add = TRUE)
@@ -650,7 +736,7 @@ if (n_conditions >= 2) {
             rmarkdown::render(rmd_path, output_file = "report.pdf", output_dir = ".",
               params = report_params, envir = new.env(parent = parent.frame()), quiet = TRUE)
             cat("Report saved:", file.path(output_dir, "report.pdf"), "\n")
-          }, error = function(e) warning("Report generation failed: ", conditionMessage(e)))
+          }, error = function(e) { failed_plots <<- c(failed_plots, "report.pdf"); warning("Report generation failed: ", conditionMessage(e)) })
         }
       }
     }, error = function(e) {
@@ -659,4 +745,22 @@ if (n_conditions >= 2) {
   }
 }
 
+failed_file <- file.path(output_dir, "plots_failed.txt")
+if (exists("failed_plots") && length(failed_plots) > 0) {
+  writeLines(c(
+    "# Plots that failed to generate (expected but not produced)",
+    paste0("# Run: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    "",
+    failed_plots
+  ), failed_file)
+  cat("plots_failed.txt written (", length(failed_plots), " failed)\n", sep = "")
+} else {
+  writeLines(c(
+    "# Plots that failed to generate (expected but not produced)",
+    paste0("# Run: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    "",
+    "# No plots failed"
+  ), failed_file)
+}
 cat("Done.\n")
+quit(save = "no", status = 0)

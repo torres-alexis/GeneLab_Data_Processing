@@ -1,8 +1,8 @@
 # fp_se_helper.R
 # SummarizedExperiment creation for FragPipe quant + annotation.
-# From FragPipeAnalystR, DEP.
+# FragPipeAnalystR, DEP.
 # Fixes: readExpDesign always lowercases colnames; sample_name <- label for plot joins.
-# Filter functions from FragPipe-Analyst.
+# Filter functions: FragPipe-Analyst.
 
 library(SummarizedExperiment)
 library(dplyr)
@@ -30,7 +30,7 @@ filter_by_condition <- function(se, min_percentage = 50) {
   return(se)
 }
 
-# Normalization. From FragPipeAnalystR.
+# Normalization: FragPipeAnalystR.
 # MD: median subtraction per sample. GN: median + MAD scaling. VSN: variance-stabilizing (LFQ/DIA intensity only).
 MD_normalization <- function(se) {
   data <- assay(se)
@@ -71,7 +71,7 @@ normalize_se <- function(se, method = "none") {
   stop("Invalid normalization method: ", method)
 }
 
-# Imputation. From FragPipeAnalystR, DEP, FragPipe-Analyst.
+# Imputation: FragPipeAnalystR, DEP, FragPipe-Analyst.
 # manual_impute: Perseus-type, per-sample rnorm(median - shift*sd, sd*scale). No extra deps.
 manual_impute <- function(se, scale = 0.3, shift = 1.8, seed = 123, ...) {
   if (is.integer(scale)) scale <- as.numeric(scale)
@@ -186,12 +186,19 @@ readQuantTable <- function(quant_table_path, type = "TMT", level = NULL, log2tra
 readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type = "Intensity") {
   temp_df <- read.table(exp_anno_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
   colnames(temp_df) <- tolower(colnames(temp_df))
+  # condition_raw: human-readable for plots. condition: R-safe for design matrix.
+  if ("condition_raw" %in% colnames(temp_df) && all(nzchar(trimws(temp_df$condition_raw)))) {
+    # Use condition_raw from file (runsheet_to_experiment_annotation)
+  } else {
+    temp_df$condition_raw <- temp_df$condition
+  }
+  temp_df$condition <- make.names(temp_df$condition)
+
   if (type == "TMT") {
     if (ncol(temp_df) == 1) {
       temp_df <- tryCatch(read.table(exp_anno_path, header = TRUE, sep = " ", stringsAsFactors = FALSE),
         error = function(e) temp_df)
     }
-    temp_df$condition <- make.names(temp_df$condition)
     temp_df$label <- temp_df$sample
     if (anyDuplicated(temp_df$label)) {
       temp_df$label <- paste(temp_df$label, temp_df$replicate, sep = "_")
@@ -201,7 +208,6 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type = "Intensity") {
       temp_df$label[idx] <- paste0(temp_df$label[idx], "_1")
     }
   } else if (type == "LFQ") {
-    temp_df$condition <- make.names(temp_df$condition)
     if (!all(is.na(temp_df$replicate))) {
       temp_df$sample <- gsub("-", ".", temp_df$sample)
       temp_df$label <- temp_df$sample
@@ -218,7 +224,6 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type = "Intensity") {
       temp_df$sample_name <- temp_df$label
     }
   } else {
-    temp_df$condition <- make.names(temp_df$condition)
     if (!all(is.na(temp_df$replicate))) temp_df$label <- temp_df$file
   }
   if (!"sample_name" %in% colnames(temp_df) || !all(nzchar(trimws(temp_df$sample_name)))) {
