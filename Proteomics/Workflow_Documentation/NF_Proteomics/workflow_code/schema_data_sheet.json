@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_data_sheet.json",
+    "title": "GeneLab Proteomics TMT Data Sheet Schema",
+    "description": "Schema for TMT data sheet CSV files (one row per mzML file, fraction-centric).",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "run": {
+                "type": "string",
+                "description": "Unique identifier for each raw file (MS run). Used for manifest file paths.",
+                "meta": ["id"]
+            },
+            "plex": {
+                "type": "string",
+                "description": "Plex identifier. Required for TMT.",
+                "meta": ["TMT"]
+            },
+            "fraction": {
+                "type": ["string", "integer"],
+                "description": "Fraction number when multiple fractions per plex."
+            },
+            "TechRepMixture": {
+                "type": ["string", "integer"],
+                "description": "Technical replicate of same mixture (1, 2 when same plex run twice; default 1). Maps to manifest Bioreplicate.",
+                "meta": ["optional", "TMT"]
+            },
+            "Bioreplicate": {
+                "type": ["string", "integer"],
+                "description": "Biological replicate. Optional.",
+                "meta": ["optional"]
+            },
+            "data_file": {
+                "type": "string",
+                "description": "URL or path to the mass spectrometry data file in mzML format",
+                "meta": ["data_file"]
+            },
+            "data_type": {
+                "type": "string",
+                "description": "Mass spectrometry data type",
+                "enum": ["DDA", "DIA", "GPF-DIA", "DIA-Quant", "DIA-Lib"],
+                "meta": ["data_type"]
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species for gene annotations lookup.",
+                "meta": ["organism"]
+            }
+        },
+        "required": ["run", "plex", "data_file"],
+        "additionalProperties": true
+    }
+}

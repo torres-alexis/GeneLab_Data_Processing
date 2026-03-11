@@ -4,7 +4,7 @@
 
 ---
 
-**Date:** January X, 2026  
+**Date:** March X, 2026  
 **Revision:** A  
 **Document Number:** GL-DPPD-[LFQ-MBR]-A  
 
@@ -50,41 +50,15 @@ X (X)
 
 |Program|Version|Relevant Links|
 |:------|:------:|:-------------|
-|dp_tools|1.3.9|[https://github.com/J-81/dp_tools](https://github.com/J-81/dp_tools)|
-|protqc|—|[https://bitbucket.org/incpm/prot-qc/src/master/](https://bitbucket.org/incpm/prot-qc/src/master/)|
-|FragPipe|23.1|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
-|BatMass|1.35.4|[https://batmass.org/](https://batmass.org/)|
-|MSFragger|4.3|[http://msfragger-upgrader.nesvilab.org/upgrader/](http://msfragger-upgrader.nesvilab.org/upgrader/)|
-|MSBooster|1.3.17|[https://github.com/Nesvilab/MSBooster](https://github.com/Nesvilab/MSBooster)|
-|DIA-NN|1.8.2 Beta 8|[https://github.com/vdemichev/DiaNN](https://github.com/vdemichev/DiaNN)|
-|Percolator|3.7.1|[https://github.com/percolator/percolator](https://github.com/percolator/percolator)|
-|Philosopher|5.1.2|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
-|IonQuant|1.11.11|[https://github.com/Nesvilab/IonQuant/releases/latest](https://github.com/Nesvilab/IonQuant/releases/latest)|
-|MSstats|4.18.0|[https://github.com/Vitek-Lab/MSstats](https://github.com/Vitek-Lab/MSstats)|
+|dp_tools|1.3.8|[https://github.com/J-81/dp_tools](https://github.com/J-81/dp_tools)|
+|RawBeans|1.6.4|[https://bitbucket.org/incpm/prot-qc/src/master/protqc/](https://bitbucket.org/incpm/prot-qc/src/master/protqc/)|
+|Philosopher|5.1.3|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
+|FragPipe|24.0|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
 |MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
-|R|—|[https://www.r-project.org/](https://www.r-project.org/)|
-|FragPipeAnalystR|1.1.0|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
-|SummarizedExperiment|—|[https://bioconductor.org/packages/SummarizedExperiment/](https://bioconductor.org/packages/SummarizedExperiment/)|
-|limma|—|[https://bioconductor.org/packages/limma/](https://bioconductor.org/packages/limma/)|
-|ggplot2|—|[https://ggplot2.tidyverse.org/](https://ggplot2.tidyverse.org/)|
-|matrixStats|—|[https://cran.r-project.org/package=matrixStats](https://cran.r-project.org/package=matrixStats)|
-|ComplexHeatmap|—|[https://bioconductor.org/packages/ComplexHeatmap/](https://bioconductor.org/packages/ComplexHeatmap/)|
-|circlize|—|[https://cran.r-project.org/package=circlize](https://cran.r-project.org/package=circlize)|
-|dplyr|—|[https://dplyr.tidyverse.org/](https://dplyr.tidyverse.org/)|
-|tidyr|—|[https://tidyr.tidyverse.org/](https://tidyr.tidyverse.org/)|
-|purrr|—|[https://purrr.tidyverse.org/](https://purrr.tidyverse.org/)|
-|tibble|—|[https://tibble.tidyverse.org/](https://tibble.tidyverse.org/)|
-|RColorBrewer|—|[https://cran.r-project.org/package=RColorBrewer](https://cran.r-project.org/package=RColorBrewer)|
-|ggrepel|—|[https://cran.r-project.org/package=ggrepel](https://cran.r-project.org/package=ggrepel)|
-|scales|—|[https://scales.r-lib.org/](https://scales.r-lib.org/)|
-|vegan|—|[https://cran.r-project.org/package=vegan](https://cran.r-project.org/package=vegan)|
-|cluster|—|[https://cran.r-project.org/package=cluster](https://cran.r-project.org/package=cluster)|
-|httr|—|[https://httr.r-lib.org/](https://httr.r-lib.org/)|
-|data.table|—|[https://r-datatable.com/](https://r-datatable.com/)|
-|MSnbase|—|[https://bioconductor.org/packages/MSnbase/](https://bioconductor.org/packages/MSnbase/)|
-|ggVennDiagram|—|[https://cran.r-project.org/package=ggVennDiagram](https://cran.r-project.org/package=ggVennDiagram)|
-|UpSetR|—|[https://cran.r-project.org/package=UpSetR](https://cran.r-project.org/package=UpSetR)|
+|R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
+|MSstats|4.18.0|[https://github.com/Vitek-Lab/MSstats](https://github.com/Vitek-Lab/MSstats)|
+|FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
 
 ---
@@ -126,9 +100,9 @@ cd ..
 
 **Output Data:**
 
-- \*/qc-report.html (RawBeans QC report HTML file)
-- \*/resources/ (directory containing supporting files for the QC report HTML)
-- **\*_qc-report.zip** (zip archive containing qc-report.html and resources/ folder)
+- */qc-report.html (RawBeans QC report HTML file)
+- */resources/ (directory containing supporting files for the QC report HTML)
+- ***_qc-report.zip** (zip archive containing qc-report.html and resources/ folder)
 
 <br>
 
@@ -310,10 +284,10 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 **Output Data:**
 
-- **\*.pepXML** (peptide-spectrum matches from the MSFragger database search)
-- **\*.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
-- **\*.pepindex** (peptide index files for the FASTA database)
-- **\*.tsv** (MSFragger results in tab-separated format)
+- ***.pepXML** (peptide-spectrum matches from the MSFragger database search)
+- ***.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
+- ***.pepindex** (peptide index files for the FASTA database)
+- ***.tsv** (MSFragger results in tab-separated format)
 
 <!-- > **Note:** MSFragger performs the database search and reports PSMs and associated search scores in pin files. See [MSFragger GitHub](https://github.com/Nesvilab/MSFragger) for details. -->
 
@@ -347,7 +321,7 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 **Output Data:**
 
-- \*_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
+- *_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
 - spectraRT_full.tsv (full spectra retention time data)
 - spectraRT.predicted.bin (binary file containing predicted spectra, retention times, and ion mobilities from DIA-NN)
 - spectraRT.tsv (spectra retention time data)
@@ -361,7 +335,7 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 <br>
 
-### 3f1. Perform Percolator PSM Rescoring and Statistical Validation
+#### 3f1. Perform Percolator PSM Rescoring and Statistical Validation
 
 ```bash
 /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
@@ -411,7 +385,7 @@ percolator \
 
 <br>
 
-### 3f2. Add Percolator Validation Information to pepXML
+#### 3f2. Add Percolator Validation Information to pepXML
 
 ```bash
 java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
@@ -603,7 +577,7 @@ philosopher report
 
 **Output Data:**
 
-- protein.fas (FASTA file containing FDR-filtered protein sequences identified in the analysis, generated by Philosopher)
+- protein.fas (FASTA file containing FDR-filtered protein sequences identified)
 - protein.tsv (sample-specific protein report)
 - peptide.tsv (sample-specific peptide report)
 - psm.tsv (sample-specific PSM report)
@@ -743,12 +717,12 @@ java -Xmx55G \
 - **combined_modified_peptide.tsv** (combined modified peptide report with MS1 quantification data and additional data across all samples)
 - **combined_ion.tsv** (combined ion report with MS1 quantification data and additional data across all samples)
 - **combined_site_*.tsv** (site-specific modification reports, e.g., "combined_site_C_57.0215.tsv" for carbamidomethylation, "combined_site_M_15.9949.tsv" for oxidation)
-- reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities, generated by Philosopher)
-- reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts, generated by Philosopher)
-- **msstats.csv** (formatted input file for the MSstats R package for downstream differential analysis; contains columns: "ProteinName", "PeptideSequence", "PrecursorCharge", "FragmentIon", "Condition", "BioReplicate", "Run", "Intensity"; main input for downstream statistical analysis)
-- **msstats_ptm.csv** (MSstats input file for PTM (post-translational modification) analysis; includes PTM site columns)
-<!-- - \*.mbrbin (match-between-runs binary data file for MBR feature matching) -->
-<!-- - \*.quantbin2 (quantification binary cache file) -->
+- reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
+- reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
+- **msstats.csv** (MSstats input file for downstream differential analysis)
+- **msstats_ptm.csv** (MSstatsPTM input file for PTM (post-translational modification) analysis)
+<!-- - *.mbrbin (match-between-runs binary data file for MBR feature matching) -->
+<!-- - *.quantbin2 (quantification binary cache file) -->
 
 <br>
 
@@ -839,21 +813,24 @@ Rscript fp_analyst_main.R \
   --feature_list_gene "" \
   --top_n_protein 10 \
   --top_n_gene 10 \
-  --pathway_database "Hallmark" \
-  --pathway_direction "Both" \
-  --go_database "GO Biological Process" \
-  --go_direction "Both" \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
   --lfq_type "Intensity" \
   --normalization_method "none" \
   --de_alpha 0.05 \
   --de_lfc 1.0 \
   --de_fdr "Benjamini Hochberg" \
   --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
   --min_global_appearance 0 \
   --min_appearance_one_condition 0 \
   --qc_plot_data "nonimputed" \
-  --qc_include_both "false" \
   --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations "gene_annotations.tsv" \
   --output_dir "output/"
 ```
 
@@ -867,21 +844,23 @@ Rscript fp_analyst_main.R \
   --level "peptide" \
   --feature_list_peptide "" \
   --top_n_peptide 10 \
-  --pathway_database "Hallmark" \
-  --pathway_direction "Both" \
-  --go_database "GO Biological Process" \
-  --go_direction "Both" \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
   --lfq_type "Intensity" \
   --normalization_method "none" \
   --de_alpha 0.05 \
   --de_lfc 1.0 \
   --de_fdr "Benjamini Hochberg" \
   --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
   --min_global_appearance 0 \
   --min_appearance_one_condition 0 \
   --qc_plot_data "nonimputed" \
-  --qc_include_both "false" \
   --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations "gene_annotations.tsv" \
   --output_dir "output/"
 ```
 
@@ -893,29 +872,29 @@ Rscript fp_analyst_main.R \
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
 - `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`).
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
-- `--min_global_appearance` – at least X% present across all samples (0–100). 0 = no filter
-- `--min_appearance_one_condition` – at least X% present in at least one condition (0–100). 0 = no filter
+- `--min_global_appearance` – at least X% present across all samples (0–100). 0 = no filter (default: 0)
+- `--min_appearance_one_condition` – at least X% present in at least one condition (0–100). 0 = no filter (default: 0)
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
-- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based`
-- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `RF`, `nbavg`, `mixed` (default: `Perseus-type`)
+- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` (default: `Benjamini Hochberg`)
+- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `nbavg`, `mixed` (default: `Perseus-type`)
+- `--imputation_shift` – Perseus-type: manual_impute shift in SD units (default: 1.8)
+- `--imputation_scale` – Perseus-type: manual_impute scale factor (default: 0.3)
 - `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` (default: 10)
 - `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene` (default: 10). Protein level only; peptide: gene plots not applicable.
 - `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` (default: 10)
 - `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID (default: 10)
 - `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene (default: 10)
 - `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID (default: 10)
-- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs, report: `imputed` or `nonimputed` (default: `nonimputed`)
-- `--qc_include_both` – generate both imputed and unimputed QC files (`true`/`false`)
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed` (default: `nonimputed`). If nonimputed has <2 complete features, PCA falls back to imputed with a warning.
 - `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`)
 - `--volcano_display_names` – display names on significant volcano points (`true`/`false`, default: `true`)
 - `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide.
-- `--volcano_highlight_feature` – comma-delimited feature IDs to highlight on volcano (default: empty)
-- `--volcano_show_other_peptides` – peptide/site volcano: when highlighting, also show other peptides from same protein in blue (`true`/`false`, default: `true`). `false` = don't color
-- `--pathway_database` – pathway enrichment database(s): `Hallmark`, `KEGG`, `KEGG Mouse`, `Reactome`, `WikiPathways Mouse`, or any [Enrichr libraryName](https://maayanlab.cloud/Enrichr/datasetStatistics), comma-separated list for multiple. Empty = skip
-- `--pathway_direction` – pathway enrichment direction: `Up`, `Down`, or `Both`
-- `--go_database` – Gene Ontology enrichment database(s): `GO Biological Process`, `GO Cellular Component`, `GO Molecular Function`, or any Enrichr libraryName, comma-separated list for multiple. Empty = skip
-- `--go_direction` – GO enrichment direction: `Up`, `Down`, or `Both`
+- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip (default: `Hallmark,GO_Biological_Process_2021`)
+- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) (default: `Up,Down`)
+- `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip.
+- `--gene_annotations` – gene annotations file (TSV/CSV); merges into DE_results on Gene. Empty = skip.
+- `--assay_suffix` – assay suffix for output filenames (SampleTable, contrasts, volcano); empty = no suffix.
 - `--output_dir` – output directory for results
 
 **Input Data:**
@@ -923,38 +902,42 @@ Rscript fp_analyst_main.R \
 - experiment_annotation.tsv (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
 - combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
 - combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- gene_annotations.tsv (gene annotations table file; merges into DE_results on Gene )
 
 **Output Data:**
 
 - fp_analyst_parameters.txt (run parameters)
-- Raw_matrix.csv (raw intensity matrix before filtering/normalization/imputation: feature IDs plus sample intensity columns; may contain missing values)
-- Filtered_matrix.csv (filtered intensity matrix: features passing min_global_appearance and min_appearance_one_condition; may contain missing values)
-- Imputed_matrix.csv (matrix with missing values filled; default imputation is Perseus-type. Only written when imputation is run.)
-- qc/ (QC plots folder)
-  - pca.pdf, pca.png (PCA plot)
-  - missing_value_heatmap.pdf, missing_value_heatmap.png (missing value pattern heatmap)
-  - feature_numbers.pdf, feature_numbers.png (feature count per sample)
-  - sample_coverage.pdf, sample_coverage.png (sample coverage)
-  - sample_cvs.pdf, sample_cvs.png (sample coefficient of variation)
-  - density.pdf, density.png (intensity distribution)
-- comparison/ (comparison plots folder)
-  - correlation_heatmap.pdf, correlation_heatmap.png (sample correlation heatmap)
-  - jaccard.pdf, jaccard.png (Jaccard similarity; ≥2 conditions)
-  - upset.pdf, upset.png (UpSet plot)
-  - venndiagram/ (pairwise Venn diagrams)
-  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (top N by protein ID and gene; filenames boxplot_feature_*.pdf, violinplot_feature_*.pdf)
-  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top N by peptide ID)
-- de/ (differential expression folder; when ≥2 conditions)
-  - DE_results.csv (differential expression results table containing the following columns):
+- raw_matrix.csv (from combined_protein/peptide: contaminants removed; selected lfq_type quant columns removed and re-appended at end as log2 (Intensity/MaxLFQ) or raw (Spectral Count). NAs where feature not detected.)
+- imputed_matrix.csv (same as raw_matrix; NAs filled via Perseus-type imputation.)
+- **QC_plots.zip** (QC plots folder)
+  - pca.pdf, .png (PCA plot)
+  - missing_value_heatmap.pdf, .png (missing value pattern heatmap)
+  - feature_numbers.pdf, .png (feature count per sample)
+  - sample_cvs.pdf, .png (sample coefficient of variation)
+  - density.pdf, .png (intensity distribution)
+- **comparison_plots.zip** (comparison plots folder)
+  - correlation_heatmap.pdf, .png (sample correlation heatmap)
+  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (top N by protein ID and gene; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
+  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top N by peptide ID; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
+  - feature/site/boxplot/, feature/site/violinplot/ (site run: top N by site ID; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
+- **pathway_analysis_plots.zip** (pathway analysis plots folder)
+  - or/ (over-representation analysis: or_database_direction.csv, .pdf, .png per database and direction)
+  - gsea/ (GSEA: gsea_database_contrast.csv, .pdf, .png per database and contrast)
+- **DE_plots.zip** (DE plots folder)
+  - DE_heatmap.pdf, .png (DE heatmap)
+  - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
+- **SampleTable.csv** (table specifying the group or set of factor levels for each sample)
+- **contrasts.csv** (table listing all pairwise group comparisons )
+- **DE_results.csv** (differential expression results table containing the following columns):
     - Shared (all LFQ levels):
-      - Sample.Intensity (per-sample raw precursor intensity from IonQuant)
-      - Sample.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity from IonQuant)
+      - Sample.Intensity (per-sample precursor intensity)
+      - Sample.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity)
       - Sample.Spectral.Count (per-sample PSM count)
       - name (display name for plots)
       - ID (unique row identifier)
       - imputed (whether row had imputed values)
       - num_NAs (count of missing values before imputation)
-    - LFQ protein level (identifier and annotation columns):
+    - Protein level:
       - Protein (protein sequence header from the search database FASTA; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
       - Protein.ID (UniProt primary accession; second pipe-delimited field of Protein)
       - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
@@ -972,7 +955,7 @@ Rscript fp_analyst_main.R \
       - Indistinguishable.Proteins (proteins not distinguishable from selected given evidence)
       - Sample.Unique.Spectral.Count (per-sample PSMs for unique peptides only; protein level)
       - Sample.Total.Spectral.Count (per-sample PSMs for all peptides including razor; protein level)
-    - LFQ peptide level (identifier and annotation columns):
+    - Peptide level:
       - Index (Protein ID + Peptide Sequence, unique peptide identifier)
       - Peptide.Sequence (stripped sequence, no modifications)
       - Prev.AA (residue preceding peptide in protein)
@@ -988,21 +971,16 @@ Rscript fp_analyst_main.R \
       - Description (protein name)
       - Mapped.Genes (additional genes peptide may originate from)
       - Mapped.Proteins (additional proteins peptide maps to)
-    - For each pairwise group comparison (A)v(B):
-      - CI.L_(A)v(B) (lower bound of log2 fold-change confidence interval)
-      - CI.R_(A)v(B) (upper bound of log2 fold-change confidence interval)
-      - Log2fc_(A)v(B) (log2 fold change)
-      - P.value_(A)v(B) (unadjusted p-value)
-      - Adj.p.value_(A)v(B) (Benjamini-Hochberg adjusted p-value)
-      - Stat_(A)v(B) (limma t-statistic)
-      - Significant_(A)v(B) (boolean at chosen FDR and fold-change thresholds)
-      - significant (global; TRUE if significant in any contrast)
-      - All.mean (mean across all samples)
-      - All.stdev (standard deviation across all samples)
-      - For each group:
-        - Group.Mean_(group) (mean within group)
-        - Group.Stdev_(group) (standard deviation within group)
-  - de_heatmap.pdf, de_heatmap.png (DE heatmap)
-  - volcano/ (volcano plots per contrast: volcano_\<contrast\>.pdf, volcano_\<contrast\>.png)
-- enrichment/ (pathway and GO enrichment plots and CSV tables; one set per database when multiple DBs specified, e.g. pathway_Hallmark_UP.csv, pathway_KEGG_UP.csv, go_GO_Biological_Process_UP.csv).
-- report.pdf (FragPipe-Analyst report: method details, parameters, QC, DE)
+    - For each pairwise group comparison (B)v(A):
+      - CI.L_(B)v(A) (lower bound of log2 fold-change confidence interval)
+      - CI.R_(B)v(A) (upper bound of log2 fold-change confidence interval)
+      - Log2fc_(B)v(A) (log2 fold change)
+      - P.value_(B)v(A) (unadjusted p-value)
+      - Adj.p.value_(B)v(A) (Benjamini-Hochberg adjusted p-value)
+      - Significant_(B)v(A) (boolean at chosen FDR and fold-change thresholds)
+    - significant (global; TRUE if significant in any contrast)
+    - All.mean (mean across all samples)
+    - All.stdev (standard deviation across all samples)
+    - For each group:
+      - Group.Mean_(group) (mean within group)
+      - Group.Stdev_(group) (standard deviation within group)

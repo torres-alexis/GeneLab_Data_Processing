@@ -62,9 +62,13 @@ process CHECK_DECOYS_CONTAMS {
     
     if [ "\$needs_processing" = "true" ]; then
         echo "Processing file to add missing components"
-        /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 workspace --init
-        /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 database --custom \$input_fasta \$decoy_flag \$contam_flag
-        /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 workspace --clean
+        FP_BASE=\$(ls -d /fragpipe_bin/fragpipe-*/fragpipe-*/ 2>/dev/null | head -1)
+        [ -z "\$FP_BASE" ] && { echo "ERROR: FragPipe not found under /fragpipe_bin/fragpipe-*/" >&2; exit 1; }
+        PHILO=\$(ls \${FP_BASE%/}/tools/Philosopher/philosopher-v* 2>/dev/null | head -1)
+        [ -z "\$PHILO" ] && { echo "ERROR: Philosopher not found" >&2; exit 1; }
+        "\${PHILO}" workspace --init
+        "\${PHILO}" database --custom \$input_fasta \$decoy_flag \$contam_flag
+        "\${PHILO}" workspace --clean
     fi
     
     cp \$input_fasta output/

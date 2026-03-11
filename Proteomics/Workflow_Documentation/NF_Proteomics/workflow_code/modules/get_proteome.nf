@@ -25,13 +25,14 @@ process GET_PROTEOME {
     # Use Philosopher to download and prepare proteome database from UniProt
     # See: https://github.com/Nesvilab/philosopher/wiki/Database
     
-    # Philosopher is at /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2
-    # Clean and initialize workspace (required by Philosopher)
-    /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 workspace --clean
-    /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 workspace --init
+    FP_BASE=\$(ls -d /fragpipe_bin/fragpipe-*/fragpipe-*/ 2>/dev/null | head -1)
+    [ -z "\$FP_BASE" ] && { echo "ERROR: FragPipe not found under /fragpipe_bin/fragpipe-*/" >&2; exit 1; }
+    PHILO=\$(ls \${FP_BASE%/}/tools/Philosopher/philosopher-v* 2>/dev/null | head -1)
+    [ -z "\$PHILO" ] && { echo "ERROR: Philosopher not found" >&2; exit 1; }
     
-    # Download proteome using philosopher database command with --id
-    /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2 database \\
+    "\${PHILO}" workspace --clean
+    "\${PHILO}" workspace --init
+    "\${PHILO}" database \\
         --id ${params.uniprot_id} \\
         ${reviewed_flag} \\
         ${isoforms_flag} \\

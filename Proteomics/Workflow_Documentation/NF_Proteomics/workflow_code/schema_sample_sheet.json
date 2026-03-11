@@ -1,0 +1,46 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_sample_sheet.json",
+    "title": "GeneLab Proteomics TMT Sample Sheet Schema",
+    "description": "Schema for validating TMT sample sheet.",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "type": "string",
+                "description": "Sample name for the channel.",
+                "meta": ["id"]
+            },
+            "plex": {
+                "type": "string",
+                "description": "Plex identifier. Must match data_sheet."
+            },
+            "channel": {
+                "type": "string",
+                "description": "TMT channel (126, 127N, 127C, etc.)."
+            },
+            "Bioreplicate": {
+                "type": ["string", "integer"],
+                "description": "Biological replicate."
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species for gene annotations lookup.",
+                "meta": ["organism"]
+            },
+            "Source Name": {
+                "type": "string",
+                "description": "Biological replicate label."
+            }
+        },
+        "required": ["Sample Name", "plex", "channel"],
+        "patternProperties": {
+            "^Factor Value\\[.*\\]$": {
+                "type": "string",
+                "description": "Experimental condition."
+            }
+        },
+        "additionalProperties": true
+    }
+}

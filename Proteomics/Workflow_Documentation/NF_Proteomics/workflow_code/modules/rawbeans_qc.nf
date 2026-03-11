@@ -1,7 +1,7 @@
 process RAWBEANS_QC {
     tag "${meta.id}"
     
-    publishDir "${output_dir}/RawBeans_QC/",
+    publishDir "${output_dir}/RawBeans/",
         mode: params.publish_dir_mode,
         pattern: "${meta.id}${params.assay_suffix}_qc-report.zip"
 
@@ -20,7 +20,7 @@ process RAWBEANS_QC {
         --input ${mzml_file} \\
         --output-dir . \\
         --batch \\
-        --cores ${task.cpus}
+        --cores 1
 
     # Create zip file with HTML and resources folder (cd to get files at root level)
     # create-qc-report.py creates folder from input basename (meta.id)
@@ -36,7 +36,7 @@ process RAWBEANS_QC {
 
 process RAWBEANS_QC_ALL {
     
-    publishDir "${output_dir}/RawBeans_QC/",
+    publishDir "${output_dir}/RawBeans/",
         mode: params.publish_dir_mode,
         pattern: "All${params.assay_suffix}_qc-report.zip"
     
@@ -50,11 +50,11 @@ process RAWBEANS_QC_ALL {
 
     script:
     """
-    # Run RawBeans QC on all samples
+    # Run RawBeans QC on all samples 
     create-qc-report.py \\
         --input ${mzml_files} \\
         --output-dir . \\
-        --cores ${task.cpus}
+        --cores 1
 
     # Create zip file with HTML and resources folder
     zip -r All${params.assay_suffix}_qc-report.zip qc-report.html resources/

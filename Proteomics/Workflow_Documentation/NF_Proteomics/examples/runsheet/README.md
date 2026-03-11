@@ -2,36 +2,75 @@
 
 ## Description
 
-* The Runsheet is a csv file that contains the metadata required for processing mass spectrometry-based proteomics datasets through GeneLab's Proteomics processing pipeline.
+The runsheet is a CSV file that contains the metadata required for processing mass spectrometry-based proteomics datasets through GeneLab's Proteomics processing pipeline.
+
+- **LFQ-MBR workflow** uses a single runsheet: one row per mzML file, with sample and experiment metadata.
+- **TMT workflows** use two CSV files: a **sample sheet** with channel-to-sample mapping and experiment metadata; and a **data sheet** with file paths and run identifiers.
 
 
 ## Examples
 
 1. [LFQ-MBR runsheet for OSD-581](LFQ-MBR_runsheet/OSD-581_LFQ-MBR_v1_runsheet.csv)
-2. [TMT10 runsheet for OSD-514](TMT10_runsheet/OSD-514_TMT10_v1_runsheet.csv)
-3. [TMT16 runsheet for OSD-462](TMT16_runsheet/OSD-462_TMT16_v1_runsheet.csv)
-4. [TMT16-phospho runsheet for OSD-462](TMT16_phospho_runsheet/OSD-462_TMT16-phospho_v1_runsheet.csv)
+2. **TMT**:
+   - [TMT-10 sample sheet for OSD-514](TMT10_runsheet/OSD-514_TMT10_sample_sheet.csv)
+   - [TMT-10 data sheet for OSD-514](TMT10_runsheet/OSD-514_TMT10_data_sheet.csv)
 
-## Required columns
+## Runsheet
+
+### Required columns
 
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | RR10_KDN_WT_BSL_B1 |
+| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/GL_RefAnnotTable-A_1.1.0/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
 | data_file | string (url or local path) | Location of the mass spectrometry data file in mzML format. | /path/to/plex1/RR10_KDN_WT_BSL_B1.mzML |
-| data_type | string | Mass spectrometry data type. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA |
-| organism | string | Species name used to map to the appropriate UniProt proteome ID if a reference proteome or UniProt ID are not provided as a Nextflow parameter. Also used to extend output tables with annotations corresponding to the species. | Mus musculus |
-| Source Name | string | Biological replicate identifier. Multiple fractions from the same biological sample should share the same Source Name. | RR-10_BL-01 |
-| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest. In the simplest form, a column named 'Factor Value[group]' is sufficient. | Basal Control |
+| Bioreplicate | string | Alphanumeric biological replicate identifier. If omitted, assigned sequentially from runsheet row order (1, 2, 3...). | 1 |
+| Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. In the simplest form, a column named 'Factor Value[group]' is sufficient. Used to create the Experiment field in the FragPipe manifest. | Basal Control |
+<!--| data_type | string | Mass spectrometry acquisition method. Options: DDA | DDA | -->
+<!-- | data_type | string | Mass spectrometry acquisition method. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA | -->
 
-## Optional columns
-
-| Column Name | Type | Description | Example |
-|:------------|:-----|:------------|:--------|
-| Bioreplicate | string | Alphanumeric replicate identifier for the FragPipe manifest (sample = Experiment_Bioreplicate). If omitted, inferred per-condition from row order (1,2,3...). | 2 |
-
-## TMT-specific columns (required for TMT workflows)
+### Optional columns
 
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
-| plex | string | Alphanumeric identifier indicating which TMT multiplexed run the sample belongs to. | TMT1 |
-| label | string | TMT channel label assigned to the sample (e.g., 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N for TMT-10; 126, 127N, 127C, 128N, 128C, 129N, 129C, 130N, 130C, 131N, 131C, 132N, 132C, 133N, 133C, 134N for TMT-16). | 126 |
+| Source Name | string | Identifier linking samples. | RR-10_BL-01 |
+
+---
+
+## Sample sheet
+
+### Required columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | SFug_M1 |
+| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/GL_RefAnnotTable-A_1.1.0/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
+| plex | string | Plex identifier. Must match data sheet. | TMTa |
+| channel | string | TMT channel. | 127N |
+| Bioreplicate | string | Alphanumeric biological replicate identifier. If omitted, assigned sequentially from runsheet row order (1, 2, 3...). | 1 |
+| Factor Value[...] | string | A set of one or more columns specifying the experimental group the sample belongs to. In the simplest form, a column named 'Factor Value[group]' is sufficient. | male |
+
+
+### Optional columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| Source Name | string | Identifier linking samples. | Spaceflight microgravity Male 1 |
+
+## Data sheet
+
+### Required columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| run | string | Unique identifier for each mzML file (MS run). | NASA_Flies_TMTA_Fr00 |
+| plex | string | Plex identifier (e.g. TMTa, TMTb). | TMTa |
+| data_file | string | Path to mzML file. | /path/to/NASA_Flies_TMTA_Fr00.mzML |
+<!--| data_type | string | Mass spectrometry acquisition method. Options: DDA | DDA | -->
+<!-- | data_type | string | Mass spectrometry acquisition method. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA | -->
+
+### Optional columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| TechRepMixture | string | Technical replicate of same mixture. Maps to FragPipe manifest Bioreplicate. (Default: 1) | 1 |
