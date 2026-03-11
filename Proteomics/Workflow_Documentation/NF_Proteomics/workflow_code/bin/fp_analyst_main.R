@@ -1,17 +1,11 @@
 #!/usr/bin/Rscript
 # FragPipe-Analyst downstream via FragPipeAnalystR package.
-# Reference: Reference_Repos/FragPipeAnalystR
-# CLI: optparse, types (LFQ/TMT/DIA), levels (protein/peptide/gene/site).
 
 library(optparse)
-library(ggplot2)  # ensure geom_violin available for FragPipeAnalystR::plot_feature
+library(ggplot2)
 
 option_list <- list(
-  # --- make_se_from_files params (FragPipeAnalystR) ---
-  # mode: LFQ | TMT | DIA
-  # level: protein | peptide | gene | site | glycan
-  # lfq_type: Intensity | MaxLFQ | Spectral Count (LFQ only)
-  make_option(c("--experiment_annotation"), type = "character", default = NULL,
+    make_option(c("--experiment_annotation"), type = "character", default = NULL,
     help = "Path to experiment annotation TSV", metavar = "FILE"),
   make_option(c("--quantification_file"), type = "character", default = NULL,
     help = "Path to quantification file", metavar = "FILE"),
@@ -23,11 +17,10 @@ option_list <- list(
     help = "Output directory", metavar = "DIR"),
   make_option(c("--lfq_type"), type = "character", default = "Intensity",
     help = "LFQ column type: Intensity, MaxLFQ, or Spectral Count (LFQ mode only)", metavar = "STRING"),
-  # --- filter ---
-  make_option(c("--min_global_appearance"), type = "numeric", default = 0,
-    help = "Min %% present across all samples (0-100). 0 = unfiltered", metavar = "NUMERIC"),
-  make_option(c("--min_appearance_one_condition"), type = "numeric", default = 0,
-    help = "Min %% present in at least one condition (0-100). 0 = unfiltered", metavar = "NUMERIC"),
+  # make_option(c("--min_global_appearance"), type = "numeric", default = 0,
+  #   help = "Min %% present across all samples (0-100). 0 = unfiltered", metavar = "NUMERIC"),
+  # make_option(c("--min_appearance_one_condition"), type = "numeric", default = 0,
+  #   help = "Min %% present in at least one condition (0-100). 0 = unfiltered", metavar = "NUMERIC"),
   # --- norm ---
   make_option(c("--normalization_method"), type = "character", default = "none",
     help = "Normalization: none, vsn, MD, or GN (FragPipeAnalystR)", metavar = "STRING"),
@@ -136,8 +129,8 @@ writeLines(c(
   paste("imputation_type:", opt$imputation_type),
   paste("imputation_shift:", opt$imputation_shift),
   paste("imputation_scale:", opt$imputation_scale),
-  paste("min_global_appearance:", opt$min_global_appearance),
-  paste("min_appearance_one_condition:", opt$min_appearance_one_condition),
+  # paste("min_global_appearance:", opt$min_global_appearance),
+  # paste("min_appearance_one_condition:", opt$min_appearance_one_condition),
   paste("de_alpha:", opt$de_alpha),
   paste("de_lfc:", opt$de_lfc),
   paste("enrichment_database:", opt$enrichment_database),
@@ -150,8 +143,8 @@ writeLines(c(
 lfq_type <- .oneof(.or(opt$lfq_type, "Intensity"), c("Intensity", "MaxLFQ", "Spectral Count"), "lfq_type")
 de_alpha <- as.numeric(.or(opt$de_alpha, 0.05))
 de_lfc <- as.numeric(.or(opt$de_lfc, 1.0))
-min_global <- as.numeric(.or(opt$min_global_appearance, 0))
-min_cond <- as.numeric(.or(opt$min_appearance_one_condition, 0))
+# min_global <- as.numeric(.or(opt$min_global_appearance, 0))
+# min_cond <- as.numeric(.or(opt$min_appearance_one_condition, 0))
 norm_method <- .oneof(.or(opt$normalization_method, "none"), c("none", "vsn", "MD", "GN"), "normalization_method")
 imp_type_raw <- trimws(.or(opt$imputation_type, "Perseus-type"))
 imp_valid <- c("none", "Perseus-type", "knn", "MLE", "min", "zero", "bpca", "QRILC", "MinDet", "MinProb", "nbavg", "mixed")
@@ -207,33 +200,31 @@ data_se <- make_se_from_files(
 if (is.null(data_se)) stop("make_se_from_files failed")
 cat("SummarizedExperiment:", nrow(data_se), "features,", ncol(data_se), "samples\n")
 
-# --- Filter (our code; FragPipeAnalystR has no filter) ---
-# global_filter: keep rows with <= (100 - min_global)% missing globally
-# filter_by_condition: keep rows with >= min_cond% valid in at least one condition
-global_filter <- function(se, pct_present) {
-  pct_na_max <- (100 - pct_present) / 100
-  ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= pct_na_max
-  se[ridx, ]
-}
-filter_by_condition <- function(se, min_pct) {
-  min_pct <- min_pct / 100
-  conds <- unique(colData(se)$condition)
-  keep <- rep(FALSE, nrow(se))
-  for (c in conds) {
-    se_c <- se[, colData(se)$condition == c]
-    keep <- keep | (rowSums(!is.na(assay(se_c))) / ncol(se_c) >= min_pct)
-  }
-  se[keep, ]
-}
+# global_filter / filter_by_condition: commented out (custom filter not in FragPipeAnalystR)
+# global_filter <- function(se, pct_present) {
+#   pct_na_max <- (100 - pct_present) / 100
+#   ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= pct_na_max
+#   se[ridx, ]
+# }
+# filter_by_condition <- function(se, min_pct) {
+#   min_pct <- min_pct / 100
+#   conds <- unique(colData(se)$condition)
+#   keep <- rep(FALSE, nrow(se))
+#   for (c in conds) {
+#     se_c <- se[, colData(se)$condition == c]
+#     keep <- keep | (rowSums(!is.na(assay(se_c))) / ncol(se_c) >= min_pct)
+#   }
+#   se[keep, ]
+# }
 filtered_se <- data_se
-if (min_global > 0) {
-  filtered_se <- global_filter(filtered_se, min_global)
-  cat("global_filter: kept", nrow(filtered_se), "features (min", min_global, "% present globally)\n")
-}
-if (min_cond > 0) {
-  filtered_se <- filter_by_condition(filtered_se, min_cond)
-  cat("filter_by_condition: kept", nrow(filtered_se), "features (min", min_cond, "% in one condition)\n")
-}
+# if (min_global > 0) {
+#   filtered_se <- global_filter(filtered_se, min_global)
+#   cat("global_filter: kept", nrow(filtered_se), "features (min", min_global, "% present globally)\n")
+# }
+# if (min_cond > 0) {
+#   filtered_se <- filter_by_condition(filtered_se, min_cond)
+#   cat("filter_by_condition: kept", nrow(filtered_se), "features (min", min_cond, "% in one condition)\n")
+# }
 
 # --- Normalization (FragPipeAnalystR: MD_normalization, GN_normalization, VSN_normalization) ---
 # none | MD (median subtraction) | GN (median + MAD scaling) | vsn (variance-stabilizing; LFQ/DIA intensity only)
@@ -310,14 +301,6 @@ if (any(is.na(assay(normalized_se)))) {
   dev.off()
   cat("Missing value heatmap saved\n")
 }
-# plotCumulativeMissingPercent: not in FragPipeAnalystR README; commented out
-# tryCatch({
-#   p_cummiss <- plotCumulativeMissingPercent(normalized_se, title = paste0(mode, " ", level))
-#   report_plots[[length(report_plots) + 1]] <- p_cummiss
-#   ggplot2::ggsave(file.path(qc_dir, fn_("cumulative_missing_percent", "pdf")), p_cummiss, width = 8, height = 5)
-#   ggplot2::ggsave(file.path(qc_dir, fn_("cumulative_missing_percent", "png")), p_cummiss, width = 8, height = 5, dpi = 150)
-#   cat("Cumulative missing % plot saved\n")
-# }, error = function(e) warning("Cumulative missing % plot failed: ", conditionMessage(e)))
 # Feature numbers (barplot: features per sample)
 p_fn <- plot_feature_numbers(normalized_se, fill = "condition")
 ggplot2::ggsave(file.path(qc_dir, fn_("feature_numbers", "pdf")), p_fn, width = 8, height = 5)
@@ -613,7 +596,7 @@ contrasts_fname <- paste0("contrasts", if (nzchar(assay_suffix)) assay_suffix el
 write.csv(contrasts_df, file.path(de_dir, contrasts_fname), row.names = FALSE)
 cat("Contrasts table saved:", contrasts_fname, "\n")
 
-# --- Volcano plots (one per contrast; filenames use human-readable comp_names like ANCOMBC) ---
+# --- Volcano plots (one per contrast; filenames use human-readable comp_names) ---
 volcano_ncol <- if (volcano_name_col && "Gene" %in% colnames(rowData(de_se))) "Gene" else NULL
 for (i in seq_along(contrast_names)) {
   tryCatch({
@@ -628,7 +611,7 @@ cat("Volcano plots saved (", length(contrast_names), " contrasts)\n")
 
 # --- DE heatmap (FragPipeAnalystR: get_cluster_heatmap, type=centered) ---
 # get_cluster_heatmap maps colnames(df) via temp[colnames(df), "sample_name"] with rownames(temp)=label.
-# make_se_from_files sets assay colnames=sample_name, so lookup fails (NA). Pass a copy with assay colnames=label.
+# make_se_from_files sets assay colnames=sample_name, so lookup fails (NA). Pass copy with assay colnames=label.
 tryCatch({
   de_se_hm <- de_se
   if ("label" %in% colnames(colData(de_se))) {
@@ -650,7 +633,7 @@ tryCatch({
     ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
     dev.off()
     cat("DE heatmap saved\n")
-  } else     if (inherits(ht_res, "gg")) {
+  } else if (inherits(ht_res, "gg")) {
     ggplot2::ggsave(file.path(de_dir, fn_("DE_heatmap", "pdf")), ht_res, width = 8, height = 4)
     ggplot2::ggsave(file.path(de_dir, fn_("DE_heatmap", "png")), ht_res, width = 8, height = 4, dpi = 150)
     cat("DE heatmap: no significant features (empty plot saved)\n")

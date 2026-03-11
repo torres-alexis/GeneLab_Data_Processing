@@ -288,8 +288,6 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--fp_analyst_levels` - Comma-separated levels: protein, peptide, gene, site. Default: protein,peptide (LFQ) or protein,gene,peptide,site (TMT) when null (type: string, default: null)
 * `--fp_analyst_tmt_quant_type` - TMT only: abundance or ratio (type: string, default: "abundance")
 * `--fp_analyst_lfq_type` - LFQ column type: Intensity, MaxLFQ, or Spectral Count. raw_matrix/imputed_matrix assay: log2 for Intensity/MaxLFQ; raw for Spectral Count (type: string, default: "Intensity")
-* `--fp_analyst_min_global_appearance` - At least X% present across all samples, 0-100. 0 = no filter (type: integer, default: 0)
-* `--fp_analyst_min_appearance_one_cond` - At least X% present in at least one condition, 0-100. 0 = no filter (type: integer, default: 0)
 * `--fp_analyst_normalization_method` - Normalization applied before DE: none, MD (median), GN (global) (type: string, default: "none")
 <!-- vsn (Variance Stabilizing) is also available for LFQ/DIA only; not for TMT or Spectral Count -->
 * `--fp_analyst_imputation_type` - Imputation: none, Perseus-type, knn, MLE, min, zero, bpca, QRILC, MinDet, MinProb, nbavg, mixed (type: string, default: "Perseus-type")

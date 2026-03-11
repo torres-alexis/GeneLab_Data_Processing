@@ -19,50 +19,22 @@ CONFIG = {
     "proteomics": [
         ["NF_Proteomics", "https://github.com/nasa/GeneLab_Data_Processing/tree/master/Proteomics"],
         ["dp_tools", "https://github.com/J-81/dp_tools"],
-        ["FragPipe", "https://fragpipe.nesvilab.org/"],
-        ["BatMass", "https://batmass.org/"],
-        ["MSFragger", "https://github.com/Nesvilab/MSFragger"],
-        ["MSBooster", "https://github.com/Nesvilab/MSBooster"],
-        ["DIA-NN", "https://github.com/vdemichev/DiaNN"],
-        ["Percolator", "https://github.com/percolator/percolator"],
-        ["Philosopher", "https://github.com/Nesvilab/philosopher/releases/latest"],
-        ["IonQuant", "https://github.com/Nesvilab/IonQuant/releases/latest"],
         ["RawBeans", "https://bitbucket.org/incpm/prot-qc/src/master/protqc/"],
+        ["Philosopher", "https://github.com/Nesvilab/philosopher/releases/latest"],
+        ["FragPipe", "https://fragpipe.nesvilab.org/"],
         ["MultiQC", "https://multiqc.info/"],
         ["pmultiqc", "https://github.com/bigbio/pmultiqc"],
-        ["MSstats", "https://github.com/Vitek-Lab/MSstats"],
         ["R", "https://www.r-project.org/"],
-        ["BiocManager", "https://bioconductor.org/packages/BiocManager/"],
+        ["MSstats", "https://github.com/Vitek-Lab/MSstats"],
         ["FragPipeAnalystR", "https://github.com/Nesvilab/FragPipeAnalystR"],
-        ["SummarizedExperiment", "https://bioconductor.org/packages/SummarizedExperiment/"],
-        ["dplyr", "https://dplyr.tidyverse.org/"],
-        ["tibble", "https://tibble.tidyverse.org/"],
-        ["tidyr", "https://tidyr.tidyverse.org/"],
-        ["purrr", "https://purrr.tidyverse.org/"],
-        ["ggplot2", "https://ggplot2.tidyverse.org/"],
-        ["matrixStats", "https://cran.r-project.org/package=matrixStats"],
-        ["vsn", "https://bioconductor.org/packages/vsn/"],
-        ["limma", "https://bioconductor.org/packages/limma/"],
-        ["ComplexHeatmap", "https://bioconductor.org/packages/ComplexHeatmap/"],
-        ["circlize", "https://cran.r-project.org/package=circlize"],
-        ["RColorBrewer", "https://cran.r-project.org/package=RColorBrewer"],
-        ["ggrepel", "https://cran.r-project.org/package=ggrepel"],
-        ["scales", "https://scales.r-lib.org/"],
-        ["vegan", "https://cran.r-project.org/package=vegan"],
-        ["cluster", "https://cran.r-project.org/package=cluster"],
-        ["httr", "https://httr.r-lib.org/"],
-        ["data.table", "https://r-datatable.com/"],
-        ["MSnbase", "https://bioconductor.org/packages/MSnbase/"],
-        ["fdrtool", "https://cran.r-project.org/package=fdrtool"],
-        ["ggVennDiagram", "https://cran.r-project.org/package=ggVennDiagram"],
-        ["UpSetR", "https://cran.r-project.org/package=UpSetR"],
-        ["ensembldb", "https://bioconductor.org/packages/ensembldb/"],
-        ["EnsDb.Hsapiens.v86", "https://bioconductor.org/packages/EnsDb.Hsapiens.v86/"],
     ]
 }
 
 # Skip these when processing (infra, not assay-specific)
 SKIP_SOFTWARE = {"file", "wget", "python", "nextflow"}
+
+# FragPipe-internal (bundled): exclude from software table
+SKIP_FRAGPIPE_INTERNAL = {"batmass", "msfragger", "msbooster", "diann", "percolator", "ionquant"}
 
 
 class NumericAsStringSafeLoader(yaml.SafeLoader):
@@ -163,7 +135,14 @@ def main(
 
     config_order = [name for name, _ in CONFIG[assay]]
     known_software = [x for x in config_order if x in processed_versions]
-    unknown_software = sorted([x for x in processed_versions if x not in config_order])
+    unknown_software = sorted(
+        [
+            x
+            for x in processed_versions
+            if x not in config_order
+            and re.sub(r"[^a-zA-Z0-9]", "", x.lower()) not in SKIP_FRAGPIPE_INTERNAL
+        ]
+    )
     ordered_programs = known_software + unknown_software
 
     # Build markdown table (no tabulate dependency)

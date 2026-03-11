@@ -1,0 +1,19 @@
+Sample Name,Source Name,organism,plex,channel,Bioreplicate,Factor Value[Sex],Factor Value[Spaceflight],Factor Value[Altered Gravity]
+SFug_M1,Spaceflight microgravity Male 1,Drosophila melanogaster,TMTa,127N,1,male,Space Flight,uG
+SFug_M2,Spaceflight microgravity Male 2,Drosophila melanogaster,TMTb,127N,2,male,Space Flight,uG
+SFug_M3,Spaceflight microgravity Male 3,Drosophila melanogaster,TMTc,127N,3,male,Space Flight,uG
+SFug_F1,Spaceflight microgravity Female 1,Drosophila melanogaster,TMTa,126,1,female,Space Flight,uG
+SFug_F2,Spaceflight microgravity Female 2,Drosophila melanogaster,TMTb,126,2,female,Space Flight,uG
+SFug_F3,Spaceflight microgravity Female 3,Drosophila melanogaster,TMTc,126,3,female,Space Flight,uG
+SF1g_M1,Spaceflight 1g Male 1,Drosophila melanogaster,TMTa,128N,1,male,Space Flight,1G in centrifuge
+SF1g_M2,Spaceflight 1g Male 2,Drosophila melanogaster,TMTb,128N,2,male,Space Flight,1G in centrifuge
+SF1g_M3,Spaceflight 1g Male 3,Drosophila melanogaster,TMTc,128N,3,male,Space Flight,1G in centrifuge
+SF1g_F1,Spaceflight 1g Female 1,Drosophila melanogaster,TMTa,127C,1,female,Space Flight,1G in centrifuge
+SF1g_F2,Spaceflight 1g Female 2,Drosophila melanogaster,TMTb,127C,2,female,Space Flight,1G in centrifuge
+SF1g_F3,Spaceflight 1g Female 3,Drosophila melanogaster,TMTc,127C,3,female,Space Flight,1G in centrifuge
+Earth_M1,Earth Male 1,Drosophila melanogaster,TMTa,129N,1,male,Ground Control,1G
+Earth_M2,Earth Male 2,Drosophila melanogaster,TMTb,129N,2,male,Ground Control,1G
+Earth_M3,Earth Male 3,Drosophila melanogaster,TMTc,129N,3,male,Ground Control,1G
+Earth_F1,Earth Female 1,Drosophila melanogaster,TMTa,128C,1,female,Ground Control,1G
+Earth_F2,Earth Female 2,Drosophila melanogaster,TMTb,128C,2,female,Ground Control,1G
+Earth_F3,Earth Female 3,Drosophila melanogaster,TMTc,128C,3,female,Ground Control,1G

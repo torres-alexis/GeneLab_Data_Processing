@@ -8,27 +8,26 @@ process MSSTATS {
         pattern: "msstats_comparison_*.csv"
     publishDir "${output_dir}/MSstats/",
         mode: params.publish_dir_mode,
-        pattern: "msstats_comparison_all.csv"
+        pattern: "msstats_comparison_all*.csv"
     publishDir "${output_dir}/MSstats/",
         mode: params.publish_dir_mode,
-        pattern: "msstats_contrasts.csv"
+        pattern: "msstats_contrasts*.csv"
 
     input:
     val(output_dir)
-    path(runsheet)
-    path(fragpipe_manifest)
+    path(experiment_annotation)
     path(msstats_csv)
 
     output:
     path("versions.yml"), emit: versions
     path("msstats_input.csv"), emit: msstats_processed
     path("msstats_comparison_*.csv"), emit: comparison, optional: true
-    path("msstats_comparison_all.csv"), emit: comparison_all, optional: true
-    path("msstats_contrasts.csv"), emit: contrasts, optional: true
+    path("msstats_comparison_all*.csv"), emit: comparison_all, optional: true
+    path("msstats_contrasts*.csv"), emit: contrasts, optional: true
 
     script:
     """
-    msstats_analysis.R . ${params.assay_suffix ?: ''} ${runsheet} ${fragpipe_manifest} ${msstats_csv}
+    msstats_analysis.R . ${experiment_annotation} ${msstats_csv} ${params.assay_suffix}
     
     # Version info (back in work directory)
     echo '"${task.process}":' > versions.yml

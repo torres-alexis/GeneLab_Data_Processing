@@ -771,27 +771,28 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 ## 5. MSstats Differential Abundance Analysis
 
 ```bash
-msstats_analysis.R . assay_suffix runsheet.tsv msstats.csv
+msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
 ```
 
 **Parameter Definitions:**
 
 - `msstats_analysis.R` – R script for MSstats differential abundance analysis
 - `.` – root directory for output
-- `assay_suffix` – assay suffix to remove from Run column (optional)
-- `runsheet.tsv` – runsheet file with sample metadata and factor values
+- `experiment_annotation.tsv` – experiment annotation (sample metadata, condition assignments)
 - `msstats.csv` – MSstats input file from IonQuant
+- `_GLProteomics` – assay suffix: stripped from Run column for matching; appended to output filenames. 
 
 **Input Data:**
 
 - msstats.csv (MSstats input file, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- runsheet.tsv (runsheet file with sample metadata and factor values)
+- experiment_annotation.tsv (sample metadata and condition assignments)
 
 **Output Data:**
 
-- **msstats_comparison_*.csv** (pairwise differential abundance comparison results)
-- **msstats_comparison_all.csv** (all pairwise comparisons combined)
-- **msstats_contrasts.csv** (contrast definitions)
+
+- **msstats_comparison_all_GLProteomics.csv** (all pairwise comparisons combined)
+- **msstats_comparison_*_GLProteomics.csv** (pairwise differential abundance comparison results)
+- **msstats_contrasts_GLProteomics.csv** (contrast definitions)
 
 <br>
 
@@ -824,8 +825,6 @@ Rscript fp_analyst_main.R \
   --imputation_type "Perseus-type" \
   --imputation_shift 1.8 \
   --imputation_scale 0.3 \
-  --min_global_appearance 0 \
-  --min_appearance_one_condition 0 \
   --qc_plot_data "nonimputed" \
   --sample_cvs_full_range "false" \
   --volcano_display_names "true" \
@@ -854,8 +853,6 @@ Rscript fp_analyst_main.R \
   --imputation_type "Perseus-type" \
   --imputation_shift 1.8 \
   --imputation_scale 0.3 \
-  --min_global_appearance 0 \
-  --min_appearance_one_condition 0 \
   --qc_plot_data "nonimputed" \
   --sample_cvs_full_range "false" \
   --volcano_display_names "true" \
@@ -872,8 +869,6 @@ Rscript fp_analyst_main.R \
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
 - `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`).
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
-- `--min_global_appearance` – at least X% present across all samples (0–100). 0 = no filter (default: 0)
-- `--min_appearance_one_condition` – at least X% present in at least one condition (0–100). 0 = no filter (default: 0)
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
 - `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` (default: `Benjamini Hochberg`)

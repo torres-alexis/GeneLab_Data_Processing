@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
-Setup FragPipe workflow config file (.workflow):
-- Add/update database.db-path with proteome path
-- Apply assay suffix to output filename
-- Convert to JSON format
+Setup FragPipe workflow config file (.workflow).
+
+Summary:
+  - Add/update database.db-path with proteome fasta file path basename
+  - Apply assay suffix to output filename
+  - Convert to JSON format
 """
 
 import argparse
