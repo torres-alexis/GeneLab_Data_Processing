@@ -26,23 +26,24 @@ X (X)
   - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
     - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
     - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
-  - [**3. FragPipe Processing Pipeline**](#3-fragpipe-processing-pipeline)
-    - [3a. Launch FragPipe](#3a-launch-fragpipe)
-    - [3b. Check Spectral Files Centroid Status](#3b-check-spectral-files-centroid-status)
-    - [3c. Initialize Workspace](#3c-initialize-workspace)
-    - [3d. MSFragger Database Search](#3d-msfragger-database-search)
-    - [3e. MSBooster Deep Learning Feature Addition](#3e-msbooster-deep-learning-feature-addition)
-    - [3f. Percolator PSM Rescoring and Statistical Validation](#3f-percolator-psm-rescoring-and-statistical-validation)
-      - [3f1. Perform Percolator PSM Rescoring and Statistical Validation](#3f1-perform-percolator-psm-rescoring-and-statistical-validation)
-      - [3f2. Add Percolator Validation Information to pepXML](#3f2-add-percolator-validation-information-to-pepxml)
-    - [3g. ProteinProphet Protein Inference and Statistical Validation](#3g-proteinprophet-protein-inference-and-statistical-validation)
-    - [3h. Database Annotation](#3h-database-annotation)
-    - [3i. Filter Results by FDR](#3i-filter-results-by-fdr)
-    - [3j. Generate Reports](#3j-generate-reports)
-    - [3k. IonQuant Label-Free Quantification](#3k-ionquant-label-free-quantification)
-  - [**4. Compile FragPipe QC Reports**](#4-compile-fragpipe-qc-reports)
-  - [**5. MSstats Differential Abundance Analysis**](#5-msstats-differential-abundance-analysis)
-  - [**6. FragPipe-Analyst Downstream Analysis**](#6-fragpipe-analyst-downstream-analysis)
+  - [**3. Prepare Metadata Files**](#3-prepare-metadata-files)
+  - [**4. FragPipe Processing Pipeline**](#4-fragpipe-processing-pipeline)
+    - [4a. Launch FragPipe](#4a-launch-fragpipe)
+    - [4b. Check Spectral Files Centroid Status](#4b-check-spectral-files-centroid-status)
+    - [4c. Initialize Workspace](#4c-initialize-workspace)
+    - [4d. MSFragger Database Search](#4d-msfragger-database-search)
+    - [4e. MSBooster Deep Learning Feature Addition](#4e-msbooster-deep-learning-feature-addition)
+    - [4f. Percolator PSM Rescoring and Statistical Validation](#4f-percolator-psm-rescoring-and-statistical-validation)
+      - [4f1. Perform Percolator PSM Rescoring and Statistical Validation](#4f1-perform-percolator-psm-rescoring-and-statistical-validation)
+      - [4f2. Add Percolator Validation Information to pepXML](#4f2-add-percolator-validation-information-to-pepxml)
+    - [4g. ProteinProphet Protein Inference and Statistical Validation](#4g-proteinprophet-protein-inference-and-statistical-validation)
+    - [4h. Database Annotation](#4h-database-annotation)
+    - [4i. Filter Results by FDR](#4i-filter-results-by-fdr)
+    - [4j. Generate Reports](#4j-generate-reports)
+    - [4k. IonQuant Label-Free Quantification](#4k-ionquant-label-free-quantification)
+  - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
+  - [**6. MSstats Differential Abundance Analysis**](#6-msstats-differential-abundance-analysis)
+  - [**7. FragPipe-Analyst Downstream Analysis**](#7-fragpipe-analyst-downstream-analysis)
 
 ---
 
@@ -159,9 +160,35 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 ---
 
-## 3. FragPipe Processing Pipeline
+## 3. Prepare Metadata Files
 
-### 3a. Launch FragPipe
+```bash
+runsheet_to_fp_metadata.py \
+  --runsheet runsheet.csv \
+  --output manifest.tsv
+```
+
+**Parameter Definitions:**
+
+- `--runsheet` – path to runsheet CSV (one row per mzML file; see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md))
+- `--output` – output path for manifest TSV (default: manifest.tsv)
+
+**Input Data:**
+
+- runsheet.csv (table containing metadata required for processing)
+
+**Output Data:**
+
+- **manifest.tsv** (FragPipe manifest: Path | Experiment | Bioreplicate | Data type; no header)
+- **experiment_annotation.tsv** (sample metadata and condition assignments for FragPipe-Analyst)
+
+<br>
+
+---
+
+## 4. FragPipe Processing Pipeline
+
+### 4a. Launch FragPipe
 
 ```bash
 fragpipe \
@@ -187,7 +214,7 @@ fragpipe \
 **Input Data:**
 
 - LFQ-MBR.workflow (FragPipe LFQ-MBR workflow configuration file)
-- manifest.tsv (manifest file with sample information and file paths)
+- manifest.tsv (manifest file with sample information and file paths, output from [Step 3](#3-prepare-metadata-files))
 - tools_folder/ (directory containing FragPipe tools not included in the Docker image)
 - *.mzML (input mass spectrometry raw data in mzML format)
 - \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
@@ -210,10 +237,10 @@ fragpipe \
 
 <br>
 
-### 3b. Check Spectral Files Centroid Status
+### 4b. Check Spectral Files Centroid Status
 
 ```bash
-java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar:/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
+java -Xmx55G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
 ```
 <!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
@@ -235,11 +262,11 @@ java -Xmx55G -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/fragpipe-23.1.jar
 
 <br>
 
-### 3c. Initialize Workspace
+### 4c. Initialize Workspace
 
 ```bash
-philosopher-v5.1.2 workspace --clean --nocheck
-philosopher-v5.1.2 workspace --init --nocheck --temp /tmp/temp_directory
+philosopher-v5.1.3-RC9 workspace --clean --nocheck
+philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
 ```
 <!-- ```bash
 philosopher workspace --clean --nocheck
@@ -260,10 +287,10 @@ philosopher workspace --init --nocheck --temp /tmp/temp_directory
 
 <br>
 
-### 3d. MSFragger Database Search
+### 4d. MSFragger Database Search
 
 ```bash
-java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1.mzML sample2.mzML
+java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.4.1.jar fragger.params sample1.mzML sample2.mzML
 ```
 <!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
@@ -272,13 +299,13 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 - `-jar` – executes JAR file
 - `-Dfile.encoding=UTF-8` – sets file encoding to UTF-8
 - `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
-- `MSFragger-4.3.jar` – MSFragger JAR file
+- `MSFragger-4.4.1.jar` – MSFragger JAR file
 - `fragger.params` – MSFragger parameter configuration file
 - `*.mzML` – multiple mzML files provided as individual paths separated by spaces
 
 **Input Data:**
 
-- fragger.params (MSFragger parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
+- fragger.params (MSFragger parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - *.mzML (input mass spectrometry raw data in mzML format)
 - \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
@@ -295,10 +322,10 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.3.jar fragger.params sample1
 
 <br>
 
-### 3e. MSBooster Deep Learning Feature Addition
+### 4e. MSBooster Deep Learning Feature Addition
 
 ```bash
-java -Djava.awt.headless=true -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
+java -Djava.awt.headless=true -Xmx55G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/MSBooster-1.4.14.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar mainsteps.MainClass --paramsList msbooster_params.txt
 ```
 <!-- CLI mode (backup):
 ```bash
@@ -315,8 +342,8 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 **Input Data:**
 
-- msbooster_params.txt (MSBooster parameter configuration file, output from [Step 3a](#3a-launch-fragpipe))
-- *.pin (Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
+- msbooster_params.txt (MSBooster parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
+- *.pin (Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
 - *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
@@ -331,14 +358,14 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 
 <br>
 
-### 3f. Percolator PSM Rescoring and Statistical Validation
+### 4f. Percolator PSM Rescoring and Statistical Validation
 
 <br>
 
-#### 3f1. Perform Percolator PSM Rescoring and Statistical Validation
+#### 4f1. Perform Percolator PSM Rescoring and Statistical Validation
 
 ```bash
-/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/percolator_3_7_1/linux/percolator \
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/percolator_3_7_1/linux/percolator \
   --only-psms \
   --no-terminate \
   --post-processing-tdc \
@@ -374,7 +401,7 @@ percolator \
 
 **Input Data:**
 
-- *_edited.pin (Percolator input files with MSBooster features, output from [Step 3e](#3e-msbooster-deep-learning-feature-addition))
+- *_edited.pin (Percolator input files with MSBooster features, output from [Step 4e](#4e-msbooster-deep-learning-feature-addition))
 
 **Output Data:**
 
@@ -385,10 +412,10 @@ percolator \
 
 <br>
 
-#### 3f2. Add Percolator Validation Information to pepXML
+#### 4f2. Add Percolator Validation Information to pepXML
 
 ```bash
-java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
+java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
   org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML \
   *.pin \
   * \
@@ -416,9 +443,9 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 
 **Input Data:**
 
-- *.pin (original Percolator input files from MSFragger, output from [Step 3d](#3d-msfragger-database-search))
-- *_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 3f1](#3f1-perform-percolator-psm-rescoring-and-statistical-validation))
-- *_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 3f1](#3f1-perform-percolator-psm-rescoring-and-statistical-validation))
+- *.pin (original Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
+- *_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
+- *_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
 - *.mzML (original mass spectrometry raw data in mzML format)
 
 **Output Data:**
@@ -429,10 +456,10 @@ java -cp /fragpipe_bin/fragpipe-23.1/fragpipe-23.1/lib/* \
 
 <br>
 
-### 3g. ProteinProphet Protein Inference and Statistical Validation
+### 4g. ProteinProphet Protein Inference and Statistical Validation
 
 ```bash
-philosopher-v5.1.2 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
 ```
 <!-- CLI mode (backup):
 ```bash
@@ -448,8 +475,8 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 
 **Input Data:**
 
-- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 3a](#3a-launch-fragpipe))
-- interact-*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 3f2](#3f2-add-percolator-validation-information-to-pepxml))
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 4a](#4a-launch-fragpipe))
+- interact-*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 4f2](#4f2-add-percolator-validation-information-to-pepxml))
 
 **Output Data:**
 
@@ -459,10 +486,10 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 
 <br>
 
-### 3h. Database Annotation
+### 4h. Database Annotation
 
 ```bash
-philosopher-v5.1.2 database --annotate *.fas --prefix rev_
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 database --annotate *.fas --prefix rev_
 ```
 <!-- CLI mode (backup):
 ```bash
@@ -485,11 +512,11 @@ philosopher database --annotate *.fas --prefix rev_
 
 <br>
 
-### 3i. Filter Results by FDR
+### 4i. Filter Results by FDR
 
 ```bash
 # First sample (initializes database annotation)
-philosopher-v5.1.2 filter \
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 filter \
   --sequential \
   --prot 0.01 \
   --picked \
@@ -499,7 +526,7 @@ philosopher-v5.1.2 filter \
   --razor
 
 # Subsequent samples (reuse database annotation from first sample)
-philosopher-v5.1.2 filter \
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 filter \
   --sequential \
   --prot 0.01 \
   --picked \
@@ -550,9 +577,9 @@ philosopher filter \
 
 **Input Data:**
 
-- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator, output from [Step 3f2](#3f2-add-percolator-validation-information-to-pepxml))
-- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 3g](#3g-proteinprophet-protein-inference-and-statistical-validation))
-- .meta/ (Philosopher workspace metadata, output from [Step 3h](#3h-database-annotation))
+- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator, output from [Step 4f2](#4f2-add-percolator-validation-information-to-pepxml))
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 4g](#4g-proteinprophet-protein-inference-and-statistical-validation))
+- .meta/ (Philosopher workspace metadata, output from [Step 4h](#4h-database-annotation))
 
 **Output Data:**
 
@@ -561,10 +588,10 @@ philosopher filter \
 
 <br>
 
-### 3j. Generate Reports
+### 4j. Generate Reports
 
 ```bash
-philosopher-v5.1.2 report
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 report
 ```
 <!-- CLI mode (backup):
 ```bash
@@ -573,7 +600,7 @@ philosopher report
 
 **Input Data:**
 
-- Philosopher workspace containing filtered data (output from [Step 3i](#3i-filter-results-by-fdr))
+- Philosopher workspace containing filtered data (output from [Step 4i](#4i-filter-results-by-fdr))
 
 **Output Data:**
 
@@ -585,13 +612,13 @@ philosopher report
 
 <br>
 
-### 3k. IonQuant Label-Free Quantification
+### 4k. IonQuant Label-Free Quantification
 
 ```bash
 java -Djava.awt.headless=true -Xmx55G \
   -Dlibs.bruker.dir=tools/ext/bruker \
   -Dlibs.thermo.dir=tools/ext/thermo \
-  -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
+  -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar \
   ionquant.IonQuant \
   --threads 31 \
   --perform-ms1quant 1 \
@@ -697,12 +724,12 @@ java -Xmx55G \
 
 **Input Data:**
 
-- filelist_ionquant.txt (file list for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- modmasses_ionquant.txt (modification masses file for IonQuant, output from [Step 3a](#3a-launch-fragpipe))
-- protein.tsv (sample-specific protein report, output from [Step 3j](#3j-generate-reports))
-- peptide.tsv (sample-specific peptide report, output from [Step 3j](#3j-generate-reports))
-- psm.tsv (sample-specific PSM report, output from [Step 3j](#3j-generate-reports))
-- ion.tsv (sample-specific ion report, output from [Step 3j](#3j-generate-reports))
+- filelist_ionquant.txt (file list for IonQuant, output from [Step 4a](#4a-launch-fragpipe))
+- modmasses_ionquant.txt (modification masses file for IonQuant, output from [Step 4a](#4a-launch-fragpipe))
+- protein.tsv (sample-specific protein report, output from [Step 4j](#4j-generate-reports))
+- peptide.tsv (sample-specific peptide report, output from [Step 4j](#4j-generate-reports))
+- psm.tsv (sample-specific PSM report, output from [Step 4j](#4j-generate-reports))
+- ion.tsv (sample-specific ion report, output from [Step 4j](#4j-generate-reports))
 - *.mzML (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in filelist_ionquant.txt to extract intensity data for MS1 quantification and match-between-runs feature matching)
 
 **Output Data:**
@@ -728,7 +755,7 @@ java -Xmx55G \
 
 ---
 
-## 4. Compile FragPipe QC Reports
+## 5. Compile FragPipe QC Reports
 
 ```bash
 multiqc --fragpipe-plugin \
@@ -751,13 +778,13 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 **Input Data:**
 
-- psm.tsv (sample-specific PSM reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- ion.tsv (sample-specific ion reports, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_ion.tsv (combined ion report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- *.workflow (FragPipe workflow file, output from [Step 3a](#3a-launch-fragpipe))
-- fragger.params (MSFragger parameters file, output from [Step 3a](#3a-launch-fragpipe))
+- psm.tsv (sample-specific PSM reports, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- ion.tsv (sample-specific ion reports, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_ion.tsv (combined ion report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- *.workflow (FragPipe workflow file, output from [Step 4a](#4a-launch-fragpipe))
+- fragger.params (MSFragger parameters file, output from [Step 4a](#4a-launch-fragpipe))
 
 **Output Data:**
 
@@ -768,7 +795,7 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 ---
 
-## 5. MSstats Differential Abundance Analysis
+## 6. MSstats Differential Abundance Analysis
 
 ```bash
 msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
@@ -784,7 +811,7 @@ msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
 
 **Input Data:**
 
-- msstats.csv (MSstats input file, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- msstats.csv (MSstats input file, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - experiment_annotation.tsv (sample metadata and condition assignments)
 
 **Output Data:**
@@ -798,7 +825,7 @@ msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
 
 ---
 
-## 6. FragPipe-Analyst Downstream Analysis
+## 7. FragPipe-Analyst Downstream Analysis
 
 FragPipe-Analyst is ran twice: once at **protein** level (`combined_protein.tsv`) and once at **peptide** level (`combined_peptide.tsv`).
 
@@ -864,7 +891,7 @@ Rscript fp_analyst_main.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
-- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
 - `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`).
@@ -894,9 +921,9 @@ Rscript fp_analyst_main.R \
 
 **Input Data:**
 
-- experiment_annotation.tsv (experiment annotation file, output from [Step 3a](#3a-launch-fragpipe))
-- combined_protein.tsv (combined protein report, output from [Step 3k](#3k-ionquant-label-free-quantification))
-- combined_peptide.tsv (combined peptide report, output from [Step 3k](#3k-ionquant-label-free-quantification))
+- experiment_annotation.tsv (experiment annotation file, output from [Step 3](#3-prepare-metadata-files))
+- combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - gene_annotations.tsv (gene annotations table file; merges into DE_results on Gene )
 
 **Output Data:**
@@ -923,20 +950,12 @@ Rscript fp_analyst_main.R \
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
 - **SampleTable.csv** (table specifying the group or set of factor levels for each sample)
 - **contrasts.csv** (table listing all pairwise group comparisons )
-- **DE_results.csv** (differential expression results table containing the following columns):
-    - Shared (all LFQ levels):
-      - Sample.Intensity (per-sample precursor intensity)
-      - Sample.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity)
-      - Sample.Spectral.Count (per-sample PSM count)
-      - name (display name for plots)
-      - ID (unique row identifier)
-      - imputed (whether row had imputed values)
-      - num_NAs (count of missing values before imputation)
+- **DE_results.csv** (differential expression results table; columns in file order):
+    - Organism-specific gene annotations
     - Protein level:
-      - Protein (protein sequence header from the search database FASTA; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
+      - Protein (protein sequence header from search database FASTA; razor protein when peptide maps to multiple)
       - Protein.ID (UniProt primary accession; second pipe-delimited field of Protein)
       - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
-      - Gene (gene name; from razor protein when peptide maps to multiple)
       - Protein.Length (number of amino acids in protein)
       - Organism (species)
       - Protein.Existence (UniProt evidence type)
@@ -947,11 +966,14 @@ Rscript fp_analyst_main.R \
       - Combined.Spectral.Count (PSMs for razor peptides)
       - Combined.Unique.Spectral.Count (PSMs for unique peptides)
       - Combined.Total.Spectral.Count (PSMs for total peptides)
-      - Indistinguishable.Proteins (proteins not distinguishable from selected given evidence)
-      - Sample.Unique.Spectral.Count (per-sample PSMs for unique peptides only; protein level)
-      - Sample.Total.Spectral.Count (per-sample PSMs for all peptides including razor; protein level)
+      - *.Spectral.Count (per-sample PSM count)
+      - *.Unique.Spectral.Count (per-sample PSMs for unique peptides only)
+      - *.Total.Spectral.Count (per-sample PSMs for unique and razor peptides)
+      - *.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity)
+      - Indistinguishable.Proteins (proteins not distinguishable given evidence)
+      - name (Gene)
+      - ID (Protein ID)
     - Peptide level:
-      - Index (Protein ID + Peptide Sequence, unique peptide identifier)
       - Peptide.Sequence (stripped sequence, no modifications)
       - Prev.AA (residue preceding peptide in protein)
       - Next.AA (residue following peptide in protein)
@@ -959,13 +981,19 @@ Rscript fp_analyst_main.R \
       - End (position of peptide end in protein)
       - Peptide.Length (number of residues)
       - Charges (observed charge states)
-      - Protein (protein sequence header from the search database FASTA; when a peptide maps to multiple proteins, Philosopher reports the razor protein's header)
+      - Protein (protein sequence header from search database FASTA; razor protein when peptide maps to multiple)
       - Protein.ID (UniProt primary accession; second pipe-delimited field of Protein)
       - Entry.Name (UniProt entry name; third pipe-delimited field of Protein)
-      - Gene (gene name; from razor protein when peptide maps to multiple)
-      - Description (protein name)
+      - Description (protein name of parent protein)
       - Mapped.Genes (additional genes peptide may originate from)
       - Mapped.Proteins (additional proteins peptide maps to)
+      - *.Spectral.Count (per-sample PSM count)
+      - *.MaxLFQ.Intensity (per-sample MaxLFQ-normalized intensity)
+      - *.Match.Type (per-sample; direct = observed in run, transferred = matched between runs)
+      - Index (Protein ID + Peptide Sequence, unique peptide identifier)
+      - name (Protein ID)
+      - ID (Index, Protein ID + Peptide Sequence)
+    - * (sample ID; assay columns; log2 precursor intensity when lfq_type=Intensity)
     - For each pairwise group comparison (B)v(A):
       - CI.L_(B)v(A) (lower bound of log2 fold-change confidence interval)
       - CI.R_(B)v(A) (upper bound of log2 fold-change confidence interval)
