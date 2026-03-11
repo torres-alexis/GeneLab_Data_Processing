@@ -226,7 +226,7 @@ fragpipe \
 - filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
 - filelist_ionquant.txt (file list for IonQuant)
 - modmasses_ionquant.txt (modification masses file for IonQuant)
-- **experiment_annotation.tsv** (experiment annotation file)
+- experiment_annotation.tsv (experiment annotation file)
 - fragpipe.workflow (updated FragPipe workflow configuration file)
 - fragpipe-files.fp-manifest (FragPipe files manifest)
 - fragpipe.job (FragPipe job configuration file)
@@ -993,7 +993,7 @@ Rscript fp_analyst_main.R \
       - Index (Protein ID + Peptide Sequence, unique peptide identifier)
       - name (Protein ID)
       - ID (Index, Protein ID + Peptide Sequence)
-    - * (sample ID; assay columns; log2 precursor intensity when lfq_type=Intensity)
+    - \* (sample ID; assay columns; log2 precursor intensity when lfq_type=Intensity)
     - For each pairwise group comparison (B)v(A):
       - CI.L_(B)v(A) (lower bound of log2 fold-change confidence interval)
       - CI.R_(B)v(A) (upper bound of log2 fold-change confidence interval)
