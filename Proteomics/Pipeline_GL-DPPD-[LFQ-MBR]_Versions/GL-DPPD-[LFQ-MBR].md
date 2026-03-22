@@ -43,7 +43,7 @@ X (X)
     - [4k. IonQuant Label-Free Quantification](#4k-ionquant-label-free-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
   - [**6. MSstats Differential Abundance Analysis**](#6-msstats-differential-abundance-analysis)
-  - [**7. FragPipe-Analyst Downstream Analysis**](#7-fragpipe-analyst-downstream-analysis)
+  - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
 
 ---
 
@@ -180,7 +180,7 @@ runsheet_to_fp_metadata.py \
 **Output Data:**
 
 - **manifest.tsv** (FragPipe manifest: Path | Experiment | Bioreplicate | Data type; no header)
-- **experiment_annotation.tsv** (sample metadata and condition assignments for FragPipe-Analyst)
+- **experiment_annotation.tsv** (sample metadata and condition assignments for FragPipeAnalystR)
 
 <br>
 
@@ -825,9 +825,9 @@ msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
 
 ---
 
-## 7. FragPipe-Analyst Downstream Analysis
+## 7. FragPipeAnalystR Downstream Analysis
 
-FragPipe-Analyst is ran twice: once at **protein** level (`combined_protein.tsv`) and once at **peptide** level (`combined_peptide.tsv`).
+The FragPipeAnalystR downstream analysis script is executed twice: once using the **protein**-level quantification file (`combined_protein.tsv`) and once using the **peptide**-level quantification file (`combined_peptide.tsv`).
 
 **Protein run:**
 
@@ -928,9 +928,9 @@ Rscript fp_analyst_main.R \
 
 **Output Data:**
 
-- fp_analyst_parameters.txt (run parameters)
-- raw_matrix.csv (from combined_protein/peptide: contaminants removed; selected lfq_type quant columns removed and re-appended at end as log2 (Intensity/MaxLFQ) or raw (Spectral Count). NAs where feature not detected.)
-- imputed_matrix.csv (same as raw_matrix; NAs filled via Perseus-type imputation.)
+- **fp_analyst_parameters.txt** (run parameters)
+- **nonimputed_matrix.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns (default: `Intensity`) reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
+- **imputed_matrix.csv** (same structure as nonimputed_matrix; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
 - **QC_plots.zip** (QC plots folder)
   - pca.pdf, .png (PCA plot)
   - missing_value_heatmap.pdf, .png (missing value pattern heatmap)

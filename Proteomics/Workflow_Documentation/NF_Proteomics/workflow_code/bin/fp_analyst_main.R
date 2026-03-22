@@ -583,7 +583,7 @@ cat("DE_results.csv saved\n")
   cat(stage, "table saved:", fname, "\n")
 }
 sfx <- assay_suffix
-.write_table_stage(data_se, paste0("raw_matrix", sfx, ".csv"), "Raw")
+.write_table_stage(data_se, paste0("nonimputed_matrix", sfx, ".csv"), "Nonimputed")
 if (imp_type != "none") .write_table_stage(imputed_se, paste0("imputed_matrix", sfx, ".csv"), "Imputed")
 
 # --- Contrasts table (row1=numerator, row2=denominator) ---
