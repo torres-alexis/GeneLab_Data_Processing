@@ -205,7 +205,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
    --uniprot_id UP001231189
 ```
 
-> Note: Use `--fragpipe_workflow_config` to override the default FragPipe workflow with a custom `.workflow` file. For example, `LFQ-MBR_edited.workflow` may have `msfragger.fragment_mass_tolerance=300` set (from the default value of 20) for high-resolution instruments.
+> Note: Use `--fragpipe_workflow_config` to override the default FragPipe workflow with a custom `.workflow` file. For example, `LFQ-MBR_edited.workflow` may have `msfragger.fragment_mass_tolerance=300` set (from the default value of 20).
 
 <br>
 
@@ -238,7 +238,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--accession` - The OSD or GLDS ID for the dataset to be processed, eg. `GLDS-194` or `OSD-194`
 
-* `--uniprot_id` - UniProt proteome ID(s) (e.g., `UP001231189`, ). The workflow will download the proteome FASTA from UniProt.
+* `--uniprot_id` - UniProt proteome ID(s) (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
 
 <br>
 
@@ -398,5 +398,5 @@ A
 **Maintained by:**  
 B
 
-**Contributors:**
+**Contributors:**  
 C

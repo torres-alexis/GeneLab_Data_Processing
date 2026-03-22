@@ -10,10 +10,10 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 
 ## Examples
 
-1. [Runsheet for OSD-581](LFQ-MBR_runsheet/OSD-209_proteomics_v1_runsheet.csv)
+1. [Runsheet for OSD-581](OSD-209_proteomics_v1_runsheet.csv)
 2. **TMT**:
-   - [Sample sheet for TMT10 experiment OSD-514](TMT10_runsheet/OSD-514_proteomics_v1_sample_sheet.csv)
-   - [Data sheet for TMT10 experiment OSD-514](TMT10_runsheet/OSD-514_proteomics_v1_data_sheet.csv)
+   - [Sample sheet for TMT10 experiment OSD-514](OSD-514_proteomics_v1_sample_sheet.csv)
+   - [Data sheet for TMT10 experiment OSD-514](OSD-514_proteomics_v1_data_sheet.csv)
 
 ## Runsheet
 
