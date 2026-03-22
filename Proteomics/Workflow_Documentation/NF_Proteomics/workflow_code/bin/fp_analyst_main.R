@@ -559,8 +559,17 @@ for (cn in comp_names) {
 fixed_order <- c("significant", "All.mean", "All.stdev")
 group_mean_cols <- grep("^Group\\.Mean_", colnames(de_df), value = TRUE)
 group_stdev_cols <- grep("^Group\\.Stdev_", colnames(de_df), value = TRUE)
+# Interleave by condition order: group1 mean, group1 stdev, group2 mean, group2 stdev, ...
+group_pairs <- character()
+for (c in conditions) {
+  lbl <- if (!is.null(cond_to_label_de) && c %in% names(cond_to_label_de)) cond_to_label_de[c] else c
+  mean_col <- paste0("Group.Mean_(", lbl, ")")
+  stdev_col <- paste0("Group.Stdev_(", lbl, ")")
+  if (mean_col %in% colnames(de_df)) group_pairs <- c(group_pairs, mean_col)
+  if (stdev_col %in% colnames(de_df)) group_pairs <- c(group_pairs, stdev_col)
+}
 other_cols <- setdiff(colnames(de_df), c(contrast_cols, fixed_order, group_mean_cols, group_stdev_cols))
-de_df <- de_df[, c(other_cols, contrast_cols, fixed_order, group_mean_cols, group_stdev_cols)]
+de_df <- de_df[, c(other_cols, contrast_cols, fixed_order, group_pairs)]
 
 write.csv(de_df, file.path(de_dir, fn_("DE_results", "csv")), row.names = FALSE)
 cat("DE_results.csv saved\n")
