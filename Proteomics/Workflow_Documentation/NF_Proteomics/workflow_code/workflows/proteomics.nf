@@ -265,7 +265,6 @@ workflow PROTEOMICS {
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
                 ch_site.combine(RUNSHEET_TO_FP_METADATA.out.experiment_annotation).map { q, e -> tuple("site", q, e) })
         }
-        gene_annotations_url = gene_annotations_url.map { it ?: file("placeholder") }
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FP_ANALYST(output_dir, ch_fp_with_annot)
 

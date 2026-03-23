@@ -12,7 +12,7 @@ process FP_ANALYST {
 
     input:
     val(output_dir)
-    tuple val(data_type), path(quantification_file), path(experiment_annotation), path(gene_annotations_url)
+    tuple val(data_type), path(quantification_file), path(experiment_annotation), val(gene_annotations_url)
     // data_type: level for R script (protein, gene, peptide, site). LFQ: protein. TMT: protein/gene/peptide/site.
     // Feature lists: protein/gene for protein level; peptide for peptide level; site for site level. Empty = use top_n_*.
 
@@ -52,7 +52,7 @@ process FP_ANALYST {
     def volcano_display_names = (params.fp_analyst_volcano_display_names == true || params.fp_analyst_volcano_display_names == 'true') ? 'true' : 'false'
     def volcano_show_gene = (params.fp_analyst_volcano_show_gene == true || params.fp_analyst_volcano_show_gene == 'true') ? 'true' : 'false'
     def assay_suffix = (params.assay_suffix != null && params.assay_suffix != '') ? params.assay_suffix.toString() : ''
-    def gene_annotations_arg = (gene_annotations_url?.toString()?.contains('placeholder') || !gene_annotations_url) ? '' : "--gene_annotations \"${gene_annotations_url}\""
+    def gene_annotations_arg = (gene_annotations_url == null || gene_annotations_url?.toString()?.trim() == '') ? '' : "--gene_annotations \"${gene_annotations_url}\""
     """
     # Create output directory
     mkdir -p output/

@@ -1,5 +1,4 @@
 process PMULTIQC {
-    tag("Dataset-wide")
     publishDir "${ publishdir }",
         pattern:  "*.{html,zip}" ,
         mode: params.publish_dir_mode

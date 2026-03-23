@@ -252,9 +252,19 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4c](#4c-run-the-lfq-mbr-workflow-on-a-custom-dataset):**
 
-* `--runsheet` - Path to a local runsheet file containing sample metadata and input file paths
+* `--runsheet` - Path to the runsheet file containing file paths and metadata
 
 * `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
+
+<br>
+
+**Additional Required Parameters For [4d](#4d-run-the-lfq-mbr-workflow-with-custom-fragpipe-workflow-config):**
+
+* `--runsheet` - Path to the runsheet file containing file paths and metadata
+
+* `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
+
+* `--fragpipe_workflow_config` - Path to a custom FragPipe `.workflow` file 
 
 <br>
 
@@ -366,7 +376,7 @@ Standard Nextflow resource usage logs are also produced as follows:
 
 # Licenses
 
-The software for the Proteomics pipeline and workflow is released under the [NASA Open Source Agreement (NOSA) Version 1.3](License/RNA_Sequencing_NOSA_License.pdf).
+The software for the Proteomics pipeline and workflow is released under the [NASA Open Source Agreement (NOSA) Version 1.3](License/Proteomics_NOSA_License.pdf).
 
 
 ### 3rd Party Software Licenses

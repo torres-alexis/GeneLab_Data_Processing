@@ -6,16 +6,17 @@ Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to FragPipe manifest.t
   --runsheet: LFQ input (one row per mzML). --data_sheet: TMT input. Mode: data_sheet→TMT, runsheet→LFQ.
   --sample_sheet: TMT only; required for experiment_annotation.
 
-Outputs: manifest.tsv (Path|Experiment|Bioreplicate|Data type, no header), experiment_annotation.tsv.
+Outputs (cwd): manifest[.suffix].tsv and experiment_annotation[.suffix].tsv — use --assay_suffix for stem (e.g. _GLProteomics → manifest_GLProteomics.tsv).
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
 TMT: Experiment=plex; Bioreplicate=TechRepMixture or "1"; plex column must match FragPipe folder (plex_Bioreplicate).
+  If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
 """
 
 import argparse
 import csv
-import os
 import re
 import sys
+from collections import Counter
 
 
 def _make_names_safe(s: str) -> str:
@@ -61,12 +62,7 @@ def main():
     parser.add_argument(
         "--assay_suffix",
         default="",
-        help="Suffix to append to sample names in output filenames (e.g., _GLProteomics)",
-    )
-    parser.add_argument(
-        "--output",
-        default="manifest.tsv",
-        help="Output manifest TSV file path",
+        help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
     )
     parser.add_argument(
         "--sample_sheet",
@@ -74,6 +70,11 @@ def main():
         help="TMT only: path to sample_sheet CSV (channel-centric). Required for TMT experiment_annotation.",
     )
     args = parser.parse_args()
+
+    suffix = (args.assay_suffix or "").strip()
+    manifest_stem = f"manifest{suffix}" if suffix else "manifest"
+    manifest_path = f"{manifest_stem}.tsv"
+    exp_anno_path = f"{manifest_stem.replace('manifest', 'experiment_annotation', 1)}.tsv"
 
     input_file = args.data_sheet or args.runsheet
     if not input_file:
@@ -130,7 +131,7 @@ def main():
             biorep = row.get("TechRepMixture", "").strip()
             sample_to_biorep[sample_name] = biorep if biorep else "1"
 
-    with open(args.output, "w", newline="\n") as f:
+    with open(manifest_path, "w", newline="\n") as f:
         writer = csv.writer(f, delimiter="\t")
 
         for row in rows:
@@ -148,12 +149,7 @@ def main():
             bioreplicate = sample_to_biorep.get(sample_name, "1")
             writer.writerow([input_file, experiment or "1", bioreplicate or "1", data_type])
 
-    print(f"Manifest written to {args.output}")
-
-    # Write experiment_annotation.tsv 
-    base = os.path.basename(args.output)
-    exp_base = base.replace("manifest", "experiment_annotation", 1) if "manifest" in base else "experiment_annotation" + os.path.splitext(base)[1]
-    exp_anno_path = os.path.join(os.path.dirname(args.output), exp_base)
+    print(f"Manifest written to {manifest_path}")
 
     if mode == "LFQ":
         exp_fieldnames = ["file", "sample", "sample_name", "condition_label", "condition", "replicate"]
@@ -206,6 +202,9 @@ def main():
                 folders_seen.add(folder)
                 folder_to_plex_base[folder] = plex
 
+        # One logical plex in multiple folders → duplicate sample strings across folders; prefix all channels with folder_ for that plex.
+        plex_needs_folder_prefix = {pb for pb, n in Counter(folder_to_plex_base.values()).items() if n > 1}
+
         plex_base_to_channels = {}
         for row in sample_rows:
             plex = row.get("plex", "").strip()
@@ -227,7 +226,11 @@ def main():
                 replicate = row.get("Bioreplicate", "").strip() or "1"
                 cond_label = _condition_label_from_factors(row, factor_cols)
                 cond_safe = _condition_from_factors(row, factor_cols) if cond_label else _sanitize_for_fragpipe(sample_name)
-                sample_fp = _sanitize_for_fragpipe(sample_name) or sample_name
+                sample_base = _sanitize_for_fragpipe(sample_name) or sample_name
+                if plex_base in plex_needs_folder_prefix:
+                    sample_fp = _sanitize_for_fragpipe(f"{folder}_{sample_name}") or f"{folder}_{sample_name}"
+                else:
+                    sample_fp = sample_base
                 exp_rows.append({
                     "plex": folder,
                     "channel": channel,

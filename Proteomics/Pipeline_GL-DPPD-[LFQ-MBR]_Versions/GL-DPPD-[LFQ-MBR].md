@@ -26,7 +26,7 @@ X (X)
   - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
     - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
     - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
-  - [**3. Prepare Metadata Files**](#3-prepare-metadata-files)
+  - [**3. Create Manifest and Experiment Annotation**](#3-create-manifest-and-experiment-annotation)
   - [**4. FragPipe Processing Pipeline**](#4-fragpipe-processing-pipeline)
     - [4a. Launch FragPipe](#4a-launch-fragpipe)
     - [4b. Check Spectral Files Centroid Status](#4b-check-spectral-files-centroid-status)
@@ -160,27 +160,27 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 ---
 
-## 3. Prepare Metadata Files
+## 3. Create Manifest and Experiment Annotation
 
 ```bash
 runsheet_to_fp_metadata.py \
   --runsheet runsheet.csv \
-  --output manifest.tsv
+  --assay_suffix _GLProteomics
 ```
 
 **Parameter Definitions:**
 
 - `--runsheet` – path to runsheet CSV (one row per mzML file; see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md))
-- `--output` – output path for manifest TSV (default: manifest.tsv)
+- `--assay_suffix` – assay suffix for output filenames; empty = no suffix
 
 **Input Data:**
 
-- runsheet.csv (table containing metadata required for processing)
+- runsheet.csv (table containing file paths and metadata required for processing)
 
 **Output Data:**
 
-- **manifest.tsv** (FragPipe manifest: Path | Experiment | Bioreplicate | Data type; no header)
-- **experiment_annotation.tsv** (sample metadata and condition assignments for FragPipeAnalystR)
+- **manifest_GLProteomics.tsv** (FragPipe manifest: Path | Experiment | Bioreplicate | Data type; no header)
+- **experiment_annotation_GLProteomics.tsv** (sample metadata and condition assignments for FragPipeAnalystR)
 
 <br>
 
@@ -194,7 +194,7 @@ runsheet_to_fp_metadata.py \
 fragpipe \
   --headless \
   --workflow LFQ-MBR.workflow \
-  --manifest manifest.tsv \
+  --manifest manifest_GLProteomics.tsv \
   --workdir . \
   --ram 64 \
   --threads 16 \
@@ -214,7 +214,7 @@ fragpipe \
 **Input Data:**
 
 - LFQ-MBR.workflow (FragPipe LFQ-MBR workflow configuration file)
-- manifest.tsv (manifest file with sample information and file paths, output from [Step 3](#3-prepare-metadata-files))
+- manifest_GLProteomics.tsv (manifest file with sample information and file paths, output from [Step 3](#3-create-manifest-and-experiment-annotation))
 - tools_folder/ (directory containing FragPipe tools not included in the Docker image)
 - *.mzML (input mass spectrometry raw data in mzML format)
 - \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
@@ -798,27 +798,26 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 ## 6. MSstats Differential Abundance Analysis
 
 ```bash
-msstats_analysis.R . experiment_annotation.tsv msstats.csv _GLProteomics
+msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProteomics
 ```
 
 **Parameter Definitions:**
 
 - `msstats_analysis.R` – R script for MSstats differential abundance analysis
 - `.` – root directory for output
-- `experiment_annotation.tsv` – experiment annotation (sample metadata, condition assignments)
+- `experiment_annotation_GLProteomics.tsv` – experiment annotation (sample metadata, condition assignments)
 - `msstats.csv` – MSstats input file from IonQuant
 - `_GLProteomics` – assay suffix: stripped from Run column for matching; appended to output filenames. 
 
 **Input Data:**
 
 - msstats.csv (MSstats input file, output from [Step 4k](#4k-ionquant-label-free-quantification))
-- experiment_annotation.tsv (sample metadata and condition assignments)
+- experiment_annotation_GLProteomics.tsv (sample metadata and condition assignments)
 
 **Output Data:**
 
 
-- **msstats_comparison_all_GLProteomics.csv** (all pairwise comparisons combined)
-- **msstats_comparison_*_GLProteomics.csv** (pairwise differential abundance comparison results)
+- **msstats_comparison_GLProteomics.csv** (all MSstats pairwise comparisons)
 - **msstats_contrasts_GLProteomics.csv** (contrast definitions)
 
 <br>
@@ -833,7 +832,7 @@ The FragPipeAnalystR downstream analysis script is executed twice: once using th
 
 ```bash
 Rscript fp_analyst_main.R \
-  --experiment_annotation "experiment_annotation.tsv" \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
   --quantification_file "combined_protein.tsv" \
   --mode "LFQ" \
   --level "protein" \
@@ -864,7 +863,7 @@ Rscript fp_analyst_main.R \
 
 ```bash
 Rscript fp_analyst_main.R \
-  --experiment_annotation "experiment_annotation.tsv" \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
   --quantification_file "combined_peptide.tsv" \
   --mode "LFQ" \
   --level "peptide" \
@@ -893,8 +892,8 @@ Rscript fp_analyst_main.R \
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
 - `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
-- `--level` – analysis level: `protein` or `peptide` (GeneLab runs both)
-- `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`).
+- `--level` – analysis level: `protein` or `peptide`
+- `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`)
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
 - `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
 - `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
@@ -903,25 +902,25 @@ Rscript fp_analyst_main.R \
 - `--imputation_shift` – Perseus-type: manual_impute shift in SD units (default: 1.8)
 - `--imputation_scale` – Perseus-type: manual_impute scale factor (default: 0.3)
 - `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` (default: 10)
-- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene` (default: 10). Protein level only; peptide: gene plots not applicable.
+- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene` (default: 10). Protein level only; peptide: gene plots not applicable
 - `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` (default: 10)
 - `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID (default: 10)
 - `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene (default: 10)
 - `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID (default: 10)
-- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed` (default: `nonimputed`). If nonimputed has <2 complete features, PCA falls back to imputed with a warning.
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed` (default: `nonimputed`). If nonimputed has <2 complete features, PCA falls back to imputed with a warning
 - `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`)
 - `--volcano_display_names` – display names on significant volcano points (`true`/`false`, default: `true`)
-- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide.
+- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide
 - `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip (default: `Hallmark,GO_Biological_Process_2021`)
 - `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) (default: `Up,Down`)
-- `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip.
-- `--gene_annotations` – gene annotations file (TSV/CSV); merges into DE_results on Gene. Empty = skip.
-- `--assay_suffix` – assay suffix for output filenames (SampleTable, contrasts, volcano); empty = no suffix.
+- `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
+- `--gene_annotations` – gene annotations file (TSV/CSV); merges into DE_results on Gene. Empty = skip
+- `--assay_suffix` – assay suffix for output filenames; empty = no suffix
 - `--output_dir` – output directory for results
 
 **Input Data:**
 
-- experiment_annotation.tsv (experiment annotation file, output from [Step 3](#3-prepare-metadata-files))
+- experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3](#3-create-manifest-and-experiment-annotation))
 - combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - gene_annotations.tsv (gene annotations table file; merges into DE_results on Gene )
