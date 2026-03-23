@@ -110,27 +110,28 @@ if (length(conditions) > 1) {
         comparison_df$Label[comparison_df$Label == rownames(comparison)[i]] <- lbl_new
     }
     
-    # Write comparison results - separate file for each comparison
-    for (i in 1:n_comparisons) {
-        c1 <- contrast.names[1, i]
-        c2 <- contrast.names[2, i]
-        r1 <- safe_to_label[c1]
-        r2 <- safe_to_label[c2]
-        if (is.na(r1)) r1 <- c1
-        if (is.na(r2)) r2 <- c2
-        comp_name_raw <- format_label(r2, r1)  # (numerator)v(denominator)
-        comp_safe <- gsub(" & ", "_", comp_name_raw, fixed = TRUE)
-        comp_safe <- gsub("[^A-Za-z0-9_]", "_", comp_safe)
-        comp_safe <- gsub("_{2,}", "_", comp_safe)
-        comp_safe <- gsub("^_|_$", "", comp_safe)
-        comp_safe <- tolower(comp_safe)
-        filename <- str_c("msstats_comparison_", comp_safe, assay_suffix, ".csv")
-        comp_data <- comparison_df[comparison_df$Label == comp_name_raw, ]
-        write.csv(comp_data, filename, row.names = FALSE)
-    }
-    
-    # Write all comparisons combined
-    write.csv(comparison_df, str_c("msstats_comparison_all", assay_suffix, ".csv"), row.names = FALSE)
+    # All MSstats pairwise comparisons
+    write.csv(comparison_df, str_c("msstats_comparison", assay_suffix, ".csv"), row.names = FALSE)
+
+    ## per-contrast files, redundant with rows in msstats_comparison.csv
+    # for (i in 1:n_comparisons) {
+    #     c1 <- contrast.names[1, i]
+    #     c2 <- contrast.names[2, i]
+    #     r1 <- safe_to_label[c1]
+    #     r2 <- safe_to_label[c2]
+    #     if (is.na(r1)) r1 <- c1
+    #     if (is.na(r2)) r2 <- c2
+    #     comp_name_raw <- format_label(r2, r1)
+    #     comp_safe <- gsub(" & ", "_", comp_name_raw, fixed = TRUE)
+    #     comp_safe <- gsub("[^A-Za-z0-9_]", "_", comp_safe)
+    #     comp_safe <- gsub("_{2,}", "_", comp_safe)
+    #     comp_safe <- gsub("^_|_$", "", comp_safe)
+    #     comp_safe <- tolower(comp_safe)
+    #     filename <- str_c("msstats_comparison_", comp_safe, assay_suffix, ".csv")
+    #     comp_data <- comparison_df[comparison_df$Label == comp_name_raw, ]
+    #     write.csv(comp_data, filename, row.names = FALSE)
+    # }
+    # write.csv(comparison_df, str_c("msstats_comparison_all", assay_suffix, ".csv"), row.names = FALSE)
     
     contrasts_df <- data.frame(row.names = c("1", "2"))
     for (i in 1:n_comparisons) {

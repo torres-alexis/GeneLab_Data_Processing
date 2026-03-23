@@ -5,10 +5,7 @@ process MSSTATS {
         saveAs: { filename -> "msstats.csv" }
     publishDir "${output_dir}/MSstats/",
         mode: params.publish_dir_mode,
-        pattern: "msstats_comparison_*.csv"
-    publishDir "${output_dir}/MSstats/",
-        mode: params.publish_dir_mode,
-        pattern: "msstats_comparison_all*.csv"
+        pattern: "msstats_comparison*.csv"
     publishDir "${output_dir}/MSstats/",
         mode: params.publish_dir_mode,
         pattern: "msstats_contrasts*.csv"
@@ -21,8 +18,7 @@ process MSSTATS {
     output:
     path("versions.yml"), emit: versions
     path("msstats_input.csv"), emit: msstats_processed
-    path("msstats_comparison_*.csv"), emit: comparison, optional: true
-    path("msstats_comparison_all*.csv"), emit: comparison_all, optional: true
+    path("msstats_comparison*.csv"), emit: comparison, optional: true
     path("msstats_contrasts*.csv"), emit: contrasts, optional: true
 
     script:
