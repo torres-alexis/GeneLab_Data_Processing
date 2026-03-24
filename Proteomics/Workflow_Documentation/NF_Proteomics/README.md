@@ -284,7 +284,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
-* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) is missing (type: string, default: null)
+* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or sample sheet and data sheet (TMT) are missing (type: string, default: null)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: conf/tools)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)

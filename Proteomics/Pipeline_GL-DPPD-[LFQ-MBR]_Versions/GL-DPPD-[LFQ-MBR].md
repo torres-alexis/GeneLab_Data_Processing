@@ -26,9 +26,10 @@ X (X)
   - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
     - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
     - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
-  - [**3. Create Manifest and Experiment Annotation**](#3-create-manifest-and-experiment-annotation)
+  - [**3. Configure Metadata**](#3-configure-metadata)
     - [3a. Create Sample Runsheet](#3a-create-sample-runsheet)
     - [3b. Create Manifest and Experiment Annotation from Runsheet](#3b-create-manifest-and-experiment-annotation-from-runsheet)
+    - [3c. Get organism-specific gene annotations table](#3c-get-organism-specific-gene-annotations-table)
   - [**4. FragPipe Processing Pipeline**](#4-fragpipe-processing-pipeline)
     - [4a. Launch FragPipe](#4a-launch-fragpipe)
     - [4b. Check Spectral Files Centroid Status](#4b-check-spectral-files-centroid-status)
@@ -162,7 +163,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 ---
 
-## 3. Create Manifest and Experiment Annotation
+## 3. Configure Metadata
 
 ### 3a. Create Sample Runsheet
 
@@ -231,6 +232,33 @@ runsheet_to_fp_metadata.py \
   - condition_label (human-readable condition from joined `Factor Value[...]` values)
   - condition (R-safe condition symbol)
   - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential per `condition`))
+
+<br>
+
+### 3c. Get organism-specific gene annotations table
+
+```r
+### Runsheet from Step 3b input; organism must match the value in the species column of GL-DPPD-7110-A_annotations.csv ###
+runsheet_path <- "{OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv"
+runsheet <- read.csv(runsheet_path, stringsAsFactors = FALSE, check.names = FALSE)
+organism <- trimws(as.character(runsheet[["organism"]][1]))
+
+### Pull in the GeneLab annotation table (GL-DPPD-7110-A_annotations.csv) ###
+org_table_link <- "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv"
+
+org_table <- read.table(org_table_link, sep = ",", header = TRUE)
+
+### URL of the organism-specific GeneLab gene annotation table ###
+annotations_link <- org_table[org_table$species == organism, "genelab_annots_link"]
+```
+
+**Input Data:**
+
+- {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv (output from [Step 3a](#3a-create-sample-runsheet); `organism` column value must match a value in the `species` column of [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv))
+
+**Output Data:**
+
+- annotations_link (variable containing URL of GeneLab gene annotation table for the organism)
 
 <br>
 
@@ -402,7 +430,7 @@ java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 - spectraRT_full.tsv (full spectra retention time data)
 - spectraRT.predicted.bin (binary file containing predicted spectra, retention times, and ion mobilities from DIA-NN)
 - spectraRT.tsv (spectra retention time data)
-- MSBooster_plots/ (directory containing diagnostic plots: RT_calibration_curves/ with retention time calibration plots per pin file (up to top 5000 PSMs (peptide-spectrum matches) used for calibration), IM_calibration_curves/ with ion mobility calibration plots per charge state (up to top 1000 PSMs (peptide-spectrum matches) used for calibration; if IM features enabled), and score_histograms/ with overlayed histograms of all target and decoy PSMs for each pin file for all deep learning features (some features plotted on log scale for visualization, but original values are used in pin files))
+- MSBooster_plots/ (Directory containing MSBooster calibration and diagnostic plots)
 
 <!-- > **Note:** MSBooster extracts peptides from pin files and creates input for a deep learning model (DIA-NN in FragPipe) to predict physicochemical properties (RT, IM, and/or MS/MS spectra). Predictions are performed for candidate peptides reported by MSFragger. MSBooster generates features based on agreement between experimental and predicted values and adds them to the pin files, which are then passed to Percolator. See [MSBooster GitHub](https://github.com/Nesvilab/MSBooster) and [Yang et al. (2023) Nature Communications](https://pmc.ncbi.nlm.nih.gov/articles/PMC10374903/). -->
 
@@ -441,7 +469,7 @@ percolator \
 **Parameter Definitions:**
 
 - `--only-psms` – do not remove redundant peptides, keep PSMs, exclude peptide level probabilities
-- `--no-terminate` – do not terminate execution when encountering issues with SVM inputs or results (default: false)
+- `--no-terminate` – do not terminate execution when encountering issues with SVM inputs or results
 - `--post-processing-tdc` – replace mix-max method with target-decoy competition for assigning q-values and PEPs. For input PSMs from separate target/decoy searches, Percolator SVM scores eliminate lower-scoring target or decoy PSMs for each scan+expMass combination. Automatically enabled for concatenated searches
 - `--num-threads` – number of CPU threads to use
 - `--results-psms` – output file path for target PSM results
@@ -488,7 +516,7 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
 - `*_percolator_decoy_psms.tsv` – Percolator decoy PSM results
 - `interact-*` – output pepXML file prefix
 - `DDA` – data acquisition type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)
-- `0.5` – minimum probability threshold (1 - PEP); filters out PSMs with PEP > 0.5 (default: 0.5)
+- `0.5` – minimum probability threshold (1 - PEP); filters out PSMs with PEP > 0.5
 - `*.mzML` – original mzML file path
 
 **Input Data:**
@@ -519,8 +547,8 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 **Parameter Definitions:**
 
 - `proteinprophet` – run ProteinProphet to generate probabilities for protein identifications based on MS/MS data
-- `--maxppmdiff 2000000` – maximum peptide mass difference in ppm (default: 20)
-- `--output combined` – output file name (default: "interact.prot.xml"); results in `combined.prot.xml`
+- `--maxppmdiff` – maximum peptide mass difference in ppm
+- `--output combined` – output file name
 - `filelist_proteinprophet.txt` – list of interact.pep.xml files to be passed to ProteinProphet
 
 **Input Data:**
@@ -768,7 +796,7 @@ java -Xmx55G \
 - `--msstats 1` – generate MSstats input files (0 = no, 1 = yes)
 - `--site-reports 1` – generate site reports (0 = no, 1 = yes; requires modification localization columns in psm.tsv)
 - `--multidir .` – output directory for multi-experimental results (optional)
-- `--filelist` – file containing flags (tab-delimited file with `--psm` entries pointing to sample-specific `psm.tsv` files and `--specdir` entry pointing to the directory containing mzML files)
+- `--filelist` – file containing flags (tab-delimited file with `--psm` entries pointing to sample-specific psm.tsv files and `--specdir` entry pointing to the directory containing mzML files)
 - `--modlist` – file listing modification masses (used to remove mass discrepancy due to rounding errors)
 - `--specdir` – directory containing spectral files (mzML/mzXML/raw/quantindex); can specify multiple
 
@@ -793,7 +821,7 @@ java -Xmx55G \
 - **combined_peptide.tsv** (combined peptide report with MS1 quantification data and additional data across all samples)
 - **combined_modified_peptide.tsv** (combined modified peptide report with MS1 quantification data and additional data across all samples)
 - **combined_ion.tsv** (combined ion report with MS1 quantification data and additional data across all samples)
-- **combined_site_*.tsv** (site-specific modification reports, e.g., "combined_site_C_57.0215.tsv" for carbamidomethylation, "combined_site_M_15.9949.tsv" for oxidation)
+- **combined_site_*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 - **msstats.csv** (MSstats input file for downstream differential analysis)
@@ -876,7 +904,7 @@ msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProte
 
 ## 7. FragPipeAnalystR Downstream Analysis
 
-The FragPipeAnalystR downstream analysis script is executed twice: once using the **protein**-level quantification file (`combined_protein.tsv`) and once using the **peptide**-level quantification file (`combined_peptide.tsv`).
+The FragPipeAnalystR downstream analysis script is executed twice: once using the **protein**-level quantification file (combined_protein.tsv) and once using the **peptide**-level quantification file (combined_peptide.tsv).
 
 **Protein run:**
 
@@ -905,7 +933,7 @@ Rscript FragPipeAnalystR_main.R \
   --sample_cvs_full_range "false" \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
-  --gene_annotations "gene_annotations.tsv" \
+  --gene_annotations $annotations_link \
   --output_dir "output/"
 ```
 
@@ -933,38 +961,38 @@ Rscript FragPipeAnalystR_main.R \
   --sample_cvs_full_range "false" \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
-  --gene_annotations "gene_annotations.tsv" \
+  --gene_annotations $annotations_link \
   --output_dir "output/"
 ```
 
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
-- `--quantification_file` – path to combined quantification file (`combined_protein.tsv` or `combined_peptide.tsv`, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- `--quantification_file` – path to combined quantification file (combined_protein.tsv or combined_peptide.tsv, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide`
-- `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count` (default: `Intensity`)
-- `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling) (default: `none`)
-- `--de_alpha` – adjusted p-value threshold for DE significance (default: 0.05)
-- `--de_lfc` – log2 fold change threshold for DE significance (default: 1.0)
-- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` (default: `Benjamini Hochberg`)
-- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `nbavg`, `mixed` (default: `Perseus-type`)
-- `--imputation_shift` – Perseus-type: manual_impute shift in SD units (default: 1.8)
-- `--imputation_scale` – Perseus-type: manual_impute scale factor (default: 0.3)
-- `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` (default: 10)
-- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene` (default: 10). Protein level only; peptide: gene plots not applicable
-- `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` (default: 10)
-- `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID (default: 10)
-- `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene (default: 10)
-- `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID (default: 10)
-- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed` (default: `nonimputed`). If nonimputed has <2 complete features, PCA falls back to imputed with a warning
-- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 (default: `false`)
-- `--volcano_display_names` – display names on significant volcano points (`true`/`false`, default: `true`)
-- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano (default: `true`). Peptide level uses Index; set `false` for peptide
-- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip (default: `Hallmark,GO_Biological_Process_2021`)
-- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) (default: `Up,Down`)
+- `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count`
+- `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling)
+- `--de_alpha` – adjusted p-value threshold for DE significance
+- `--de_lfc` – log2 fold change threshold for DE significance
+- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` 
+- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `nbavg`, `mixed` 
+- `--imputation_shift` – Perseus-type: manual_impute shift in SD units 
+- `--imputation_scale` – Perseus-type: manual_impute scale factor 
+- `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` 
+- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene`. Protein level only
+- `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` 
+- `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID 
+- `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene 
+- `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID 
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed`. If nonimputed has <2 complete features, PCA falls back to imputed with a warning
+- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 
+- `--volcano_display_names` – display names on significant volcano points 
+- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano. Peptide level uses Index; set `false` for peptide
+- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip 
+- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) 
 - `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
-- `--gene_annotations` – gene annotations file (TSV/CSV); merges into DE_results on Gene. Empty = skip
+- `--gene_annotations` – path or URL of gene annotations TSV/CSV; merges into DE_results on Gene. Empty = skip
 - `--assay_suffix` – assay suffix for output filenames; empty = no suffix
 - `--output_dir` – output directory for results
 
@@ -973,12 +1001,12 @@ Rscript FragPipeAnalystR_main.R \
 - experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation-from-runsheet))
 - combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
-- gene_annotations.tsv (gene annotations table file; merges into DE_results on Gene )
+- annotations_link (variable containing URL of GeneLab gene annotation table for the organism)
 
 **Output Data:**
 
 - **FragPipeAnalystR_parameters.txt** (run parameters)
-- **nonimputed_matrix.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns (default: `Intensity`) reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
+- **nonimputed_matrix.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
 - **imputed_matrix.csv** (same structure as nonimputed_matrix; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
 - **QC_plots.zip** (QC plots folder)
   - pca.pdf, .png (PCA plot)
@@ -988,9 +1016,9 @@ Rscript FragPipeAnalystR_main.R \
   - density.pdf, .png (intensity distribution)
 - **comparison_plots.zip** (comparison plots folder)
   - correlation_heatmap.pdf, .png (sample correlation heatmap)
-  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (top N by protein ID and gene; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
-  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top N by peptide ID; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
-  - feature/site/boxplot/, feature/site/violinplot/ (site run: top N by site ID; filenames boxplot_*.pdf, .png and violinplot_*.pdf, .png)
+  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (protein run: top 10 by protein ID and gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+<!--   - feature/site/boxplot/, feature/site/violinplot/ (site run: top N by site ID; boxplot_*.pdf, .png and violinplot_*.pdf, .png)-->
 - **pathway_analysis_plots.zip** (pathway analysis plots folder)
   - or/ (over-representation analysis: or_database_direction.csv, .pdf, .png per database and direction)
   - gsea/ (GSEA: gsea_database_contrast.csv, .pdf, .png per database and contrast)
