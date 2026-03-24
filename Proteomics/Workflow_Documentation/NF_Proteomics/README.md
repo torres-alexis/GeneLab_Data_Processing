@@ -244,7 +244,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4b](#4b-run-the-lfq-mbr-workflow-with-custom-reference-proteome):**
 
-* `--runsheet` - Path to the runsheet file containing sample metadata and input file paths
+* `--runsheet` - Path to the runsheet file containing data file paths and metadata required for processing
 
 * `--reference_proteome` - Path to a custom reference proteome FASTA file
 
@@ -252,7 +252,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4c](#4c-run-the-lfq-mbr-workflow-on-a-custom-dataset):**
 
-* `--runsheet` - Path to the runsheet file containing file paths and metadata
+* `--runsheet` - Path to the runsheet file containing data file paths and metadata required for processing
 
 * `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
 
@@ -260,7 +260,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4d](#4d-run-the-lfq-mbr-workflow-with-custom-fragpipe-workflow-config):**
 
-* `--runsheet` - Path to the runsheet file containing file paths and metadata
+* `--runsheet` - Path to the runsheet file containing data file paths and metadata required for processing
 
 * `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
 
@@ -270,11 +270,11 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4e](#4e-run-the-tmt10-workflow-on-a-custom-dataset):**
 
-* `--sample_sheet` - Path to the TMT sample sheet containing sample level metadata and sample-to-channel mapping
+* `--sample_sheet` - Path to the sample sheet containing sample level metadata and sample-to-channel mapping
 
-* `--data_sheet` - Path to the TMT data sheet containing the mzML files for each plex
+* `--data_sheet` - Path to the data sheet containing the mzML files for each plex
 
-* `--fragpipe_workflow` - TMT workflow mode: `TMT10`, `TMT16`, or `TMT16-phospho`
+* `--fragpipe_workflow` - Fragpipe workflow configuration option: `TMT10`, `TMT16`, or `TMT16-phospho`
 
 * `--uniprot_id` - UniProt proteome ID (e.g., `UP000000803` for *Drosophila melanogaster*). The workflow will download the proteome FASTA from UniProt.
 
@@ -284,7 +284,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
-* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data_sheet+sample_sheet (TMT) are missing (type: string, default: null)
+* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) is missing (type: string, default: null)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: conf/tools)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)

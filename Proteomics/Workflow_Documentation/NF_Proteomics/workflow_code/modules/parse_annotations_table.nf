@@ -27,10 +27,6 @@ process PARSE_ANNOTATIONS_TABLE {
     def organism_key = organism_sci.capitalize().replace("_", " ")
     if (organisms.containsKey(organism_key)) {
       gene_annotations_url = organisms[organism_key][10]
-      if (gene_annotations_url != null && gene_annotations_url.contains('figshare.com/ndownloader/files/')) {
-        def file_id = (gene_annotations_url =~ /.*\/files\/([a-zA-Z0-9]+).*/)[0][1]
-        gene_annotations_url = "https://api.figshare.com/v2/file/download/${file_id}"
-      }
       println "Gene annotations URL for '${organism_key}': ${gene_annotations_url}"
     } else {
       println "WARNING: Organism '${organism_key}' not in annotations table. Skipping DE annotations."

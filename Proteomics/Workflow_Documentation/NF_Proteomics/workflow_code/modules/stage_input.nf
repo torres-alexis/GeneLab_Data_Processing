@@ -8,7 +8,7 @@ process STAGE_INPUT {
 
     input:
     val(output_dir)
-    tuple val(meta), val(file_url)
+    val(meta)
 
     output:
     tuple val(meta), path("*.mzML"), emit: mzml_files
@@ -17,26 +17,26 @@ process STAGE_INPUT {
     script:
     """
     # Stage file from various sources with retry logic
-    echo "Staging ${meta.id} from: ${file_url}"
+    echo "Staging ${meta.id} from: ${meta.data_file}"
     
     # Detect and download/copy based on source type
-    if [[ "${file_url}" =~ ^s3:// ]]; then
+    if [[ "${meta.data_file}" =~ ^s3:// ]]; then
         echo "Detected S3 source"
-        aws s3 cp "${file_url}" ./raw_file --retry-mode adaptive
-    elif [[ "${file_url}" =~ ^https?:// ]]; then
+        aws s3 cp "${meta.data_file}" ./raw_file --retry-mode adaptive
+    elif [[ "${meta.data_file}" =~ ^https?:// ]]; then
         echo "Detected URL source"
-        wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O raw_file "${file_url}"
-    elif [[ -f "${file_url}" ]]; then
+        wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O raw_file "${meta.data_file}"
+    elif [[ -f "${meta.data_file}" ]]; then
         echo "Detected local file"
-        cp -P "${file_url}" ./raw_file
+        cp -P "${meta.data_file}" ./raw_file
     else
-        echo "ERROR: Unknown file source: ${file_url}"
+        echo "ERROR: Unknown file source: ${meta.data_file}"
         exit 1
     fi
     
     # Check if file was successfully staged
     if [[ ! -f raw_file ]]; then
-        echo "ERROR: Failed to stage file from ${file_url}"
+        echo "ERROR: Failed to stage file from ${meta.data_file}"
         exit 1
     fi
     
@@ -52,7 +52,7 @@ process STAGE_INPUT {
     elif [[ \$file_type == *"gzip compressed"* ]]; then
         echo "Extracting gzipped file..."
         gunzip -c raw_file > ${meta.id}.mzML
-    elif [[ "${file_url}" == *.mzML ]]; then
+    elif [[ "${meta.data_file}" == *.mzML ]]; then
         echo "Already mzML format"
         mv raw_file ${meta.id}.mzML
     else

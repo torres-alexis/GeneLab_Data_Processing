@@ -1,5 +1,5 @@
 #!/usr/bin/Rscript
-# FragPipe-Analyst downstream via FragPipeAnalystR package.
+# FragPipeAnalystR downstream analysis main script 
 
 library(optparse)
 library(ggplot2)
@@ -115,10 +115,10 @@ assay_suffix <- trimws(.or(opt$assay_suffix, ""))
 fn_ <- function(base, ext) paste0(base, ".", ext)
 
 # Log raw inputs (reproducibility)
-param_path <- file.path(output_dir, fn_("fp_analyst_parameters", "txt"))
+param_path <- file.path(output_dir, fn_("FragPipeAnalystR_parameters", "txt"))
 writeLines(c(
-  "FragPipe-Analyst Parameters (FragPipeAnalystR package)",
-  "=====================================================",
+  "FragPipeAnalystR run parameters (GeneLab pipeline CLI)",
+  "======================================================",
   paste("experiment_annotation:", opt$experiment_annotation),
   paste("quantification_file:", opt$quantification_file),
   paste("mode:", mode),
@@ -256,6 +256,12 @@ if (imp_type != "none") {
 # Data: imputed_se or normalized_se per qc_plot_data (imputed/nonimputed)
 qc_use_imputed <- tolower(trimws(.or(opt$qc_plot_data, "nonimputed"))) == "imputed"
 qc_se <- if (qc_use_imputed) imputed_se else normalized_se
+# PCA / correlation heatmap: prefer human-readable factor column when present
+qc_indicate_col <- if ("condition_label" %in% names(colData(qc_se))) {
+  "condition_label"
+} else {
+  "condition"
+}
 # PCA (needs complete cases; plot_pca filters to complete.cases internally)
 pca_se <- qc_se
 n_pca <- sum(complete.cases(assay(pca_se)))
@@ -265,7 +271,8 @@ if (n_pca < 2 && !qc_use_imputed && imp_type != "none") {
   n_pca <- sum(complete.cases(assay(pca_se)))
 }
 if (n_pca >= 2) {
-  p_pca <- plot_pca(pca_se, indicate = "condition", n = min(500, n_pca), plot = TRUE)
+  cat("PCA plot: coloring by colData$", qc_indicate_col, "\n", sep = "")
+  p_pca <- plot_pca(pca_se, indicate = qc_indicate_col, n = min(500, n_pca), plot = TRUE)
   ggplot2::ggsave(file.path(qc_dir, fn_("pca", "pdf")), p_pca, width = 8, height = 6)
   ggplot2::ggsave(file.path(qc_dir, fn_("pca", "png")), p_pca, width = 8, height = 6, dpi = 150)
   cat("PCA plot saved\n")
@@ -280,7 +287,8 @@ if (n_cor_complete < 2 && !qc_use_imputed && imp_type != "none") {
   n_cor_complete <- sum(complete.cases(assay(cor_se)))
 }
 if (n_cor_complete >= 2) {
-  ht_cor <- plot_correlation_heatmap(cor_se, indicate = "condition")
+  cat("Correlation heatmap: annotation by colData$", qc_indicate_col, "\n", sep = "")
+  ht_cor <- plot_correlation_heatmap(cor_se, indicate = qc_indicate_col)
   pdf(file.path(comparison_dir, fn_("correlation_heatmap", "pdf")), width = 8, height = 7)
   ComplexHeatmap::draw(ht_cor, heatmap_legend_side = "top")
   dev.off()
@@ -301,15 +309,30 @@ if (any(is.na(assay(normalized_se)))) {
   dev.off()
   cat("Missing value heatmap saved\n")
 }
-# Feature numbers (barplot: features per sample)
-p_fn <- plot_feature_numbers(normalized_se, fill = "condition")
+# Feature numbers (barplot: features per sample; fill stacks by condition or label)
+fn_fill_col <- if ("condition_label" %in% names(colData(normalized_se))) {
+  "condition_label"
+} else {
+  "condition"
+}
+cat("Feature numbers: fill = colData$", fn_fill_col, "\n", sep = "")
+p_fn <- plot_feature_numbers(normalized_se, fill = fn_fill_col)
 ggplot2::ggsave(file.path(qc_dir, fn_("feature_numbers", "pdf")), p_fn, width = 8, height = 5)
 ggplot2::ggsave(file.path(qc_dir, fn_("feature_numbers", "png")), p_fn, width = 8, height = 5, dpi = 150)
 cat("Feature numbers plot saved\n")
+# plot_cvs() / get_density() / plot_feature() (static box|violin) in FragPipeAnalystR hardcode colData$condition.
+# Shallow copy: remap condition -> factor(condition_label) for those calls only (limma/DE still use qc_se above).
+qc_se_fpa_condition <- qc_se
+if (qc_indicate_col == "condition_label") {
+  cd <- colData(qc_se_fpa_condition)
+  cd$condition <- factor(cd$condition_label)
+  colData(qc_se_fpa_condition) <- cd
+  cat("FPA plots using hardcoded colData$condition: remapped from condition_label (plot_cvs, get_density, plot_feature)\n")
+}
 # Sample CVs (can fail when sparse data yields all NA/Inf CVs)
 cvs_scale <- !(tolower(trimws(.or(opt$sample_cvs_full_range, "false"))) == "true")
 tryCatch({
-  p_cvs <- plot_cvs(qc_se, id = "sample_name", scale = cvs_scale)
+  p_cvs <- plot_cvs(qc_se_fpa_condition, id = "sample_name", scale = cvs_scale)
   ggplot2::ggsave(file.path(qc_dir, fn_("sample_cvs", "pdf")), p_cvs, width = 8, height = 5)
   ggplot2::ggsave(file.path(qc_dir, fn_("sample_cvs", "png")), p_cvs, width = 8, height = 5, dpi = 150)
   cat("Sample CVs plot saved\n")
@@ -322,10 +345,10 @@ density_pdf <- file.path(qc_dir, fn_("density", "pdf"))
 density_png <- file.path(qc_dir, fn_("density", "png"))
 tryCatch({
   pdf(density_pdf, width = 8, height = 5)
-  get_density(qc_se, tag = paste0(mode, " ", level))
+  get_density(qc_se_fpa_condition, tag = paste0(mode, " ", level))
   dev.off()
   png(density_png, width = 8, height = 5, units = "in", res = 150)
-  get_density(qc_se, tag = paste0(mode, " ", level))
+  get_density(qc_se_fpa_condition, tag = paste0(mode, " ", level))
   dev.off()
   cat("Density plot saved\n")
 }, error = function(e) {
@@ -335,6 +358,7 @@ tryCatch({
 })
 
 # Feature boxplots/violins (top N variable or feature list)
+feat_plot_se <- qc_se_fpa_condition # same condition_label remap as CV/density; FPA plot_feature aes(condition, ...)
 # Helpers: top N variable by rowname or by rowData column
 top_n_by_rownames <- function(se, n) {
   if (n <= 0 || nrow(se) == 0) return(character(0))
@@ -360,7 +384,7 @@ top_n_by_col <- function(se, col, n) {
 cd <- as.data.frame(colData(qc_se))
 assay_ids <- colnames(assay(qc_se))
 feat_id <- if (all(assay_ids %in% cd$sample_name)) "sample_name" else if ("label" %in% colnames(cd) && all(assay_ids %in% cd$label)) "label" else "sample_name"
-gene_col <- if (nrow(qc_se) > 0 && "Gene" %in% colnames(rowData(qc_se))) "Gene" else NULL
+qc_gene_col <- if (nrow(qc_se) > 0 && "Gene" %in% colnames(rowData(qc_se))) "Gene" else NULL
 
 do_one_feature_plot <- function(se, feat, feat_dir, ptype, id, index = NULL, safe_name = NULL) {
   safe <- if (!is.null(safe_name)) gsub("[^a-zA-Z0-9_-]", "_", as.character(safe_name))[1] else gsub("[^a-zA-Z0-9_-]", "_", as.character(feat))[1]
@@ -381,7 +405,7 @@ if (level == "protein" && (length(fl_protein) > 0 || top_n_prot > 0)) {
   features_prot <- if (length(fl_protein) > 0) intersect(fl_protein, rownames(qc_se)) else top_n_by_rownames(qc_se, top_n_prot)
   if (length(features_prot) > 0) {
     for (f in features_prot) {
-      for (ptype in c("boxplot", "violin")) do_one_feature_plot(qc_se, f, feat_dir_prot, ptype, feat_id, index = NULL)
+      for (ptype in c("boxplot", "violin")) do_one_feature_plot(feat_plot_se, f, feat_dir_prot, ptype, feat_id, index = NULL)
     }
     cat("Feature boxplots and violin plots (protein) saved (", length(features_prot), " features)\n")
   }
@@ -397,7 +421,7 @@ if (level == "peptide" && (length(fl_peptide) > 0 || top_n_pep > 0)) {
   if (length(features_pep) > 0) {
     dir.create(feat_dir_pep, showWarnings = FALSE, recursive = TRUE)
     for (f in features_pep) {
-      for (ptype in c("boxplot", "violin")) do_one_feature_plot(qc_se, f, feat_dir_pep, ptype, feat_id, index = NULL)
+      for (ptype in c("boxplot", "violin")) do_one_feature_plot(feat_plot_se, f, feat_dir_pep, ptype, feat_id, index = NULL)
     }
     cat("Feature boxplots and violin plots (peptide) saved (", length(features_pep), " features)\n")
   }
@@ -408,42 +432,36 @@ if (level == "peptide" && (length(fl_peptide) > 0 || top_n_pep > 0)) {
 fl_gene <- trimws(strsplit(.or(opt$feature_list_gene, ""), "\\s*,\\s*")[[1]])
 fl_gene <- fl_gene[nzchar(fl_gene)]
 top_n_gene <- as.integer(.or(opt$top_n_gene, 10))
-if (level == "protein" && !is.null(gene_col) && (length(fl_gene) > 0 || top_n_gene > 0)) {
+if (level == "protein" && !is.null(qc_gene_col) && (length(fl_gene) > 0 || top_n_gene > 0)) {
   features_gene <- if (length(fl_gene) > 0) {
-    intersect(fl_gene, unique(as.character(rowData(qc_se)[[gene_col]])))
+    intersect(fl_gene, unique(as.character(rowData(qc_se)[[qc_gene_col]])))
   } else {
-    top_n_by_col(qc_se, gene_col, top_n_gene)
+    top_n_by_col(qc_se, qc_gene_col, top_n_gene)
   }
   if (length(features_gene) > 0) {
     feat_dir_gene <- file.path(comparison_dir, "feature", "gene")
     dir.create(feat_dir_gene, showWarnings = FALSE, recursive = TRUE)
     for (g in features_gene) {
-      prots <- rownames(qc_se)[rowData(qc_se)[[gene_col]] == g]
+      prots <- rownames(qc_se)[rowData(qc_se)[[qc_gene_col]] == g]
       if (length(prots) == 0) next
-      for (ptype in c("boxplot", "violin")) do_one_feature_plot(qc_se, prots, feat_dir_gene, ptype, feat_id, index = NULL, safe_name = g)
+      for (ptype in c("boxplot", "violin")) do_one_feature_plot(feat_plot_se, prots, feat_dir_gene, ptype, feat_id, index = NULL, safe_name = g)
     }
     cat("Feature boxplots and violin plots (gene) saved (", length(features_gene), " features)\n")
   }
 }
 
-# --- Sample table (LFQ: Sample Name | Experiment_Bioreplicate | condition) ---
+# --- Sample table (Sample Name | Experiment_Bioreplicate | condition [+ condition_label]) ---
 anno <- read.table(opt$experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-sample_col <- if ("sample_name" %in% colnames(anno)) "sample_name" else if ("sample" %in% colnames(anno)) "sample" else "label"
-if (!sample_col %in% colnames(anno)) stop("experiment_annotation requires sample_name or sample column")
-cond_col <- if ("condition" %in% colnames(anno)) "condition" else "group"
-# LFQ: Sample Name = file basename (without extension); TMT: use sample_name/sample as before
-sample_name_col <- if (mode == "LFQ" && "file" %in% colnames(anno)) {
-  sub("\\.[^.]+$", "", basename(as.character(anno$file)))
-} else {
-  anno[[sample_col]]
-}
 sample_table <- data.frame(
-  "Sample Name" = sample_name_col,
-  "Experiment_Bioreplicate" = anno[[sample_col]],
-  "condition" = anno[[cond_col]],
+  "Sample Name" = anno[["sample_name"]],
+  "Experiment_Bioreplicate" = anno[["sample"]],
+  "condition" = anno[["condition"]],
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
+if ("condition_label" %in% colnames(anno)) {
+  sample_table[["condition_label"]] <- anno[["condition_label"]]
+}
 sample_fname <- paste0("SampleTable", if (nzchar(assay_suffix)) assay_suffix else "", ".csv")
 write.csv(sample_table, file.path(de_dir, sample_fname), row.names = FALSE)
 cat("Sample table saved:", sample_fname, "(", nrow(sample_table), "rows)\n")
@@ -454,11 +472,18 @@ pairwise_pairs <- utils::combn(conditions, 2)
 manual_contrasts <- apply(pairwise_pairs, 2, function(col) paste(col[2], col[1], sep = "_vs_"))
 de_se <- test_limma(imputed_se, type = "manual", test = manual_contrasts)
 de_se <- add_rejections(de_se, alpha = de_alpha, lfc = de_lfc)
+# TMT gene-level: symbol in Index; protein reports already have Gene.
+rd_de <- colnames(rowData(de_se))
+if (!"Gene" %in% rd_de && "Index" %in% rd_de) {
+  rowData(de_se)$Gene <- rowData(de_se)$Index
+  cat("DE: rowData$Gene <- Index (gene-level report)\n")
+}
 contrast_cols <- grep("_diff$", colnames(rowData(de_se)), value = TRUE)
 contrast_names <- gsub("_diff$", "", contrast_cols)
 cat("DE: tested contrasts =", paste(contrast_names, collapse = ", "), "\n")
 de_df <- cbind(as.data.frame(rowData(de_se)), as.data.frame(assay(de_se)))
 de_df <- de_df[, !duplicated(colnames(de_df))]
+de_gene_col <- if ("Gene" %in% colnames(de_df)) "Gene" else NULL
 
 # --- DE table additions ---
 assay_mat <- as.matrix(assay(de_se))
@@ -469,8 +494,8 @@ cd <- as.data.frame(colData(de_se))
 conds <- cd$condition[match(colnames(assay_mat), rownames(cd))]
 if (!any(is.na(conds))) {
   cond_to_label <- if ("condition_label" %in% colnames(anno)) {
-    u <- unique(anno[, c(cond_col, "condition_label")])
-    setNames(as.character(u$condition_label), as.character(u[[cond_col]]))
+    u <- unique(anno[, c("condition", "condition_label")])
+    setNames(as.character(u$condition_label), as.character(u[["condition"]]))
   } else NULL
   ucond <- unique(conds)
   for (c in ucond) {
@@ -485,16 +510,20 @@ if (!any(is.na(conds))) {
   }
 }
 
-# --- Gene annotations merge (merge on Gene = best-matching annotation column) ---
+# --- Gene annotations merge (on de_gene_col; best-matching annotation column) ---
 gene_annotations <- .or(opt$gene_annotations, "")
-if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && "Gene" %in% colnames(de_df)) {
+if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && !is.null(de_gene_col)) {
   tryCatch({
-    path <- trimws(gene_annotations)
-    is_csv <- grepl("\\.csv$", path, ignore.case = TRUE)
-    annot <- if (is_csv) read.csv(path, header = TRUE, quote = "\"", comment.char = "") else read.delim(path, sep = "\t", header = TRUE, quote = "", comment.char = "")
-    # Try every annotation column; pick the one with most matches to de_df$Gene
+    annotations_link <- trimws(gene_annotations)
+    annotations_link <- ifelse(
+      grepl("figshare.com/ndownloader/files/", annotations_link),
+      sub(".*/files/([0-9]+).*", "https://api.figshare.com/v2/file/download/\\1", annotations_link),
+      annotations_link
+    )
+    annot <- read.delim(annotations_link, header = TRUE, sep = "\t", quote = "", comment.char = "",
+      stringsAsFactors = FALSE, check.names = FALSE)
     candidates <- colnames(annot)
-    de_genes <- unique(na.omit(as.character(de_df$Gene)))
+    de_genes <- unique(na.omit(as.character(de_df[[de_gene_col]])))
     best_col <- NULL
     best_n <- 0L
     for (col in candidates) {
@@ -507,15 +536,16 @@ if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && "Gene" %in
     }
     if (!is.null(best_col) && best_n > 0L) {
       annot_merge <- annot
-      annot_merge$Gene <- as.character(annot_merge[[best_col]])
-      annot_merge <- annot_merge[!duplicated(annot_merge$Gene), , drop = FALSE]
-      annot_cols <- c("Gene", setdiff(colnames(annot), best_col))
+      annot_merge[[de_gene_col]] <- as.character(annot_merge[[best_col]])
+      annot_merge <- annot_merge[!duplicated(annot_merge[[de_gene_col]]), , drop = FALSE]
+      annot_cols <- c(de_gene_col, setdiff(colnames(annot), best_col))
       de_df$..ord.. <- seq_len(nrow(de_df))
-      de_df <- merge(annot_merge[, annot_cols, drop = FALSE], de_df, by = "Gene", all.y = TRUE)
+      de_df <- merge(annot_merge[, annot_cols, drop = FALSE], de_df, by = de_gene_col, all.y = TRUE)
       de_df <- de_df[order(de_df$..ord..), setdiff(colnames(de_df), "..ord..")]
-      cat("GeneLab annotations merged into DE_results (", best_col, "→Gene, ", best_n, "/", length(de_genes), " matches)\n", sep = "")
+      cat("GeneLab annotations merged into DE_results (", best_col, "→", de_gene_col, ", ", best_n, "/",
+        length(de_genes), " matches)\n", sep = "")
     } else {
-      warning("No annotation column matched Gene; skipping annotation merge")
+      warning("No annotation column matched ", de_gene_col, "; skipping annotation merge")
     }
   }, error = function(e) warning("Could not merge annotations: ", conditionMessage(e)))
 }
@@ -523,8 +553,8 @@ if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && "Gene" %in
 # --- Rename DE columns to pipeline doc expected format: Log2fc_, P.value_, Adj.p.value_, Significant_, CI.L_, CI.R_ ---
 cond_label_col <- if ("condition_label" %in% colnames(anno)) "condition_label" else NULL
 cond_to_label_de <- if (!is.null(cond_label_col)) {
-  u <- unique(anno[, c(cond_col, cond_label_col)])
-  setNames(as.character(u[[cond_label_col]]), as.character(u[[cond_col]]))
+  u <- unique(anno[, c("condition", cond_label_col)])
+  setNames(as.character(u[[cond_label_col]]), as.character(u[["condition"]]))
 } else NULL
 num_labels <- vapply(pairwise_pairs[2, ], function(cond) if (!is.null(cond_to_label_de) && cond %in% names(cond_to_label_de)) cond_to_label_de[cond] else cond, character(1))
 denom_labels <- vapply(pairwise_pairs[1, ], function(cond) if (!is.null(cond_to_label_de) && cond %in% names(cond_to_label_de)) cond_to_label_de[cond] else cond, character(1))
@@ -590,8 +620,8 @@ if (imp_type != "none") .write_table_stage(imputed_se, paste0("imputed_matrix", 
 # Headers use condition_label when available; row entries use raw condition
 cond_label_col <- if ("condition_label" %in% colnames(anno)) "condition_label" else NULL
 cond_to_label <- if (!is.null(cond_label_col)) {
-  u <- unique(anno[, c(cond_col, cond_label_col)])
-  setNames(as.character(u[[cond_label_col]]), as.character(u[[cond_col]]))
+  u <- unique(anno[, c("condition", cond_label_col)])
+  setNames(as.character(u[[cond_label_col]]), as.character(u[["condition"]]))
 } else NULL
 num_labels <- vapply(pairwise_pairs[2, ], function(cond) if (!is.null(cond_to_label) && cond %in% names(cond_to_label)) cond_to_label[cond] else cond, character(1))
 denom_labels <- vapply(pairwise_pairs[1, ], function(cond) if (!is.null(cond_to_label) && cond %in% names(cond_to_label)) cond_to_label[cond] else cond, character(1))
@@ -605,12 +635,27 @@ contrasts_fname <- paste0("contrasts", if (nzchar(assay_suffix)) assay_suffix el
 write.csv(contrasts_df, file.path(de_dir, contrasts_fname), row.names = FALSE)
 cat("Contrasts table saved:", contrasts_fname, "\n")
 
-# --- Volcano plots (one per contrast; filenames use human-readable comp_names) ---
-volcano_ncol <- if (volcano_name_col && "Gene" %in% colnames(rowData(de_se))) "Gene" else NULL
+# --- Volcano plots: title + filenames + corner group labels (replace FPA layer 3 geom_text with num/denom display names) ---
+volcano_ncol <- if (volcano_name_col && !is.null(de_gene_col)) de_gene_col else NULL
 for (i in seq_along(contrast_names)) {
   tryCatch({
     p_v <- plot_volcano(de_se, contrast_names[i], name_col = volcano_ncol, add_names = volcano_add_names, alpha = de_alpha, lfc = de_lfc)
-    fname_base <- gsub("[[:space:]]+", "_", comp_names[i])
+    j <- match(contrast_names[i], manual_contrasts)
+    vol_label <- comp_names[j]
+    p_v <- p_v + ggplot2::labs(title = vol_label, subtitle = NULL)
+    corner <- ggplot2::ggplot() +
+      ggplot2::geom_text(
+        inherit.aes = FALSE,
+        data = data.frame(
+          x = c(Inf, -Inf), y = c(-Inf, -Inf), hjust = c(1, 0), vjust = c(-1, -1),
+          lab = c(num_labels[j], denom_labels[j])
+        ),
+        mapping = ggplot2::aes(x = x, y = y, label = lab, hjust = hjust, vjust = vjust),
+        size = 5, fontface = "bold"
+      )
+    k <- 3L
+    p_v$layers <- append(p_v$layers[-k], list(corner$layers[[1]]), after = k - 1L)
+    fname_base <- gsub("[[:space:]]+", "_", vol_label)
     fname_base <- paste0(fname_base, if (nzchar(assay_suffix)) assay_suffix else "", "_volcano")
     ggplot2::ggsave(file.path(volcano_dir, paste0(fname_base, ".pdf")), p_v, width = 8, height = 6)
     ggplot2::ggsave(file.path(volcano_dir, paste0(fname_base, ".png")), p_v, width = 8, height = 6, dpi = 150)
@@ -631,7 +676,13 @@ tryCatch({
     de_se_hm <- SummarizedExperiment::SummarizedExperiment(
       assays = list(a), colData = S4Vectors::DataFrame(cd), rowData = rowData(de_se), metadata = metadata(de_se))
   }
-  ht_res <- get_cluster_heatmap(de_se_hm, type = "centered", indicate = "condition",
+  de_hm_indicate_col <- if ("condition_label" %in% names(colData(de_se_hm))) {
+    "condition_label"
+  } else {
+    "condition"
+  }
+  cat("DE heatmap: top annotation from colData$", de_hm_indicate_col, "\n", sep = "")
+  ht_res <- get_cluster_heatmap(de_se_hm, type = "centered", indicate = de_hm_indicate_col,
     alpha = de_alpha, lfc = de_lfc, col_limit = 6, plot = TRUE)
   if (inherits(ht_res, "list") && inherits(ht_res[[1]], "Heatmap")) {
     ht <- ht_res[[1]]
@@ -650,6 +701,8 @@ tryCatch({
 }, error = function(e) warning("DE heatmap failed: ", conditionMessage(e)))
 
 # --- Enrichment (FragPipeAnalystR: or_test, plot_or) ---
+# plot_or facets on or_result$contrast (machine "A_vs_B"); swap to comp_names for strip labels only.
+or_plot_contrast_labels <- stats::setNames(as.character(comp_names), manual_contrasts)
 # or_test expects display names (e.g. "GO Biological Process"), not Enrichr lib names (e.g. "GO_Biological_Process_2021")
 or_db_map <- c(
   GO_Biological_Process_2021 = "GO Biological Process",
@@ -667,7 +720,14 @@ for (db in enrichment_dbs) {
       if (!is.null(or_res) && nrow(or_res) > 0) {
         safe_name <- paste0("or_", gsub("[^A-Za-z0-9_-]", "_", db), "_", tolower(dir))
         write.csv(or_res, file.path(enr_dir_or, paste0(safe_name, ".csv")), row.names = FALSE)
-        p_or <- plot_or(or_res, number = 15, alpha = de_alpha)
+        or_plot <- or_res
+        if ("contrast" %in% colnames(or_plot)) {
+          cm <- as.character(or_plot$contrast)
+          mapped <- unname(or_plot_contrast_labels[cm])
+          mapped[is.na(mapped)] <- cm[is.na(mapped)]
+          or_plot$contrast <- mapped
+        }
+        p_or <- plot_or(or_plot, alpha = de_alpha)
         if (!is.null(p_or)) {
           ggplot2::ggsave(file.path(enr_dir_or, paste0(safe_name, ".pdf")), p_or, width = 10, height = 6)
           ggplot2::ggsave(file.path(enr_dir_or, paste0(safe_name, ".png")), p_or, width = 10, height = 6, dpi = 150)
@@ -708,9 +768,7 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   }
 }
 if (level != "peptide" && length(gsea_dbs_valid) > 0) {
-  rd <- as.data.frame(rowData(de_se))
-  has_gene <- "Gene" %in% colnames(rd)
-  if (!has_gene) {
+  if (is.null(de_gene_col)) {
     warning("No Gene column; skipping GSEA")
     gsea_dbs_valid <- character(0)
   }
@@ -720,7 +778,7 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
       col_stat <- paste0(contrast_names[i], "_diff")
       if (!col_stat %in% colnames(rowData(de_se))) next
       rd <- as.data.frame(rowData(de_se))
-      rd$ID <- sapply(strsplit(as.character(rd$Gene), ";"), function(x) trimws(x[1]))
+      rd$ID <- sapply(strsplit(as.character(rd[[de_gene_col]]), ";"), function(x) trimws(x[1]))
       keep <- !is.na(rd$ID) & nzchar(trimws(rd$ID))
       rd <- rd[keep, , drop = FALSE]
       if (nrow(rd) == 0) next

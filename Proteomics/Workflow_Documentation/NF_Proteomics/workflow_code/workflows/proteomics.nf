@@ -1,20 +1,20 @@
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
+include { GET_PROTEOME } from '../modules/get_proteome.nf'
+include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { ISA_TO_TMT_SHEETS } from '../modules/isa_to_tmt_sheets.nf'
-include { RUNSHEET_TO_FP_METADATA } from '../modules/runsheet_to_fp_metadata.nf'
+include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
 include { STAGE_INPUT } from '../modules/stage_input.nf'
 include { RAWBEANS_QC } from '../modules/rawbeans_qc.nf'
 include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
-include { GET_PROTEOME } from '../modules/get_proteome.nf'
-include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
+include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
+include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
+include { FRAGPIPE } from '../modules/fragpipe.nf'
+include { PMULTIQC } from '../modules/pmultiqc.nf'
 include { MSSTATS } from '../modules/msstats.nf'
 // include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
-include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
-include { FRAGPIPE } from '../modules/fragpipe.nf'
-include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
-include { FP_ANALYST } from '../modules/fp_analyst.nf'
-include { PMULTIQC } from '../modules/pmultiqc.nf'
+include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
@@ -53,13 +53,16 @@ workflow PROTEOMICS {
             }
         }
 
+        // One emission from map/combine is a queue, not a value channel → pairs only with first sample unless we use .first()
+        ch_out_dir = output_dir.first()
+
         // TMT: sample_sheet + data_sheet (runsheet not used). LFQ: runsheet (or generate from ISA).
         def is_tmt = params.fragpipe_workflow?.startsWith('TMT')
         def sheet
 
         if ( is_tmt ) {
             if ( params.data_sheet && params.sample_sheet ) {
-                sheet = Channel.value(params.data_sheet)
+                sheet = Channel.fromPath(params.data_sheet, checkIfExists: true)
             // } else if ( params.accession ) {
             //     // STUB: ISA to TMT sheets. Implement dpt-isa-to-tmt-sheets in dp_tools later.
             //     if ( params.isa_archive == null ) {
@@ -97,10 +100,7 @@ workflow PROTEOMICS {
             .flatMap { sheet_path ->
                 samplesheetToList(sheet_path, sheet_schema)
             }
-            .map { row ->
-                def meta = row[0]
-                tuple(meta, meta.data_file)
-            }
+            .map { row -> row[0] }
 
         // TMT: parse sample_sheet for organism etc. (sample-centric; same meta structure as runsheet)
         sample_sheet_rows = (is_tmt && params.sample_sheet)
@@ -108,9 +108,9 @@ workflow PROTEOMICS {
             : Channel.empty()
 
         // Stage input mzML files for each sample / fraction
-        STAGE_INPUT(output_dir, samples)
+        STAGE_INPUT(ch_out_dir, samples)
         // Run RawBeans QC on each sample's raw data
-        RAWBEANS_QC(output_dir, STAGE_INPUT.out.mzml_files)
+        RAWBEANS_QC(ch_out_dir, STAGE_INPUT.out.mzml_files)
         // Run RawBeans QC on all samples' raw data
         RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
 
@@ -137,8 +137,8 @@ workflow PROTEOMICS {
         // Generate manifest: TMT [sample_sheet, data_sheet]; LFQ [runsheet]
         ch_sample_sheet = (is_tmt && params.sample_sheet) ? Channel.fromPath(params.sample_sheet) : Channel.value(file("${projectDir}/bin/placeholder"))
         ch_sheets = sheet.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
-        RUNSHEET_TO_FP_METADATA(output_dir, ch_sheets)
-        manifest = RUNSHEET_TO_FP_METADATA.out.manifest
+        FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)
+        manifest = FRAGPIPE_METADATA_SETUP.out.manifest
         // }
         
         ///////////////////////////////////////////////////////////
@@ -190,7 +190,7 @@ workflow PROTEOMICS {
 
         // Set database file in FragPipe Config file. For TMT workflows, also enable MSstats outputs [STUB]
         FRAGPIPE_CONFIG_SETUP(output_dir, fragpipe_config, proteome)
-        FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, STAGE_INPUT.out.mzml_files.map { it[1] }.collect(), RUNSHEET_TO_FP_METADATA.out.experiment_annotation)
+        FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, STAGE_INPUT.out.mzml_files.map { it[1] }.collect(), FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
 
         ///////////////////////////////////////////////////////////
         // END HEADLESS FRAGPIPE
@@ -210,9 +210,13 @@ workflow PROTEOMICS {
         } else if (params.reference_table) {
             // Organism for gene annotations lookup. PARSE_ANNOTATIONS_TABLE expects "Homo sapiens" -> "homo_sapiens".
             // Both LFQ (runsheet) and TMT (sample_sheet) use samplesheetToList → meta.organism
+            // LFQ `samples` is already meta-only (row[0] after samplesheetToList). TMT rows are [meta, ...] lists.
             ch_organism_sci = (is_tmt ? sample_sheet_rows : samples)
                 | first
-                | map { it[0].organism ? it[0].organism.toString().replaceAll(" ","_").toLowerCase().trim() : "" }
+                | map { row ->
+                    def meta = row instanceof Map ? row : row[0]
+                    meta?.organism ? meta.organism.toString().replaceAll(" ","_").toLowerCase().trim() : ""
+                }
             ch_organism_branched = ch_organism_sci.branch { org ->
                 has_org: org && org.toString().trim()
                 skip: true
@@ -223,17 +227,17 @@ workflow PROTEOMICS {
         ch_lfq_versions = Channel.empty()
         ch_tmt_versions = Channel.empty()
         if (params.fragpipe_workflow == 'LFQ-MBR') {
-            MSSTATS(output_dir, RUNSHEET_TO_FP_METADATA.out.experiment_annotation, FRAGPIPE.out.msstats_csv)
+            MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.msstats_csv)
             ch_lfq_versions = MSSTATS.out.versions
         }
         // MSstatsTMT - metadata  
         // if (params.fragpipe_workflow?.startsWith('TMT')) {
         //     def takeFirst = { p -> p instanceof List ? p[0] : p }
-        //     MSSTATS_TMT(output_dir, RUNSHEET_TO_FP_METADATA.out.experiment_annotation, FRAGPIPE.out.abundance_peptide.map(takeFirst), sheet)
+        //     MSSTATS_TMT(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.abundance_peptide.map(takeFirst), sheet)
         //     ch_tmt_versions = MSSTATS_TMT.out.versions
         // }
 
-        // FP_ANALYST: levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
+        // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
         def fp_levels = params.fp_analyst_levels ?
             params.fp_analyst_levels.toString().split(',')*.trim().findAll { it } :
             (params.fragpipe_workflow?.startsWith('TMT') ? ['protein','gene','peptide','site'] : ['protein','peptide'])
@@ -246,29 +250,29 @@ workflow PROTEOMICS {
                 (tmt_quant == 'ratio' ? FRAGPIPE.out.ratio_protein : FRAGPIPE.out.abundance_protein).map(takeFirst) :
                 FRAGPIPE.out.combined_protein
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
-                ch_protein.combine(RUNSHEET_TO_FP_METADATA.out.experiment_annotation).map { q, e -> tuple("protein", q, e) })
+                ch_protein.combine(FRAGPIPE_METADATA_SETUP.out.experiment_annotation).map { q, e -> tuple("protein", q, e) })
         }
         if (fp_levels.contains('peptide')) {
             def ch_peptide = params.fragpipe_workflow?.startsWith('TMT') ?
                 (tmt_quant == 'ratio' ? FRAGPIPE.out.ratio_peptide : FRAGPIPE.out.abundance_peptide).map(takeFirst) :
                 FRAGPIPE.out.combined_peptide
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
-                ch_peptide.combine(RUNSHEET_TO_FP_METADATA.out.experiment_annotation).map { q, e -> tuple("peptide", q, e) })
+                ch_peptide.combine(FRAGPIPE_METADATA_SETUP.out.experiment_annotation).map { q, e -> tuple("peptide", q, e) })
         }
         if (params.fragpipe_workflow?.startsWith('TMT') && fp_levels.contains('gene')) {
             def ch_gene = (tmt_quant == 'ratio' ? FRAGPIPE.out.ratio_gene : FRAGPIPE.out.abundance_gene).map(takeFirst)
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
-                ch_gene.combine(RUNSHEET_TO_FP_METADATA.out.experiment_annotation).map { q, e -> tuple("gene", q, e) })
+                ch_gene.combine(FRAGPIPE_METADATA_SETUP.out.experiment_annotation).map { q, e -> tuple("gene", q, e) })
         }
         if (params.fragpipe_workflow?.startsWith('TMT') && fp_levels.contains('site')) {
             def ch_site = (tmt_quant == 'ratio' ? FRAGPIPE.out.ratio_single_site : FRAGPIPE.out.abundance_single_site).map(takeFirst)
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
-                ch_site.combine(RUNSHEET_TO_FP_METADATA.out.experiment_annotation).map { q, e -> tuple("site", q, e) })
+                ch_site.combine(FRAGPIPE_METADATA_SETUP.out.experiment_annotation).map { q, e -> tuple("site", q, e) })
         }
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
-        FP_ANALYST(output_dir, ch_fp_with_annot)
+        FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
 
-        ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FP_ANALYST.out.versions)
+        ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FRAGPIPEANALYSTR.out.versions)
 
         // Software version capturing
         ch_software_versions = Channel.empty()
@@ -276,7 +280,7 @@ workflow PROTEOMICS {
             | mix(RAWBEANS_QC_ALL.out.versions)
             | mix(FRAGPIPE.out.versions)
             | mix(PMULTIQC.out.versions)
-            | mix(RUNSHEET_TO_FP_METADATA.out.versions)
+            | mix(FRAGPIPE_METADATA_SETUP.out.versions)
             | mix(ch_lfq_versions)
         ch_software_versions
             | unique

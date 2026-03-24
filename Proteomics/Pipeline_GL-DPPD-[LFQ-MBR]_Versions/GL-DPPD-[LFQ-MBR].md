@@ -27,6 +27,8 @@ X (X)
     - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
     - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
   - [**3. Create Manifest and Experiment Annotation**](#3-create-manifest-and-experiment-annotation)
+    - [3a. Create Sample Runsheet](#3a-create-sample-runsheet)
+    - [3b. Create Manifest and Experiment Annotation from Runsheet](#3b-create-manifest-and-experiment-annotation-from-runsheet)
   - [**4. FragPipe Processing Pipeline**](#4-fragpipe-processing-pipeline)
     - [4a. Launch FragPipe](#4a-launch-fragpipe)
     - [4b. Check Spectral Files Centroid Status](#4b-check-spectral-files-centroid-status)
@@ -162,25 +164,73 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 ## 3. Create Manifest and Experiment Annotation
 
+### 3a. Create Sample Runsheet
+
+> Note: Rather than running the command below to create the runsheet needed for processing, the runsheet may also be created manually by following the [file specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md).
+
+```bash
+### Download the *ISA.zip file from the Open Science Data Repository ###
+
+dpt-get-isa-archive \
+ --accession OSD-###
+
+### Parse the metadata from the *ISA.zip file to create a sample runsheet ###
+
+dpt-isa-to-runsheet --accession OSD-# \
+  --isa-archive *ISA.zip \
+  --plugin-dir dp_tools__NF_Proteomics_LFQ/
+```
+
+**Parameter Definitions:**
+
+- `--accession` – OSD accession ID or GLDS accession ID (`GLDS-#`), used to retrieve the urls for the ISA archive and raw data hosted in OSDR
+- `--isa-archive` – Specifies the *ISA.zip file for the respective OSD dataset, downloaded in the `dpt-get-isa-archive` command
+- `--plugin-dir` – Directory containing the `dp_tools` plugin used to extract runsheet fields from ISA metadata
+
+**Input Data:**
+
+- No input data required but the OSD (or GLDS) accession ID needs to be indicated, which is used to download the respective ISA archive
+
+**Output Data:**
+
+- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD dataset, used to define sample groups — the *ISA.zip file is located in the [OSDR repository](https://osdr.nasa.gov/bio/repo/) under 'Files' → 'Study Metadata Files')
+
+- **{OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv** (table containing metadata required for processing; version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
+
+<br>
+
+### 3b. Create Manifest and Experiment Annotation from Runsheet
+
 ```bash
 runsheet_to_fp_metadata.py \
-  --runsheet runsheet.csv \
+  --runsheet {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv \
   --assay_suffix _GLProteomics
 ```
 
 **Parameter Definitions:**
 
-- `--runsheet` – path to runsheet CSV (one row per mzML file; see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md))
-- `--assay_suffix` – assay suffix for output filenames; empty = no suffix
+- `--runsheet` – path to runsheet CSV (see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md), output from [Step 3a](#3a-create-sample-runsheet))
+- `--assay_suffix` – assay suffix for output filenames
 
 **Input Data:**
 
-- runsheet.csv (table containing file paths and metadata required for processing)
+- {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv (table containing file paths and metadata required for processing)
 
 **Output Data:**
 
-- **manifest_GLProteomics.tsv** (FragPipe manifest: Path | Experiment | Bioreplicate | Data type; no header)
-- **experiment_annotation_GLProteomics.tsv** (sample metadata and condition assignments for FragPipeAnalystR)
+- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:)
+  - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
+  - Experiment (FragPipe experiment string (from `Factor Value[...]` columns))
+  - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential per `condition`))
+  - Data type (data acquisition type; preset (`DDA`))
+
+- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_label` column; columns in order:)
+  - file (mzML basename (`*.mzML`))
+  - sample (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
+  - sample_name (sample name from runsheet `Sample Name`)
+  - condition_label (human-readable condition from joined `Factor Value[...]` values)
+  - condition (R-safe condition symbol)
+  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential per `condition`))
 
 <br>
 
@@ -214,7 +264,7 @@ fragpipe \
 **Input Data:**
 
 - LFQ-MBR.workflow (FragPipe LFQ-MBR workflow configuration file)
-- manifest_GLProteomics.tsv (manifest file with sample information and file paths, output from [Step 3](#3-create-manifest-and-experiment-annotation))
+- manifest_GLProteomics.tsv (manifest file with sample information and file paths, output from [Step 3b](#3b-create-manifest-and-experiment-annotation-from-runsheet))
 - tools_folder/ (directory containing FragPipe tools not included in the Docker image)
 - *.mzML (input mass spectrometry raw data in mzML format)
 - \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
@@ -831,7 +881,7 @@ The FragPipeAnalystR downstream analysis script is executed twice: once using th
 **Protein run:**
 
 ```bash
-Rscript fp_analyst_main.R \
+Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
   --quantification_file "combined_protein.tsv" \
   --mode "LFQ" \
@@ -862,7 +912,7 @@ Rscript fp_analyst_main.R \
 **Peptide run:**
 
 ```bash
-Rscript fp_analyst_main.R \
+Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
   --quantification_file "combined_peptide.tsv" \
   --mode "LFQ" \
@@ -920,14 +970,14 @@ Rscript fp_analyst_main.R \
 
 **Input Data:**
 
-- experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3](#3-create-manifest-and-experiment-annotation))
+- experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation-from-runsheet))
 - combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
 - gene_annotations.tsv (gene annotations table file; merges into DE_results on Gene )
 
 **Output Data:**
 
-- **fp_analyst_parameters.txt** (run parameters)
+- **FragPipeAnalystR_parameters.txt** (run parameters)
 - **nonimputed_matrix.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns (default: `Intensity`) reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
 - **imputed_matrix.csv** (same structure as nonimputed_matrix; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
 - **QC_plots.zip** (QC plots folder)
@@ -949,7 +999,7 @@ Rscript fp_analyst_main.R \
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
 - **SampleTable.csv** (table specifying the group or set of factor levels for each sample)
 - **contrasts.csv** (table listing all pairwise group comparisons )
-- **DE_results.csv** (differential expression results table; columns in file order):
+- **DE_results.csv** (differential expression results table; columns in order:)
     - Organism-specific gene annotations
     - Protein level:
       - Protein (protein sequence header from search database FASTA; razor protein when peptide maps to multiple)

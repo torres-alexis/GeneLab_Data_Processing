@@ -1,4 +1,4 @@
-process RUNSHEET_TO_FP_METADATA {
+process FRAGPIPE_METADATA_SETUP {
     publishDir "${ch_outdir}/Metadata",
         mode: params.publish_dir_mode,
         pattern: "*.tsv"

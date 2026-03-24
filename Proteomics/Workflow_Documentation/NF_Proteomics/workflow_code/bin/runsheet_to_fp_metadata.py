@@ -8,6 +8,7 @@ Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to FragPipe manifest.t
 
 Outputs (cwd): manifest[.suffix].tsv and experiment_annotation[.suffix].tsv — use --assay_suffix for stem (e.g. _GLProteomics → manifest_GLProteomics.tsv).
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
+  LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
 TMT: Experiment=plex; Bioreplicate=TechRepMixture or "1"; plex column must match FragPipe folder (plex_Bioreplicate).
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
 """
@@ -162,12 +163,14 @@ def main():
             experiment = sample_to_experiment.get(sample_id, "1")
             bioreplicate = sample_to_biorep.get(sample_id, "1")
             sample = f"{experiment}_{bioreplicate}"
+            isa_sample_name = (row.get("Sample Name") or "").strip()
+            sample_name_out = isa_sample_name
             cond_label = _condition_label_from_factors(row, factor_columns) or "Experiment"
             cond_safe = _condition_from_factors(row, factor_columns) or "Experiment"
             exp_rows.append({
                 "file": f"{sample_id}.mzML",
                 "sample": sample,
-                "sample_name": sample,
+                "sample_name": sample_name_out,
                 "condition_label": cond_label,
                 "condition": cond_safe,
                 "replicate": bioreplicate,

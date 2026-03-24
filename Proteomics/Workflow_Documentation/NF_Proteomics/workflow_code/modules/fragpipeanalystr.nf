@@ -1,4 +1,4 @@
-process FP_ANALYST {
+process FRAGPIPEANALYSTR {
     tag "${data_type}"
     containerOptions = "--cleanenv --bind \$PWD,\$HOME/.config,${projectDir}"
     
@@ -45,8 +45,6 @@ process FP_ANALYST {
     def imputation_type = (params.fp_analyst_imputation_type != null && params.fp_analyst_imputation_type != '') ? params.fp_analyst_imputation_type : 'Perseus-type'
     def imputation_shift = params.fp_analyst_imputation_shift != null ? params.fp_analyst_imputation_shift : 1.8
     def imputation_scale = params.fp_analyst_imputation_scale != null ? params.fp_analyst_imputation_scale : 0.3
-    // def min_global = params.fp_analyst_min_global_appearance != null ? params.fp_analyst_min_global_appearance : 0
-    // def min_cond = params.fp_analyst_min_appearance_one_cond != null ? params.fp_analyst_min_appearance_one_cond : 0
     def qc_plot_data = (params.fp_analyst_qc_plot_data != null && params.fp_analyst_qc_plot_data != '') ? params.fp_analyst_qc_plot_data.toString().toLowerCase() : 'nonimputed'
     def sample_cvs_full_range = (params.fp_analyst_sample_cvs_full_range == true || params.fp_analyst_sample_cvs_full_range == 'true') ? 'true' : 'false'
     def volcano_display_names = (params.fp_analyst_volcano_display_names == true || params.fp_analyst_volcano_display_names == 'true') ? 'true' : 'false'
@@ -57,8 +55,8 @@ process FP_ANALYST {
     # Create output directory
     mkdir -p output/
 
-    # Run FragPipe-Analyst R script (executable, matches test_fp_analyst_datasets.R)
-    fp_analyst_main.R \\
+    # GeneLab CLI for FragPipeAnalystR (R package); script lives under workflow projectDir (container bind)
+    Rscript ${projectDir}/bin/FragPipeAnalystR_main.R \\
         --experiment_annotation "${experiment_annotation}" \\
         --quantification_file "${quantification_file}" \\
         --mode "${mode}" \\
@@ -94,7 +92,7 @@ process FP_ANALYST {
     versions <- c();
     versions['R'] <- gsub(' .*', '', gsub('R version ', '', R.version\\\$version.string));
     tryCatch({ versions['FragPipeAnalystR'] <- as.character(packageVersion('FragPipeAnalystR')) }, error = function(e) { versions['FragPipeAnalystR'] <<- 'not installed' });
-    cat('"FP_ANALYST":\\n', paste0('    ', names(versions), ': ', versions, collapse='\\n'), '\\n', sep='', file='versions.yml')
+    cat('"FRAGPIPEANALYSTR":\\n', paste0('    ', names(versions), ': ', versions, collapse='\\n'), '\\n', sep='', file='versions.yml')
     "
     """
 }
