@@ -222,16 +222,16 @@ runsheet_to_fp_metadata.py \
 - **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:)
   - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
   - Experiment (FragPipe experiment string (from `Factor Value[...]` columns))
-  - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential per `condition`))
-  - Data type (data acquisition type; preset (`DDA`))
+  - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
+  - Data type (data acquisition type; preset value (`DDA`))
 
-- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_label` column; columns in order:)
+- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:)
   - file (mzML basename (`*.mzML`))
   - sample (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
   - sample_name (sample name from runsheet `Sample Name`)
-  - condition_label (human-readable condition from joined `Factor Value[...]` values)
+  - condition_name (human-readable condition from joined `Factor Value[...]` values)
   - condition (R-safe condition symbol)
-  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential per `condition`))
+  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
 
 <br>
 
@@ -258,7 +258,7 @@ annotations_link <- org_table[org_table$species == organism, "genelab_annots_lin
 
 **Output Data:**
 
-- annotations_link (variable containing URL of GeneLab gene annotation table for the organism)
+- annotations_link (variable containing URL of organism-specific GeneLab gene annotation table)
 
 <br>
 

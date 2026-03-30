@@ -87,6 +87,55 @@ opt <- parse_args(opt_parser)
   valid[match(v, tolower(valid))]
 }
 
+# LFQ CSV export: rename assay column headers from FragPipe `sample` to `sample_name` (experiment_annotation).
+# `sample_name` is the human-readable column label (Sample Name in SampleTable.csv), not Experiment_Bioreplicate (`sample`).
+# Matches either the exact sample id, or sample id plus a known quantification suffix (post-make.names).
+# Only the sample id prefix is substituted; the suffix is preserved. Append to
+# LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES if new per-sample quantity columns appear in combined reports.
+LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES <- c(
+  ".Intensity",
+  ".MaxLFQ.Intensity",
+  ".Spectral.Count",
+  ".Unique.Spectral.Count",
+  ".Total.Spectral.Count",
+  ".Match.Type"
+)
+
+.lfq_rename_export_colnames_vec <- function(column_names, sample_display_map) {
+  if (is.null(sample_display_map) || length(sample_display_map) == 0L) {
+    return(column_names)
+  }
+  sample_ids <- names(sample_display_map)
+  sample_ids <- sample_ids[order(nchar(sample_ids), decreasing = TRUE)]
+  renamed <- column_names
+  for (sample_id in sample_ids) {
+    display_name <- trimws(as.character(sample_display_map[[sample_id]]))
+    if (!nzchar(display_name) || is.na(display_name)) {
+      display_name <- sample_id
+    }
+    is_exact <- renamed == sample_id
+    if (any(is_exact)) {
+      renamed[is_exact] <- display_name
+    }
+    for (quant_suffix in LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES) {
+      suffixed_name <- paste0(sample_id, quant_suffix)
+      is_suffixed <- renamed == suffixed_name
+      if (any(is_suffixed)) {
+        renamed[is_suffixed] <- paste0(display_name, quant_suffix)
+      }
+    }
+  }
+  renamed
+}
+
+.lfq_rename_export_df <- function(df, sample_display_map) {
+  if (is.null(sample_display_map) || length(sample_display_map) == 0L) {
+    return(df)
+  }
+  colnames(df) <- .lfq_rename_export_colnames_vec(colnames(df), sample_display_map)
+  df
+}
+
 # Validate required
 if (is.null(opt$experiment_annotation) || is.null(opt$quantification_file) || is.null(opt$mode) || is.null(opt$level)) {
   stop("Required: --experiment_annotation, --quantification_file, --mode, --level")
@@ -117,7 +166,7 @@ fn_ <- function(base, ext) paste0(base, ".", ext)
 # Log raw inputs (reproducibility)
 param_path <- file.path(output_dir, fn_("FragPipeAnalystR_parameters", "txt"))
 writeLines(c(
-  "FragPipeAnalystR run parameters (GeneLab pipeline CLI)",
+  "FragPipeAnalystR script parameters",
   "======================================================",
   paste("experiment_annotation:", opt$experiment_annotation),
   paste("quantification_file:", opt$quantification_file),
@@ -174,19 +223,25 @@ cat("mode:", mode, "| level:", level, "| lfq_type:", lfq_type, "\n")
 # level:    protein | peptide | gene | site | glycan  (TMT default: gene; LFQ/DIA default: protein)
 # lfq_type: Intensity | MaxLFQ | Spectral Count  (LFQ mode only; maps to quant columns)
 # Optional (not in CLI): exp_type (global|phospho|glyco|acetyl|ubiquit), log2transform, gencode, additional_cols
-# LFQ: protein matrix has one column per sample; annotation may have multiple rows per sample (tech reps).
-# Deduplicate by sample so rownames(expdesign) <- sample_name does not hit duplicate row.names.
+# LFQ: one matrix column per sample; the annotation file may list the same sample on multiple rows
+# (e.g. technical replicates). Keep the first row per `sample` so experimental design row names are unique.
 exp_anno_path <- opt$experiment_annotation
 if (mode == "LFQ") {
-  anno_pre <- read.table(opt$experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-  colnames(anno_pre) <- tolower(colnames(anno_pre))
-  if (!"sample" %in% colnames(anno_pre)) stop("experiment_annotation requires 'sample' column for LFQ")
-  dup <- duplicated(anno_pre$sample)
-  if (any(dup)) {
-    anno_dedup <- anno_pre[!dup, , drop = FALSE]
+  annotation_tbl <- read.table(opt$experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  colnames(annotation_tbl) <- tolower(colnames(annotation_tbl))
+  if (!"sample" %in% colnames(annotation_tbl)) {
+    stop("experiment_annotation requires 'sample' column for LFQ")
+  }
+  duplicate_sample_row <- duplicated(annotation_tbl$sample)
+  if (any(duplicate_sample_row)) {
+    annotation_unique <- annotation_tbl[!duplicate_sample_row, , drop = FALSE]
     exp_anno_path <- tempfile(fileext = ".tsv")
-    write.table(anno_dedup, exp_anno_path, sep = "\t", row.names = FALSE, quote = FALSE)
-    cat("Deduplicated annotation: ", sum(dup), " duplicate sample rows removed, ", nrow(anno_dedup), " unique samples\n")
+    write.table(annotation_unique, exp_anno_path, sep = "\t", row.names = FALSE, quote = FALSE)
+    cat(
+      "Deduplicated experiment_annotation: removed ", sum(duplicate_sample_row),
+      " duplicate row(s); ", nrow(annotation_unique), " unique sample id(s).\n",
+      sep = ""
+    )
   }
 }
 library(FragPipeAnalystR)
@@ -199,6 +254,20 @@ data_se <- make_se_from_files(
 )
 if (is.null(data_se)) stop("make_se_from_files failed")
 cat("SummarizedExperiment:", nrow(data_se), "features,", ncol(data_se), "samples\n")
+
+# LFQ: map FragPipe sample id to display name for exported CSV column headers (one row per sample in colData).
+lfq_sample_display_map <- NULL
+if (mode == "LFQ") {
+  col_data_df <- as.data.frame(colData(data_se))
+  if (all(c("sample", "sample_name") %in% names(col_data_df))) {
+    sample_ids <- as.character(col_data_df$sample)
+    sample_names <- trimws(as.character(col_data_df$sample_name))
+    missing_display <- !nzchar(sample_names) | is.na(sample_names)
+    sample_names[missing_display] <- sample_ids[missing_display]
+    unique_pairs <- unique(data.frame(sample = sample_ids, sample_name = sample_names, stringsAsFactors = FALSE))
+    lfq_sample_display_map <- stats::setNames(unique_pairs$sample_name, unique_pairs$sample)
+  }
+}
 
 # global_filter / filter_by_condition: commented out (custom filter not in FragPipeAnalystR)
 # global_filter <- function(se, pct_present) {
@@ -217,27 +286,33 @@ cat("SummarizedExperiment:", nrow(data_se), "features,", ncol(data_se), "samples
 #   se[keep, ]
 # }
 filtered_se <- data_se
+row_filter_stage_ran <- FALSE
+# When row filters are re-enabled: set row_filter_stage_ran <- TRUE each time a filter runs (even if 0 rows removed).
 # if (min_global > 0) {
 #   filtered_se <- global_filter(filtered_se, min_global)
+#   row_filter_stage_ran <- TRUE
 #   cat("global_filter: kept", nrow(filtered_se), "features (min", min_global, "% present globally)\n")
 # }
 # if (min_cond > 0) {
 #   filtered_se <- filter_by_condition(filtered_se, min_cond)
+#   row_filter_stage_ran <- TRUE
 #   cat("filter_by_condition: kept", nrow(filtered_se), "features (min", min_cond, "% in one condition)\n")
 # }
 
 # --- Normalization (FragPipeAnalystR: MD_normalization, GN_normalization, VSN_normalization) ---
+# Pipeline: raw (data_se) -> filtered_se (row filter if enabled) -> normalized_se -> imputed_se
 # none | MD (median subtraction) | GN (median + MAD scaling) | vsn (variance-stabilizing; LFQ/DIA intensity only)
 if (norm_method != "none") {
-  filtered_se <- switch(tolower(norm_method),
+  normalized_se <- switch(tolower(norm_method),
     "md" = MD_normalization(filtered_se),
     "gn" = GN_normalization(filtered_se),
     "vsn" = VSN_normalization(filtered_se),
     stop("Invalid normalization_method: ", norm_method)
   )
   cat("Normalization applied:", norm_method, "\n")
+} else {
+  normalized_se <- filtered_se
 }
-normalized_se <- filtered_se
 
 # --- Imputation (FragPipeAnalystR: impute with fun=man for Perseus-type, else MSnbase) ---
 # Perseus-type -> manual_impute(se, shift, scale); others -> impute(se, fun=...)
@@ -542,7 +617,7 @@ if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && !is.null(d
       de_df$..ord.. <- seq_len(nrow(de_df))
       de_df <- merge(annot_merge[, annot_cols, drop = FALSE], de_df, by = de_gene_col, all.y = TRUE)
       de_df <- de_df[order(de_df$..ord..), setdiff(colnames(de_df), "..ord..")]
-      cat("GeneLab annotations merged into DE_results (", best_col, "→", de_gene_col, ", ", best_n, "/",
+      cat("Gene annotations merged into DE_results (", best_col, "→", de_gene_col, ", ", best_n, "/",
         length(de_genes), " matches)\n", sep = "")
     } else {
       warning("No annotation column matched ", de_gene_col, "; skipping annotation merge")
@@ -601,20 +676,33 @@ for (c in conditions) {
 other_cols <- setdiff(colnames(de_df), c(contrast_cols, fixed_order, group_mean_cols, group_stdev_cols))
 de_df <- de_df[, c(other_cols, contrast_cols, fixed_order, group_pairs)]
 
+if (!is.null(lfq_sample_display_map)) de_df <- .lfq_rename_export_df(de_df, lfq_sample_display_map)
+
 write.csv(de_df, file.path(de_dir, fn_("DE_results", "csv")), row.names = FALSE)
 cat("DE_results.csv saved\n")
 
-# --- Data table exports (only stages that changed the data); written to output_dir root ---
-# Assay values: log2 for Intensity/MaxLFQ (FragPipeAnalystR make_se log2transform=T); raw for Spectral Count.
-.write_table_stage <- function(se, fname, stage) {
+# --- Matrix CSV exports (output_dir root) ---
+# LFQ: assay columns use sample_name (Sample Name), not sample / Experiment_Bioreplicate; see LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES.
+.write_table_stage <- function(se, fname, stage, sample_display_map = NULL) {
   df <- cbind(as.data.frame(rowData(se)), as.data.frame(assay(se)))
   df <- df[, !duplicated(colnames(df))]
+  if (!is.null(sample_display_map)) {
+    df <- .lfq_rename_export_df(df, sample_display_map)
+  }
   write.csv(df, file.path(output_dir, fname), row.names = FALSE)
   cat(stage, "table saved:", fname, "\n")
 }
 sfx <- assay_suffix
-.write_table_stage(data_se, paste0("nonimputed_matrix", sfx, ".csv"), "Nonimputed")
-if (imp_type != "none") .write_table_stage(imputed_se, paste0("imputed_matrix", sfx, ".csv"), "Imputed")
+.write_table_stage(data_se, paste0("nonimputed_matrix", sfx, ".csv"), "Nonimputed", sample_display_map = lfq_sample_display_map)
+if (row_filter_stage_ran) {
+  .write_table_stage(filtered_se, paste0("filtered_matrix", sfx, ".csv"), "Filtered", sample_display_map = lfq_sample_display_map)
+}
+if (norm_method != "none") {
+  .write_table_stage(normalized_se, paste0("normalized_matrix", sfx, ".csv"), "Normalized", sample_display_map = lfq_sample_display_map)
+}
+if (imp_type != "none") {
+  .write_table_stage(imputed_se, paste0("imputed_matrix", sfx, ".csv"), "Imputed", sample_display_map = lfq_sample_display_map)
+}
 
 # --- Contrasts table (row1=numerator, row2=denominator) ---
 # Headers use condition_label when available; row entries use raw condition
