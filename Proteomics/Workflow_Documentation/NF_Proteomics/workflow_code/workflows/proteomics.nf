@@ -56,7 +56,7 @@ workflow PROTEOMICS {
         // One emission from map/combine is a queue, not a value channel → pairs only with first sample unless we use .first()
         ch_out_dir = output_dir.first()
 
-        // TMT: sample_sheet + data_sheet (runsheet not used). LFQ: runsheet (or generate from ISA).
+        // TMT: data_sheet + sample_sheet (runsheet not used). LFQ: runsheet (or generate from ISA).
         def is_tmt = params.fragpipe_workflow?.startsWith('TMT')
         def sheet
 
@@ -73,7 +73,7 @@ workflow PROTEOMICS {
             //     }
             //     sheet = ISA_TO_TMT_SHEETS.out.data_sheet.map { it.toString() }
             } else {
-                error "TMT workflows require --sample_sheet and --data_sheet."
+                error "TMT workflows require --data_sheet and --sample_sheet."
             }
         } else {
             // LFQ: runsheet from params or ISA
@@ -134,7 +134,7 @@ workflow PROTEOMICS {
             proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
         }
 
-        // Generate manifest: TMT [sample_sheet, data_sheet]; LFQ [runsheet]
+        // Generate manifest: TMT [data_sheet, sample_sheet]; LFQ [runsheet]
         ch_sample_sheet = (is_tmt && params.sample_sheet) ? Channel.fromPath(params.sample_sheet) : Channel.value(file("${projectDir}/bin/placeholder"))
         ch_sheets = sheet.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
         FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)

@@ -270,9 +270,9 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional Required Parameters For [4e](#4e-run-the-tmt10-workflow-on-a-custom-dataset):**
 
-* `--sample_sheet` - Path to the sample sheet containing sample level metadata and sample-to-channel mapping
-
 * `--data_sheet` - Path to the data sheet containing the mzML files for each plex
+
+* `--sample_sheet` - Path to the sample sheet containing sample level metadata and sample-to-channel mapping
 
 * `--fragpipe_workflow` - Fragpipe workflow configuration option: `TMT10`, `TMT16`, or `TMT16-phospho`
 
@@ -284,7 +284,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
-* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or sample sheet and data sheet (TMT) are missing (type: string, default: null)
+* `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: conf/tools)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)

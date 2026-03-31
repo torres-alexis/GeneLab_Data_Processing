@@ -332,8 +332,8 @@ if (imp_type != "none") {
 qc_use_imputed <- tolower(trimws(.or(opt$qc_plot_data, "nonimputed"))) == "imputed"
 qc_se <- if (qc_use_imputed) imputed_se else normalized_se
 # PCA / correlation heatmap: prefer human-readable factor column when present
-qc_indicate_col <- if ("condition_label" %in% names(colData(qc_se))) {
-  "condition_label"
+qc_indicate_col <- if ("condition_name" %in% names(colData(qc_se))) {
+  "condition_name"
 } else {
   "condition"
 }
@@ -385,8 +385,8 @@ if (any(is.na(assay(normalized_se)))) {
   cat("Missing value heatmap saved\n")
 }
 # Feature numbers (barplot: features per sample; fill stacks by condition or label)
-fn_fill_col <- if ("condition_label" %in% names(colData(normalized_se))) {
-  "condition_label"
+fn_fill_col <- if ("condition_name" %in% names(colData(normalized_se))) {
+  "condition_name"
 } else {
   "condition"
 }
@@ -396,13 +396,13 @@ ggplot2::ggsave(file.path(qc_dir, fn_("feature_numbers", "pdf")), p_fn, width = 
 ggplot2::ggsave(file.path(qc_dir, fn_("feature_numbers", "png")), p_fn, width = 8, height = 5, dpi = 150)
 cat("Feature numbers plot saved\n")
 # plot_cvs() / get_density() / plot_feature() (static box|violin) in FragPipeAnalystR hardcode colData$condition.
-# Shallow copy: remap condition -> factor(condition_label) for those calls only (limma/DE still use qc_se above).
+# Shallow copy: remap condition -> factor(condition_name) for those calls only (limma/DE still use qc_se above).
 qc_se_fpa_condition <- qc_se
-if (qc_indicate_col == "condition_label") {
+if (qc_indicate_col == "condition_name") {
   cd <- colData(qc_se_fpa_condition)
-  cd$condition <- factor(cd$condition_label)
+  cd$condition <- factor(cd$condition_name)
   colData(qc_se_fpa_condition) <- cd
-  cat("FPA plots using hardcoded colData$condition: remapped from condition_label (plot_cvs, get_density, plot_feature)\n")
+  cat("FPA plots using hardcoded colData$condition: remapped from condition_name (plot_cvs, get_density, plot_feature)\n")
 }
 # Sample CVs (can fail when sparse data yields all NA/Inf CVs)
 cvs_scale <- !(tolower(trimws(.or(opt$sample_cvs_full_range, "false"))) == "true")
@@ -433,7 +433,7 @@ tryCatch({
 })
 
 # Feature boxplots/violins (top N variable or feature list)
-feat_plot_se <- qc_se_fpa_condition # same condition_label remap as CV/density; FPA plot_feature aes(condition, ...)
+feat_plot_se <- qc_se_fpa_condition # same condition_name remap as CV/density; FPA plot_feature aes(condition, ...)
 # Helpers: top N variable by rowname or by rowData column
 top_n_by_rownames <- function(se, n) {
   if (n <= 0 || nrow(se) == 0) return(character(0))
@@ -525,7 +525,7 @@ if (level == "protein" && !is.null(qc_gene_col) && (length(fl_gene) > 0 || top_n
   }
 }
 
-# --- Sample table (Sample Name | Experiment_Bioreplicate | condition [+ condition_label]) ---
+# --- Sample table (Sample Name | Experiment_Bioreplicate | condition [+ condition_name]) ---
 anno <- read.table(opt$experiment_annotation, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 sample_table <- data.frame(
   "Sample Name" = anno[["sample_name"]],
@@ -534,8 +534,8 @@ sample_table <- data.frame(
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
-if ("condition_label" %in% colnames(anno)) {
-  sample_table[["condition_label"]] <- anno[["condition_label"]]
+if ("condition_name" %in% colnames(anno)) {
+  sample_table[["condition_name"]] <- anno[["condition_name"]]
 }
 sample_fname <- paste0("SampleTable", if (nzchar(assay_suffix)) assay_suffix else "", ".csv")
 write.csv(sample_table, file.path(de_dir, sample_fname), row.names = FALSE)
@@ -568,9 +568,9 @@ de_df$All.stdev <- matrixStats::rowSds(assay_mat, na.rm = TRUE)
 cd <- as.data.frame(colData(de_se))
 conds <- cd$condition[match(colnames(assay_mat), rownames(cd))]
 if (!any(is.na(conds))) {
-  cond_to_label <- if ("condition_label" %in% colnames(anno)) {
-    u <- unique(anno[, c("condition", "condition_label")])
-    setNames(as.character(u$condition_label), as.character(u[["condition"]]))
+  cond_to_label <- if ("condition_name" %in% colnames(anno)) {
+    u <- unique(anno[, c("condition", "condition_name")])
+    setNames(as.character(u$condition_name), as.character(u[["condition"]]))
   } else NULL
   ucond <- unique(conds)
   for (c in ucond) {
@@ -626,7 +626,7 @@ if (nzchar(trimws(gene_annotations)) && gene_annotations != "null" && !is.null(d
 }
 
 # --- Rename DE columns to pipeline doc expected format: Log2fc_, P.value_, Adj.p.value_, Significant_, CI.L_, CI.R_ ---
-cond_label_col <- if ("condition_label" %in% colnames(anno)) "condition_label" else NULL
+cond_label_col <- if ("condition_name" %in% colnames(anno)) "condition_name" else NULL
 cond_to_label_de <- if (!is.null(cond_label_col)) {
   u <- unique(anno[, c("condition", cond_label_col)])
   setNames(as.character(u[[cond_label_col]]), as.character(u[["condition"]]))
@@ -705,8 +705,8 @@ if (imp_type != "none") {
 }
 
 # --- Contrasts table (row1=numerator, row2=denominator) ---
-# Headers use condition_label when available; row entries use raw condition
-cond_label_col <- if ("condition_label" %in% colnames(anno)) "condition_label" else NULL
+# Headers use condition_name when available; row entries use raw condition
+cond_label_col <- if ("condition_name" %in% colnames(anno)) "condition_name" else NULL
 cond_to_label <- if (!is.null(cond_label_col)) {
   u <- unique(anno[, c("condition", cond_label_col)])
   setNames(as.character(u[[cond_label_col]]), as.character(u[["condition"]]))
@@ -764,8 +764,8 @@ tryCatch({
     de_se_hm <- SummarizedExperiment::SummarizedExperiment(
       assays = list(a), colData = S4Vectors::DataFrame(cd), rowData = rowData(de_se), metadata = metadata(de_se))
   }
-  de_hm_indicate_col <- if ("condition_label" %in% names(colData(de_se_hm))) {
-    "condition_label"
+  de_hm_indicate_col <- if ("condition_name" %in% names(colData(de_se_hm))) {
+    "condition_name"
   } else {
     "condition"
   }

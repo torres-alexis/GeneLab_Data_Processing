@@ -19,17 +19,18 @@
             },
             "fraction": {
                 "type": ["string", "integer"],
-                "description": "Fraction number when multiple fractions per plex."
+                "description": "Fraction number when multiple fractions per plex.",
+                "meta": ["fraction"]
             },
             "TechRepMixture": {
                 "type": ["string", "integer"],
                 "description": "Technical replicate of same mixture (1, 2 when same plex run twice; default 1). Maps to manifest Bioreplicate.",
-                "meta": ["optional", "TMT"]
+                "meta": ["tech_rep_mixture"]
             },
             "Bioreplicate": {
                 "type": ["string", "integer"],
                 "description": "Biological replicate. Optional.",
-                "meta": ["optional"]
+                "meta": ["bioreplicate"]
             },
             "data_file": {
                 "type": "string",

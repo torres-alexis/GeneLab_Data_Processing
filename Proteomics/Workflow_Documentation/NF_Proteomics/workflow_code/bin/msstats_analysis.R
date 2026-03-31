@@ -33,7 +33,7 @@ if (assay_suffix != "") {
     raw$Run <- gsub(assay_suffix, "", raw$Run, fixed = TRUE)
 }
 
-# Read experiment_annotation (same source as FragPipeAnalystR_main.R; condition/condition_label from runsheet_to_fp_metadata)
+# Read experiment_annotation (same source as FragPipeAnalystR_main.R; condition/condition_name from runsheet_to_fp_metadata)
 anno <- read.table(experiment_annotation_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 colnames(anno) <- tolower(colnames(anno))
 if (!"condition" %in% colnames(anno)) {
@@ -48,15 +48,15 @@ raw$Condition <- condition_lookup[Run_for_lookup]
 if (all(is.na(raw$Condition))) {
     stop("MSstats Run values do not match experiment_annotation file. Run sample: ", paste(head(unique(raw$Run), 5), collapse = ", "))
 }
-safe_to_label <- if ("condition_label" %in% colnames(anno) && all(nzchar(trimws(anno$condition_label)))) {
-    u <- unique(anno[, c("condition", "condition_label")])
-    setNames(u$condition_label, u$condition)
+safe_to_label <- if ("condition_name" %in% colnames(anno) && all(nzchar(trimws(anno$condition_name)))) {
+    u <- unique(anno[, c("condition", "condition_name")])
+    setNames(u$condition_name, u$condition)
 } else {
     setNames(anno$condition, anno$condition)
 }
 
 print("Condition mapping from experiment_annotation:")
-print(anno[, intersect(c("file", "condition", "condition_label"), colnames(anno)), drop = FALSE])
+print(anno[, intersect(c("file", "condition", "condition_name"), colnames(anno)), drop = FALSE])
 
 # Debug: Print unique Condition values in raw data
 print("Unique Condition values in raw data after matching:")

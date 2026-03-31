@@ -3,8 +3,8 @@
 """
 Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to FragPipe manifest.tsv and experiment_annotation.tsv.
 
-  --runsheet: LFQ input (one row per mzML). --data_sheet: TMT input. Mode: data_sheet→TMT, runsheet→LFQ.
-  --sample_sheet: TMT only; required for experiment_annotation.
+  --runsheet: LFQ input (one row per mzML). TMT: pass --data_sheet first, then --sample_sheet. Mode: data_sheet→TMT, runsheet→LFQ.
+  --sample_sheet: TMT only; required for experiment_annotation (paired with --data_sheet).
 
 Outputs (cwd): manifest[.suffix].tsv and experiment_annotation[.suffix].tsv — use --assay_suffix for stem (e.g. _GLProteomics → manifest_GLProteomics.tsv).
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
@@ -33,7 +33,7 @@ def _make_names_safe(s: str) -> str:
     return out
 
 
-def _condition_label_from_factors(row: dict, factor_columns: list) -> str:
+def _condition_name_from_factors(row: dict, factor_columns: list) -> str:
     """Join Factor Values with ' & '."""
     values = [row.get(c, "").strip() for c in factor_columns if row.get(c, "").strip()]
     return " & ".join(values) if values else ""
@@ -48,7 +48,7 @@ def _sanitize_for_fragpipe(s: str) -> str:
 
 def _condition_from_factors(row: dict, factor_columns: list) -> str:
     """FragPipe sanitize + R-safe."""
-    raw = _condition_label_from_factors(row, factor_columns)
+    raw = _condition_name_from_factors(row, factor_columns)
     if not raw:
         return ""
     return _make_names_safe(_sanitize_for_fragpipe(raw))
@@ -61,14 +61,14 @@ def main():
     parser.add_argument("--runsheet", default="", help="LFQ: path to runsheet CSV (one row per mzML)")
     parser.add_argument("--data_sheet", default="", help="TMT: path to data sheet CSV (one row per mzML). Use --runsheet or --data_sheet.")
     parser.add_argument(
-        "--assay_suffix",
-        default="",
-        help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
-    )
-    parser.add_argument(
         "--sample_sheet",
         default="",
         help="TMT only: path to sample_sheet CSV (channel-centric). Required for TMT experiment_annotation.",
+    )
+    parser.add_argument(
+        "--assay_suffix",
+        default="",
+        help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
     )
     args = parser.parse_args()
 
@@ -101,16 +101,16 @@ def main():
     sample_to_experiment = {}
 
     def _get_sample_id(row):
-        return row.get("run", "").strip() or row.get("Sample Name", "").strip()
+        return row.get("run", "").strip()
 
     for row in rows:
         sample_name = _get_sample_id(row)
         if not sample_name:
             continue
         if mode == "LFQ":
-            cond_label = _condition_label_from_factors(row, factor_columns)
-            if cond_label:
-                sample_to_experiment[sample_name] = _sanitize_for_fragpipe(cond_label)
+            cond_name = _condition_name_from_factors(row, factor_columns)
+            if cond_name:
+                sample_to_experiment[sample_name] = _sanitize_for_fragpipe(cond_name)
             else:
                 sample_to_experiment[sample_name] = "1"
         if mode == "LFQ" and has_bioreplicate_col and row.get("Bioreplicate", "").strip():
@@ -153,7 +153,7 @@ def main():
     print(f"Manifest written to {manifest_path}")
 
     if mode == "LFQ":
-        exp_fieldnames = ["file", "sample", "sample_name", "condition_label", "condition", "replicate"]
+        exp_fieldnames = ["file", "sample", "sample_name", "condition", "condition_name", "replicate"]
         exp_rows = []
         for row in rows:
             input_file_path = row.get("data_file", "").strip()
@@ -165,14 +165,14 @@ def main():
             sample = f"{experiment}_{bioreplicate}"
             isa_sample_name = (row.get("Sample Name") or "").strip()
             sample_name_out = isa_sample_name
-            cond_label = _condition_label_from_factors(row, factor_columns) or "Experiment"
+            cond_name = _condition_name_from_factors(row, factor_columns) or "Experiment"
             cond_safe = _condition_from_factors(row, factor_columns) or "Experiment"
             exp_rows.append({
                 "file": f"{sample_id}.mzML",
                 "sample": sample,
                 "sample_name": sample_name_out,
-                "condition_label": cond_label,
                 "condition": cond_safe,
+                "condition_name": cond_name,
                 "replicate": bioreplicate,
             })
         with open(exp_anno_path, "w", newline="\n") as f:
@@ -181,7 +181,7 @@ def main():
             writer.writerows(exp_rows)
         print(f"Experiment annotation written to {exp_anno_path}")
 
-    # TMT: write experiment_annotation from sample_sheet + data_sheet (requires --sample_sheet)
+    # TMT: write experiment_annotation from data_sheet + sample_sheet (requires --sample_sheet)
     # plex column must match FragPipe folder = Experiment_Bioreplicate (e.g. TMTa_1, TMTa_2 when multiple runs)
     # Per https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html: one annotation.txt per plex folder
     if mode == "TMT" and args.sample_sheet:
@@ -217,7 +217,7 @@ def main():
                 plex_base_to_channels[plex] = []
             plex_base_to_channels[plex].append(row)
 
-        exp_fieldnames = ["plex", "channel", "sample", "sample_name", "condition_label", "condition", "replicate"]
+        exp_fieldnames = ["plex", "channel", "sample", "sample_name", "condition", "condition_name", "replicate"]
         exp_rows = []
         for folder, plex_base in folder_to_plex_base.items():
             channel_rows = plex_base_to_channels.get(plex_base, [])
@@ -227,11 +227,11 @@ def main():
                     continue
                 channel = row.get("channel", "").strip()
                 replicate = row.get("Bioreplicate", "").strip() or "1"
-                cond_label = _condition_label_from_factors(row, factor_cols)
-                cond_safe = _condition_from_factors(row, factor_cols) if cond_label else _sanitize_for_fragpipe(sample_name)
+                cond_name = _condition_name_from_factors(row, factor_cols)
+                cond_safe = _condition_from_factors(row, factor_cols) if cond_name else _sanitize_for_fragpipe(sample_name)
                 sample_base = _sanitize_for_fragpipe(sample_name) or sample_name
                 if plex_base in plex_needs_folder_prefix:
-                    sample_fp = _sanitize_for_fragpipe(f"{folder}_{sample_name}") or f"{folder}_{sample_name}"
+                    sample_fp = _sanitize_for_fragpipe(f"{folder}_{sample_name}")
                 else:
                     sample_fp = sample_base
                 exp_rows.append({
@@ -239,8 +239,8 @@ def main():
                     "channel": channel,
                     "sample": sample_fp,
                     "sample_name": sample_fp,
-                    "condition_label": cond_label or sample_name,
-                    "condition": cond_safe or _make_names_safe(sample_name),
+                    "condition": cond_safe,
+                    "condition_name": cond_name,
                     "replicate": replicate,
                 })
         with open(exp_anno_path, "w", newline="\n") as f:
