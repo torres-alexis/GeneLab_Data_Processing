@@ -102,7 +102,7 @@ cd ..
 
 **Input Data:**
 
-- *.mzML (input mass spectrometry raw data in mzML format)
+- \*.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -131,7 +131,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 **Input Data:**
 
-- *.mzML (all input mass spectrometry raw data files in mzML format)
+- \*.mzML (all input mass spectrometry raw data files in mzML format)
 
 **Output Data:**
 
@@ -314,7 +314,7 @@ annotations_link <- org_table[org_table$species == organism, "genelab_annots_lin
 - fragpipe.workflow (FragPipe output workflow configuration file)
 - fragpipe-files.fp-manifest (FragPipe output manifest)
 - fragpipe.job (FragPipe job configuration file)
-- log_*.txt (FragPipe execution log file with timestamp)
+- log_\*.txt (FragPipe execution log file with timestamp)
 - sdrf.tsv (Sample and Data Relationship Format file)
 
 <br>
@@ -322,9 +322,8 @@ annotations_link <- org_table[org_table$species == organism, "genelab_annots_lin
 ### 4b. Check Spectral Files Centroid Status
 
 ```bash
-java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
+java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 16
 ```
-<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
 **Parameter Definitions:**
 
@@ -332,11 +331,11 @@ java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar
 - `-cp` – Java classpath to FragPipe and BatMass libraries
 - `org.nesvilab.fragpipe.util.CheckCentroid` – CheckCentroid main class
 - `*.mzML` – input mzML file(s) to check
-- `31` – number of CPU threads to use
+- `16` – number of CPU threads to use
 
 **Input Data:**
 
-- *.mzML (input mass spectrometry raw data in mzML format)
+- \*.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
@@ -350,10 +349,6 @@ java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar
 philosopher-v5.1.3-RC9 workspace --clean --nocheck
 philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
 ```
-<!-- ```bash
-philosopher workspace --clean --nocheck
-philosopher workspace --init --nocheck --temp /tmp/temp_directory
-``` -->
 
 **Parameter Definitions:**
 
@@ -451,7 +446,7 @@ java -Xmx64G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
   --only-psms \
   --no-terminate \
   --post-processing-tdc \
-  --num-threads 31 \
+  --num-threads 16 \
   --results-psms *_percolator_target_psms.tsv \
   --decoy-results-psms *_percolator_decoy_psms.tsv \
   --protein-decoy-pattern rev_ \
@@ -463,7 +458,7 @@ percolator \
   --only-psms \
   --no-terminate \
   --post-processing-tdc \
-  --num-threads 31 \
+  --num-threads 16 \
   --results-psms *_percolator_target_psms.tsv \
   --decoy-results-psms *_percolator_decoy_psms.tsv \
   --protein-decoy-pattern rev_ \
@@ -702,7 +697,7 @@ java -Djava.awt.headless=true -Xmx64G \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar \
   ionquant.IonQuant \
-  --threads 31 \
+  --threads 16 \
   --perform-ms1quant 1 \
   --perform-isoquant 0 \
   --isotol 20.0 \
@@ -746,7 +741,7 @@ java -Xmx64G \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
   ionquant.IonQuant \
-  --threads 31 \
+  --threads 16 \
   --perform-ms1quant 1 \
   --perform-isoquant 0 \
   --isotol 20.0 \
