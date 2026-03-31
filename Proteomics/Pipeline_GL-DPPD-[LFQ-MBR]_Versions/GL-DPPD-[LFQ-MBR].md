@@ -1,18 +1,18 @@
 # GeneLab bioinformatics processing pipeline for Mass Spectrometry-based Proteomics Data (LFQ-MBR Workflow)
 
-> **This page holds an overview and instructions for how GeneLab processes mass spectrometry-based proteomics data using the LFQ-MBR (Label-Free Quantification with Match-Between-Runs) workflow. Exact processing commands, GL-DPPD-[LFQ-MBR] version used, and processed data output files for specific datasets are provided in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
+> **This page holds an overview and instructions for how GeneLab processes mass spectrometry-based proteomics data using the LFQ-MBR (Label-Free Quantification with Match-Between-Runs) workflow. Exact processing commands, GL-DPPD-[STUB] version used, and processed data output files for specific datasets are provided in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
 
 ---
 
-**Date:** March X, 2026  
+**Date:** March [STUB], 2026  
 **Revision:** A  
-**Document Number:** GL-DPPD-[LFQ-MBR]-A  
+**Document Number:** GL-DPPD-[STUB]-A  
 
 **Submitted by:**  
 Alexis Torres (GeneLab Data Processing Team)  
 
 **Approved by:**  
-X (X)
+[STUB]
 
 ---
 
@@ -69,13 +69,15 @@ X (X)
 
 # General processing overview with example commands  
 
-<img src="../Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png" align="center" alt="Proteomics LFQ-MBR processing workflow"/>
+<img src="../Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png" align="center" alt="Proteomics LFQ-MBR processing workflow [STUB]"/>
 
 > Exact processing commands and output files listed in **bold** below are included with each relevant mass spectrometry-based proteomics processed dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/). 
 
 ---
 
 ## 1. Raw Data QC  
+
+<br>
 
 ### 1a. RawBeans QC (Samplewise)
 
@@ -84,18 +86,18 @@ create-qc-report.py \
   --input *.mzML \
   --output-dir . \
   --batch \
-  --cores NumberOfThreads
+  --cores 1
 
 cd *
-zip -r ../*-report.zip qc-report.html resources/
+zip -r ../*_GLProteomics_qc-report.zip qc-report.html resources/
 cd ..
 ```
 
 **Parameter Definitions:**
 
-- `--input` – one mzML file path
+- `--input` – input mzML file path
 - `--output-dir` – the output directory to store results
-- `--batch` – process file in batch mode (creates subdirectory for output)
+- `--batch` – creates a report for each sample
 - `--cores` – number of CPU cores to use for processing
 
 **Input Data:**
@@ -104,9 +106,9 @@ cd ..
 
 **Output Data:**
 
-- */qc-report.html (RawBeans QC report HTML file)
-- */resources/ (directory containing supporting files for the QC report HTML)
-- ***_qc-report.zip** (zip archive containing qc-report.html and resources/ folder)
+- qc-report.html (RawBeans QC report HTML file)
+- resources/ (directory containing supporting files for the QC report HTML)
+- **\\*_GLProteomics_qc-report.zip** (zip archive containing RawBeans QC report HTML file and supporting files)
 
 <br>
 
@@ -116,7 +118,7 @@ cd ..
 create-qc-report.py \
   --input sample1.mzML sample2.mzML \
   --output-dir . \
-  --cores NumberOfThreads
+  --cores 1
 
 zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 ```
@@ -129,13 +131,13 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 **Input Data:**
 
-- *.mzML (input mass spectrometry raw data in mzML format)
+- *.mzML (all input mass spectrometry raw data files in mzML format)
 
 **Output Data:**
 
 - qc-report.html (RawBeans QC report HTML file for all samples)
 - resources/ (directory containing supporting files for the QC report HTML)
-- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples combined)
+- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
 
 <br>
 
@@ -157,13 +159,15 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 **Output Data:**
 
-- \*-decoys-reviewed-contam-*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
+- \*-decoys-reviewed-contam-\*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
 
 <br>
 
 ---
 
 ## 3. Configure Metadata
+
+<br>
 
 ### 3a. Create Sample Runsheet
 
@@ -194,7 +198,7 @@ dpt-isa-to-runsheet --accession OSD-# \
 
 **Output Data:**
 
-- *ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD dataset, used to define sample groups — the *ISA.zip file is located in the [OSDR repository](https://osdr.nasa.gov/bio/repo/) under 'Files' → 'Study Metadata Files')
+- \*ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD dataset, used to define sample groups — the *ISA.zip file is located in the [OSDR repository](https://osdr.nasa.gov/bio/repo/) under 'Files' → 'Study Metadata Files')
 
 - **{OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv** (table containing metadata required for processing; version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
 
@@ -210,28 +214,28 @@ runsheet_to_fp_metadata.py \
 
 **Parameter Definitions:**
 
-- `--runsheet` – path to runsheet CSV (see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md), output from [Step 3a](#3a-create-sample-runsheet))
+- `--runsheet` – path to runsheet CSV (see [Runsheet Specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md))
 - `--assay_suffix` – assay suffix for output filenames
 
 **Input Data:**
 
-- {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv (table containing file paths and metadata required for processing)
+- {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv (table containing file paths and metadata required for processing, output from [Step 3a](#3a-create-sample-runsheet) or created manually)
 
 **Output Data:**
 
-- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:)
+- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
   - Experiment (FragPipe experiment string (from `Factor Value[...]` columns))
   - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
-  - Data type (data acquisition type; preset value (`DDA`))
+  - Data type (data acquisition type; preset value (`DDA`)))
 
-- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:)
+- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
   - file (mzML basename (`*.mzML`))
   - sample (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
   - sample_name (sample name from runsheet `Sample Name`)
-  - condition_name (human-readable condition from joined `Factor Value[...]` values)
-  - condition (R-safe condition symbol)
-  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
+  - condition (R-safe condition symbol from joined `Factor Value[...]` values)
+  - condition_name (human-readable condition)
+  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`)))
 
 <br>
 
@@ -266,10 +270,12 @@ annotations_link <- org_table[org_table$species == organism, "genelab_annots_lin
 
 ## 4. FragPipe Processing Pipeline
 
+<br>
+
 ### 4a. Launch FragPipe
 
 ```bash
-fragpipe \
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/bin/fragpipe \
   --headless \
   --workflow LFQ-MBR.workflow \
   --manifest manifest_GLProteomics.tsv \
@@ -283,19 +289,19 @@ fragpipe \
 
 - `--headless` – run FragPipe in headless mode (no GUI)
 - `--workflow` – path to FragPipe workflow configuration file
-- `--manifest` – path to manifest TSV file containing sample information
+- `--manifest` – path to manifest TSV file containing sample information and file paths
 - `--workdir` – working directory for FragPipe execution
 - `--ram` – Memory (GB) allocated to FragPipe
-- `--threads` – number of CPU threads to use
-- `--config-tools-folder` – path to folder containing FragPipe tools not included in the Docker image (e.g., MSFragger, IonQuant, diaTracer JAR files)
+- `--threads` – number of CPU threads allocated to FragPipe
+- `--config-tools-folder` – path to folder containing FragPipe tools not included in the Docker image (MSFragger JAR, IonQuant JAR, diaTracer JAR, ext/bruker/, ext/thermo/)
 
 **Input Data:**
 
 - LFQ-MBR.workflow (FragPipe LFQ-MBR workflow configuration file)
 - manifest_GLProteomics.tsv (manifest file with sample information and file paths, output from [Step 3b](#3b-create-manifest-and-experiment-annotation-from-runsheet))
 - tools_folder/ (directory containing FragPipe tools not included in the Docker image)
-- *.mzML (input mass spectrometry raw data in mzML format)
-- \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- \*.mzML (input mass spectrometry raw data in mzML format)
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -305,26 +311,24 @@ fragpipe \
 - filelist_ionquant.txt (file list for IonQuant)
 - modmasses_ionquant.txt (modification masses file for IonQuant)
 - experiment_annotation.tsv (experiment annotation file)
-- fragpipe.workflow (updated FragPipe workflow configuration file)
-- fragpipe-files.fp-manifest (FragPipe files manifest)
+- fragpipe.workflow (FragPipe output workflow configuration file)
+- fragpipe-files.fp-manifest (FragPipe output manifest)
 - fragpipe.job (FragPipe job configuration file)
 - log_*.txt (FragPipe execution log file with timestamp)
 - sdrf.tsv (Sample and Data Relationship Format file)
-
-<!-- > **Note:** FragPipe generates these configuration files during launch to configure and orchestrate all subsequent Fragpipe processing steps. These files contain parameters, file lists, and workflow settings used by the various tools in the pipeline. -->
 
 <br>
 
 ### 4b. Check Spectral Files Centroid Status
 
 ```bash
-java -Xmx55G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
+java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 31
 ```
 <!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
 **Parameter Definitions:**
 
-- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `-cp` – Java classpath to FragPipe and BatMass libraries
 - `org.nesvilab.fragpipe.util.CheckCentroid` – CheckCentroid main class
 - `*.mzML` – input mzML file(s) to check
@@ -368,7 +372,7 @@ philosopher workspace --init --nocheck --temp /tmp/temp_directory
 ### 4d. MSFragger Database Search
 
 ```bash
-java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.4.1.jar fragger.params sample1.mzML sample2.mzML
+java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.4.1.jar fragger.params sample1.mzML sample2.mzML
 ```
 <!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
@@ -376,7 +380,7 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.4.1.jar fragger.params sampl
 
 - `-jar` – executes JAR file
 - `-Dfile.encoding=UTF-8` – sets file encoding to UTF-8
-- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `MSFragger-4.4.1.jar` – MSFragger JAR file
 - `fragger.params` – MSFragger parameter configuration file
 - `*.mzML` – multiple mzML files provided as individual paths separated by spaces
@@ -385,7 +389,7 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.4.1.jar fragger.params sampl
 
 - fragger.params (MSFragger parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - *.mzML (input mass spectrometry raw data in mzML format)
-- \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -403,17 +407,17 @@ java -jar -Dfile.encoding=UTF-8 -Xmx55G MSFragger-4.4.1.jar fragger.params sampl
 ### 4e. MSBooster Deep Learning Feature Addition
 
 ```bash
-java -Djava.awt.headless=true -Xmx55G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/MSBooster-1.4.14.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar mainsteps.MainClass --paramsList msbooster_params.txt
+java -Djava.awt.headless=true -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/MSBooster-1.4.14.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar mainsteps.MainClass --paramsList msbooster_params.txt
 ```
 <!-- CLI mode (backup):
 ```bash
-java -Xmx55G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
+java -Xmx64G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
 ``` -->
 
 **Parameter Definitions:**
 
 - `-Djava.awt.headless=true` – runs in headless mode (no GUI)
-- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `-cp` – Java classpath to MSBooster and BatMass libraries
 - `mainsteps.MainClass` – MSBooster main class
 - `--paramsList` – path to MSBooster parameter configuration file
@@ -582,7 +586,7 @@ philosopher database --annotate *.fas --prefix rev_
 
 **Input Data:**
 
-- \*-decoys-reviewed-contam-*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
@@ -693,7 +697,7 @@ philosopher report
 ### 4k. IonQuant Label-Free Quantification
 
 ```bash
-java -Djava.awt.headless=true -Xmx55G \
+java -Djava.awt.headless=true -Xmx64G \
   -Dlibs.bruker.dir=tools/ext/bruker \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar \
@@ -737,7 +741,7 @@ java -Djava.awt.headless=true -Xmx55G \
 ```
 <!-- CLI mode (backup):
 ```bash
-java -Xmx55G \
+java -Xmx64G \
   -Dlibs.bruker.dir=tools/ext/bruker \
   -Dlibs.thermo.dir=tools/ext/thermo \
   -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
@@ -783,7 +787,7 @@ java -Xmx55G \
 **Parameter Definitions:**
 
 - `-Djava.awt.headless=true` – run in headless mode (no GUI)
-- `-Xmx55G` – Java memory limit (e.g., `-Xmx55G` for 55 GB RAM)
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `-Dlibs.bruker.dir` – directory for Bruker libraries
 - `-Dlibs.thermo.dir` – directory for Thermo libraries
 - `-cp` – Java classpath to jfreechart and IonQuant JAR files
@@ -1027,7 +1031,7 @@ Rscript FragPipeAnalystR_main.R \
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
 - **SampleTable.csv** (table specifying the group or set of factor levels for each sample)
 - **contrasts.csv** (table listing all pairwise group comparisons )
-- **DE_results.csv** (differential expression results table; columns in order:)
+- **DE_results.csv** (differential expression results table; columns in order:
     - Organism-specific gene annotations
     - Protein level:
       - Protein (protein sequence header from search database FASTA; razor protein when peptide maps to multiple)
@@ -1083,4 +1087,4 @@ Rscript FragPipeAnalystR_main.R \
     - All.stdev (standard deviation across all samples)
     - For each group:
       - Group.Mean_(group) (mean within group)
-      - Group.Stdev_(group) (standard deviation within group)
+      - Group.Stdev_(group) (standard deviation within group))

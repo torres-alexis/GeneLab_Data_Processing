@@ -5,15 +5,15 @@
 The runsheet is a CSV file that contains the metadata required for processing mass spectrometry-based proteomics datasets through GeneLab's Proteomics processing pipeline.
 
 - **LFQ-MBR workflow** uses a single runsheet: one row per mzML file, with sample and experiment metadata.
-- **TMT workflows** use two CSV files: a **sample sheet** with channel-to-sample mapping and experiment metadata; and a **data sheet** with file paths and run identifiers.
+- **TMT workflows** use two CSV files: a **data sheet** with file paths and run identifiers; and a **sample sheet** with channel-to-sample mapping and experiment metadata.
 
 
 ## Examples
 
-1. [Runsheet for OSD-581](OSD-209_proteomics_v1_runsheet.csv)
+1. [Runsheet for OSD-581](OSD-209_proteomics_LFQ_v1_runsheet.csv)
 2. **TMT**:
-   - [Sample sheet for TMT10 experiment OSD-514](OSD-514_proteomics_v1_sample_sheet.csv)
-   - [Data sheet for TMT10 experiment OSD-514](OSD-514_proteomics_v1_data_sheet.csv)
+   - [Data sheet for OSD-514](OSD-514_proteomics_TMT_v1_data_sheet.csv)
+   - [Sample sheet for OSD-514](OSD-514_proteomics_TMT_v1_sample_sheet.csv)
 
 ## Runsheet
 
@@ -37,6 +37,19 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 
 ---
 
+## Data sheet
+
+### Required columns
+
+| Column Name | Type | Description | Example |
+|:------------|:-----|:------------|:--------|
+| run | string | Unique identifier for each mzML file (MS run). | NASA_Flies_TMTA_Fr00 |
+| plex | string | Plex identifier (e.g. TMTa, TMTb). | TMTa |
+| TechRepMixture | string | Technical replicate of same mixture. Also maps to FragPipe manifest Bioreplicate. (Default: 1) | 1 |
+| data_file | string | Path to mzML file. | /path/to/NASA_Flies_TMTA_Fr00.mzML |
+<!--| data_type | string | Mass spectrometry acquisition method. Options: DDA | DDA | -->
+<!-- | data_type | string | Mass spectrometry acquisition method. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA | -->
+
 ## Sample sheet
 
 ### Required columns
@@ -56,16 +69,3 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | Source Name | string | Identifier linking samples. | Spaceflight microgravity Male 1 |
-
-## Data sheet
-
-### Required columns
-
-| Column Name | Type | Description | Example |
-|:------------|:-----|:------------|:--------|
-| run | string | Unique identifier for each mzML file (MS run). | NASA_Flies_TMTA_Fr00 |
-| plex | string | Plex identifier (e.g. TMTa, TMTb). | TMTa |
-| TechRepMixture | string | Technical replicate of same mixture. Also maps to FragPipe manifest Bioreplicate. (Default: 1) | 1 |
-| data_file | string | Path to mzML file. | /path/to/NASA_Flies_TMTA_Fr00.mzML |
-<!--| data_type | string | Mass spectrometry acquisition method. Options: DDA | DDA | -->
-<!-- | data_type | string | Mass spectrometry acquisition method. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA | -->
