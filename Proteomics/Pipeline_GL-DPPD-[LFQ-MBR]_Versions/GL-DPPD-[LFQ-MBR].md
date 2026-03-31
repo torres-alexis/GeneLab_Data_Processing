@@ -108,7 +108,7 @@ cd ..
 
 - qc-report.html (RawBeans QC report HTML file)
 - resources/ (directory containing supporting files for the QC report HTML)
-- **\\*_GLProteomics_qc-report.zip** (zip archive containing RawBeans QC report HTML file and supporting files)
+- **\*_GLProteomics_qc-report.zip** (zip archive containing RawBeans QC report HTML file and supporting files)
 
 <br>
 
