@@ -346,8 +346,8 @@ java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar
 ### 4c. Initialize Workspace
 
 ```bash
-philosopher-v5.1.3-RC9 workspace --clean --nocheck
-philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 workspace --clean --nocheck
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
 ```
 
 **Parameter Definitions:**
@@ -369,7 +369,6 @@ philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
 ```bash
 java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.4.1.jar fragger.params sample1.mzML sample2.mzML
 ```
-<!-- CLI mode (backup) - same command, no changes needed for headless mode -->
 
 **Parameter Definitions:**
 
@@ -383,19 +382,15 @@ java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.4.1.jar fragger.params sampl
 **Input Data:**
 
 - fragger.params (MSFragger parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
-- *.mzML (input mass spectrometry raw data in mzML format)
+- \*.mzML (input mass spectrometry raw data in mzML format)
 - \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-create-proteome-fasta-database))
 
 **Output Data:**
 
-- ***.pepXML** (peptide-spectrum matches from the MSFragger database search)
-- ***.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
-- ***.pepindex** (peptide index files for the FASTA database)
-- ***.tsv** (MSFragger results in tab-separated format)
-
-<!-- > **Note:** MSFragger performs the database search and reports PSMs and associated search scores in pin files. See [MSFragger GitHub](https://github.com/Nesvilab/MSFragger) for details. -->
-
-<!-- > **Note:** **PIN (Percolator Input)** files are tab-delimited files containing peptide-spectrum matches (PSMs) with features and scores. MSFragger generates PIN files with basic features (e.g., hyperscore, delta score, retention time, charge). MSBooster adds additional deep learning-based features (e.g., spectral entropy, hypergeometric probability, intersection, predicted RT, delta RT LOESS) to these PIN files. **pepXML (Peptide XML)** is an open data format developed at the SPC/Institute for Systems Biology for the storage, exchange, and processing of peptide sequence assignments of MS/MS scans. It provides a common data output format for many different MS/MS search engines and subsequent peptide-level analyses. See [pepXML format documentation](http://tools.proteomecenter.org/wiki/index.php?title=Formats:pepXML) for details. -->
+- **\*.pepXML** (peptide-spectrum matches from the MSFragger database search)
+- **\*.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
+- **\*.pepindex** (peptide index files for the FASTA database)
+- **\*.tsv** (MSFragger results in tab-separated format)
 
 <br>
 
@@ -404,10 +399,6 @@ java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.4.1.jar fragger.params sampl
 ```bash
 java -Djava.awt.headless=true -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/MSBooster-1.4.14.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar mainsteps.MainClass --paramsList msbooster_params.txt
 ```
-<!-- CLI mode (backup):
-```bash
-java -Xmx64G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass --paramsList msbooster_params.txt
-``` -->
 
 **Parameter Definitions:**
 
@@ -420,18 +411,16 @@ java -Xmx64G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
 **Input Data:**
 
 - msbooster_params.txt (MSBooster parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
-- *.pin (Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
-- *.mzML (original mass spectrometry raw data in mzML format)
+- \*.pin (Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
+- \*.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
-- *_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
+- \*_edited.pin (Percolator input files with added deep learning features from MSBooster: unweighted spectral entropy, weighted spectral entropy, hypergeometric probability, intersection, predicted RT real units, and delta RT LOESS)
 - spectraRT_full.tsv (full spectra retention time data)
 - spectraRT.predicted.bin (binary file containing predicted spectra, retention times, and ion mobilities from DIA-NN)
 - spectraRT.tsv (spectra retention time data)
 - MSBooster_plots/ (Directory containing MSBooster calibration and diagnostic plots)
-
-<!-- > **Note:** MSBooster extracts peptides from pin files and creates input for a deep learning model (DIA-NN in FragPipe) to predict physicochemical properties (RT, IM, and/or MS/MS spectra). Predictions are performed for candidate peptides reported by MSFragger. MSBooster generates features based on agreement between experimental and predicted values and adds them to the pin files, which are then passed to Percolator. See [MSBooster GitHub](https://github.com/Nesvilab/MSBooster) and [Yang et al. (2023) Nature Communications](https://pmc.ncbi.nlm.nih.gov/articles/PMC10374903/). -->
 
 <br>
 
@@ -452,18 +441,6 @@ java -Xmx64G -cp MSBooster-1.3.17.jar:batmass-io-1.35.4.jar mainsteps.MainClass 
   --protein-decoy-pattern rev_ \
   *_edited.pin
 ```
-<!-- CLI mode (backup):
-```bash
-percolator \
-  --only-psms \
-  --no-terminate \
-  --post-processing-tdc \
-  --num-threads 16 \
-  --results-psms *_percolator_target_psms.tsv \
-  --decoy-results-psms *_percolator_decoy_psms.tsv \
-  --protein-decoy-pattern rev_ \
-  *_edited.pin
-``` -->
 
 **Parameter Definitions:**
 
@@ -478,14 +455,12 @@ percolator \
 
 **Input Data:**
 
-- *_edited.pin (Percolator input files with MSBooster features, output from [Step 4e](#4e-msbooster-deep-learning-feature-addition))
+- \*_edited.pin (Percolator input files with MSBooster features, output from [Step 4e](#4e-msbooster-deep-learning-feature-addition))
 
 **Output Data:**
 
-- *_percolator_target_psms.tsv (Percolator target PSM results in TSV format)
-- *_percolator_decoy_psms.tsv (Percolator decoy PSM results in TSV format)
-
-<!-- > **Note:** Percolator learns a linear support vector machine (SVM) to differentiate true target PSMs from decoy PSMs using features in the pin files (including deep learning-based features added by MSBooster). Percolator assigns an SVM score and posterior error probability to each PSM. -->
+- \*_percolator_target_psms.tsv (Percolator target PSM results in TSV format)
+- \*_percolator_decoy_psms.tsv (Percolator decoy PSM results in TSV format)
 
 <br>
 
@@ -503,7 +478,6 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
   0.5 \
   *.mzML
 ```
-<!-- CLI mode (backup) - N/A -->
 
 **Parameter Definitions:**
 
@@ -516,20 +490,18 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
 - `interact-*` – output pepXML file prefix
 - `DDA` – data acquisition type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)
 - `0.5` – minimum probability threshold (1 - PEP); filters out PSMs with PEP > 0.5
-- `*.mzML` – original mzML file path
+- `*.mzML` – input mzML file path
 
 **Input Data:**
 
-- *.pin (original Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
-- *_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
-- *_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
-- *.mzML (original mass spectrometry raw data in mzML format)
+- \*.pin (original Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
+- \*_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
+- \*_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 4f1](#4f1-perform-percolator-psm-rescoring-and-statistical-validation))
+- \*.mzML (input mass spectrometry raw data in mzML format)
 
 **Output Data:**
 
-- interact-*.pep.xml (peptide-spectrum matches with validation information generated by Percolator)
-
-<!-- > **Note:** The temporary `*_percolator_target_psms.tsv` and `*_percolator_decoy_psms.tsv` files are deleted after conversion to pepXML format. -->
+- interact-\*.pep.xml (peptide-spectrum matches with validation information generated by Percolator)
 
 <br>
 
@@ -538,28 +510,22 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
 ```bash
 /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
 ```
-<!-- CLI mode (backup):
-```bash
-philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_proteinprophet.txt
-``` -->
 
 **Parameter Definitions:**
 
 - `proteinprophet` – run ProteinProphet to generate probabilities for protein identifications based on MS/MS data
 - `--maxppmdiff` – maximum peptide mass difference in ppm
-- `--output combined` – output file name
+- `--output combined` – output file name; results in `combined.prot.xml`
 - `filelist_proteinprophet.txt` – list of interact.pep.xml files to be passed to ProteinProphet
 
 **Input Data:**
 
 - filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 4a](#4a-launch-fragpipe))
-- interact-*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 4f2](#4f2-add-percolator-validation-information-to-pepxml))
+- interact-\*.pep.xml (pepXML files listed in filelist_proteinprophet.txt, output from [Step 4f2](#4f2-add-percolator-validation-information-to-pepxml))
 
 **Output Data:**
 
 - combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher)
-
-<!-- > **Note:** ProteinProphet generates probabilities for protein identifications by combining peptide identifications corresponding to the same protein and using peptide probabilities. It addresses peptide degeneracy (when one peptide corresponds to several different proteins) and groups proteins into clusters within the protXML `<protein group>` element. Proteins sharing identified peptides are grouped together, and Occam's Razor is applied to assign probabilities (often assigning probability of zero to unneeded proteins in a group to present the shortest list of proteins needed to explain the data). See [ProteinProphet documentation](http://tools.proteomecenter.org/wiki/index.php?title=Software:ProteinProphet) for details. -->
 
 <br>
 
@@ -568,10 +534,6 @@ philosopher proteinprophet --maxppmdiff 2000000 --output combined filelist_prote
 ```bash
 /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 database --annotate *.fas --prefix rev_
 ```
-<!-- CLI mode (backup):
-```bash
-philosopher database --annotate *.fas --prefix rev_
-``` -->
 
 **Parameter Definitions:**
 
@@ -614,30 +576,6 @@ philosopher database --annotate *.fas --prefix rev_
   --probin first_sample_directory \
   --razor
 ```
-<!-- CLI mode (backup):
-```bash
-# First sample (initializes database annotation)
-philosopher filter \
-  --sequential \
-  --prot 0.01 \
-  --picked \
-  --tag rev_ \
-  --pepxml sample_directory \
-  --protxml combined.prot.xml \
-  --razor
-
-# Subsequent samples (reuse database annotation from first sample)
-philosopher filter \
-  --sequential \
-  --prot 0.01 \
-  --picked \
-  --tag rev_ \
-  --pepxml sample_directory \
-  --dbbin first_sample_directory \
-  --protxml combined.prot.xml \
-  --probin first_sample_directory \
-  --razor
-``` -->
 
 **Parameter Definitions:**
 
@@ -670,10 +608,6 @@ philosopher filter \
 ```bash
 /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 report
 ```
-<!-- CLI mode (backup):
-```bash
-philosopher report
-``` -->
 
 **Input Data:**
 
@@ -695,7 +629,7 @@ philosopher report
 java -Djava.awt.headless=true -Xmx64G \
   -Dlibs.bruker.dir=tools/ext/bruker \
   -Dlibs.thermo.dir=tools/ext/thermo \
-  -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar \
+  -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar:tools/IonQuant-1.11.20.jar \
   ionquant.IonQuant \
   --threads 16 \
   --perform-ms1quant 1 \
@@ -722,7 +656,7 @@ java -Djava.awt.headless=true -Xmx64G \
   --peptidefdr 1 \
   --normalization 1 \
   --minisotopes 2 \
-  --intensitymode 0 \
+  --intensitymode 2 \
   --minscans 3 \
   --writeindex 0 \
   --tp 0 \
@@ -734,50 +668,6 @@ java -Djava.awt.headless=true -Xmx64G \
   --filelist filelist_ionquant.txt \
   --modlist modmasses_ionquant.txt
 ```
-<!-- CLI mode (backup):
-```bash
-java -Xmx64G \
-  -Dlibs.bruker.dir=tools/ext/bruker \
-  -Dlibs.thermo.dir=tools/ext/thermo \
-  -cp jfreechart-1.5.3.jar:IonQuant-1.11.11.jar \
-  ionquant.IonQuant \
-  --threads 16 \
-  --perform-ms1quant 1 \
-  --perform-isoquant 0 \
-  --isotol 20.0 \
-  --isolevel 2 \
-  --isotype tmt10 \
-  --ionmobility 0 \
-  --site-reports 1 \
-  --msstats 1 \
-  --minexps 1 \
-  --mbr 1 \
-  --maxlfq 1 \
-  --requantify 1 \
-  --mztol 10 \
-  --imtol 0.05 \
-  --rttol 0.4 \
-  --mbrmincorr 0 \
-  --mbrrttol 1 \
-  --mbrimtol 0.05 \
-  --mbrtoprun 10 \
-  --ionfdr 0.01 \
-  --proteinfdr 1 \
-  --peptidefdr 1 \
-  --normalization 1 \
-  --minisotopes 2 \
-  --intensitymode 0 \
-  --minscans 3 \
-  --writeindex 0 \
-  --tp 0 \
-  --minfreq 0 \
-  --minions 1 \
-  --locprob 0.75 \
-  --uniqueness 0 \
-  --multidir . \
-  --filelist filelist_ionquant.txt \
-  --modlist modmasses_ionquant.txt
-``` -->
 
 **Parameter Definitions:**
 
@@ -787,14 +677,14 @@ java -Xmx64G \
 - `-Dlibs.thermo.dir` – directory for Thermo libraries
 - `-cp` – Java classpath to jfreechart and IonQuant JAR files
 - `ionquant.IonQuant` – IonQuant main class
-- `--threads` – number of CPU threads to use (0 = all logical cores)
+- `--threads` – number of CPU threads to use
 - `--perform-ms1quant 1` – perform MS1 quantification (0 = no, 1 = yes)
 - `--perform-isoquant 0` – perform isobaric labeling quantification (0 = no, 1 = yes)
 - `--mbr 1` – perform match-between-runs (0 = no, 1 = yes)
 - `--maxlfq 1` – calculate MaxLFQ intensity (0 = no, 1 = yes)
 - `--msstats 1` – generate MSstats input files (0 = no, 1 = yes)
 - `--site-reports 1` – generate site reports (0 = no, 1 = yes; requires modification localization columns in psm.tsv)
-- `--multidir .` – output directory for multi-experimental results (optional)
+- `--multidir .` – output directory for multi-experimental results
 - `--filelist` – file containing flags (tab-delimited file with `--psm` entries pointing to sample-specific psm.tsv files and `--specdir` entry pointing to the directory containing mzML files)
 - `--modlist` – file listing modification masses (used to remove mass discrepancy due to rounding errors)
 - `--specdir` – directory containing spectral files (mzML/mzXML/raw/quantindex); can specify multiple
@@ -807,7 +697,7 @@ java -Xmx64G \
 - peptide.tsv (sample-specific peptide report, output from [Step 4j](#4j-generate-reports))
 - psm.tsv (sample-specific PSM report, output from [Step 4j](#4j-generate-reports))
 - ion.tsv (sample-specific ion report, output from [Step 4j](#4j-generate-reports))
-- *.mzML (original mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in filelist_ionquant.txt to extract intensity data for MS1 quantification and match-between-runs feature matching)
+- \*.mzML (input mass spectrometry raw data in mzML format; accessed via `--specdir` parameter specified in filelist_ionquant.txt to extract intensity data for MS1 quantification and match-between-runs feature matching)
 
 **Output Data:**
 
@@ -815,7 +705,7 @@ java -Xmx64G \
 - peptide.tsv (sample-specific peptide report with MS1 quantification data and additional data added from IonQuant)
 - ion.tsv (sample-specific ion report with MS1 quantification data and additional data added from IonQuant)
 - psm.tsv (sample-specific PSM report with MS1 quantification data and additional data added from IonQuant)
-- *_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
+- \*_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
 - **combined_protein.tsv** (combined protein report with MS1 quantification data across all samples)
 - **combined_peptide.tsv** (combined peptide report with MS1 quantification data and additional data across all samples)
 - **combined_modified_peptide.tsv** (combined modified peptide report with MS1 quantification data and additional data across all samples)
