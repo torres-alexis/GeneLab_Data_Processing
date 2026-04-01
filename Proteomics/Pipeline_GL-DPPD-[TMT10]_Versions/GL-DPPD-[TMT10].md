@@ -45,6 +45,7 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4k. IonQuant TMT Reporter Ion Extraction](#4k-ionquant-tmt-reporter-ion-extraction)
     - [4l. TMTIntegrator TMT Quantification](#4l-tmtintegrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
+  - [**6. FragPipeAnalystR Downstream Analysis**](#6-fragpipeanalystr-downstream-analysis)
 
 ---
 
@@ -906,3 +907,200 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 - **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data with cleaned paths)
 
 <br>
+
+---
+
+## 6. FragPipeAnalystR Downstream Analysis
+
+The FragPipeAnalystR downstream analysis script is executed three times: once using the **protein**-level quantification file (abundance_protein_MD.tsv), once using the **gene**-level quantification file (abundance_gene_MD.tsv), and once using the **peptide**-level quantification file (abundance_peptide_MD.tsv).
+
+**Protein run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_protein_MD.tsv" \
+  --mode "TMT" \
+  --level "protein" \
+  --feature_list_protein "" \
+  --feature_list_gene "" \
+  --top_n_protein 10 \
+  --top_n_gene 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Gene run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_gene_MD.tsv" \
+  --mode "TMT" \
+  --level "gene" \
+  --feature_list_gene "" \
+  --top_n_gene 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Peptide run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_peptide_MD.tsv" \
+  --mode "TMT" \
+  --level "peptide" \
+  --feature_list_peptide "" \
+  --top_n_peptide 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Parameter Definitions:**
+
+- `--experiment_annotation` – path to experiment annotation TSV file (table mapping TMT channels to samples)
+- `--quantification_file` – path to TMTIntegrator abundance file (abundance_protein_MD.tsv, abundance_gene_MD.tsv, or abundance_peptide_MD.tsv)
+- `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
+- `--level` – analysis level: `protein`, `gene`, or `peptide`
+- `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling)
+- `--de_alpha` – adjusted p-value threshold for DE significance
+- `--de_lfc` – log2 fold change threshold for DE significance
+- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` 
+- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `nbavg`, `mixed` 
+- `--imputation_shift` – Perseus-type: manual_impute shift in SD units 
+- `--imputation_scale` – Perseus-type: manual_impute scale factor 
+- `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` 
+- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene`. Protein level only
+- `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` 
+- `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID 
+- `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene 
+- `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID 
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed`. If nonimputed has <2 complete features, PCA falls back to imputed with a warning
+- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 
+- `--volcano_display_names` – display names on significant volcano points 
+- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano. Peptide level uses Index; set `false` for peptide
+- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip 
+- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) 
+- `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
+- `--gene_annotations` – path or URL of gene annotations TSV/CSV; merges into DE_results on Gene. Empty = skip
+- `--assay_suffix` – assay suffix for output filenames; empty = no suffix
+- `--output_dir` – output directory for results
+
+**Input Data:**
+
+- experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- abundance_protein_MD.tsv (TMTIntegrator protein-level abundance table, output from [Step 4l](#4l-tmtintegrator-tmt-quantification))
+- abundance_gene_MD.tsv (TMTIntegrator gene-level abundance table, output from [Step 4l](#4l-tmtintegrator-tmt-quantification))
+- abundance_peptide_MD.tsv (TMTIntegrator peptide-level abundance table, output from [Step 4l](#4l-tmtintegrator-tmt-quantification))
+- annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
+
+**Output Data:**
+
+- **FragPipeAnalystR_parameters.txt** (run parameters)
+- **nonimputed_matrix.csv** (from abundance_protein_MD.tsv / abundance_gene_MD.tsv / abundance_peptide_MD.tsv: contaminants removed. NAs where feature not detected.)
+- **imputed_matrix.csv** (same structure as nonimputed_matrix; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
+- **QC_plots.zip** (QC plots folder)
+  - pca.pdf, .png (PCA plot)
+  - missing_value_heatmap.pdf, .png (missing value pattern heatmap)
+  - feature_numbers.pdf, .png (feature count per sample)
+  - sample_cvs.pdf, .png (sample coefficient of variation)
+  - density.pdf, .png (intensity distribution)
+- **comparison_plots.zip** (comparison plots folder)
+  - correlation_heatmap.pdf, .png (sample correlation heatmap)
+  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (protein run: top 10 by protein ID and gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/gene/boxplot/, feature/gene/violinplot/ (gene run: top 10 by gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+- **pathway_analysis_plots.zip** (pathway analysis plots folder)
+  - or/ (over-representation analysis: or_database_direction.csv, .pdf, .png per database and direction)
+  - gsea/ (GSEA: gsea_database_contrast.csv, .pdf, .png per database and contrast)
+- **DE_plots.zip** (DE plots folder)
+  - DE_heatmap.pdf, .png (DE heatmap)
+  - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
+- **SampleTable.csv** (table specifying the group or set of factor levels for each sample)
+- **contrasts.csv** (table listing all pairwise group comparisons )
+- **DE_results.csv** (differential expression results table; columns in order:
+    - Organism-specific gene annotations
+    - Protein level:
+      - Index (protein-group key from the quantification table; same string as `ProteinID` at protein level)
+      - NumberPSM (PSM count for the protein group)
+      - MaxPepProb (maximum peptide probability among PSMs used in quantification)
+      - ReferenceIntensity (log2 reference / bridge-channel intensity)
+      - ProteinID (protein group identifier; duplicate of `Index` at protein level)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID` / `Index`)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - Gene level:
+      - Index (gene name)
+      - NumberPSM (PSMs mapping to the gene that are used in quantification)
+      - ProteinID (protein identifier mapped to the gene)
+      - MaxPepProb (highest PeptideProphet probability among PSMs mapping to the gene that are used in quantification)
+      - ReferenceIntensity (log2 reference-channel abundance; real reference if provided, otherwise virtual reference from mean abundance across channels in the plex; global minimum reference for imputation; multi-plex: averaged across plexes)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID` — protein identifier mapped to the gene)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - Peptide level:
+      - Index (FASTA protein sequence header with start and end positions of the peptide within the protein)
+      - Gene (originating gene name)
+      - Peptide (stripped peptide sequence)
+      - NumberPSM (PSMs mapping to the peptide that are used in quantification)
+      - ProteinID (protein identifier)
+      - SequenceWindow (sequence window in the peptide report)
+      - MaxPepProb (highest PeptideProphet probability among PSMs for this peptide sequence used in quantification)
+      - ReferenceIntensity (log2 reference-channel abundance; real reference if provided, otherwise virtual reference from mean abundance across channels in the plex; global minimum reference for imputation; multi-plex: averaged across plexes)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID`)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - \* (sample / channel columns; log2 reporter abundance or ratio from the quantification matrix)
+    - For each pairwise group comparison (B)v(A):
+      - CI.L_(B)v(A) (lower bound of log2 fold-change confidence interval)
+      - CI.R_(B)v(A) (upper bound of log2 fold-change confidence interval)
+      - Log2fc_(B)v(A) (log2 fold change)
+      - P.value_(B)v(A) (unadjusted p-value)
+      - Adj.p.value_(B)v(A) (Benjamini-Hochberg adjusted p-value)
+      - Significant_(B)v(A) (boolean at chosen FDR and fold-change thresholds)
+    - significant (global; TRUE if significant in any contrast)
+    - All.mean (mean across all samples)
+    - All.stdev (standard deviation across all samples)
+    - For each group:
+      - Group.Mean_(group) (mean within group)
+      - Group.Stdev_(group) (standard deviation within group))
