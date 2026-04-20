@@ -101,7 +101,10 @@ def main():
     sample_to_experiment = {}
 
     def _get_sample_id(row):
-        return row.get("run", "").strip()
+        r = (row.get("run") or "").strip()
+        if r:
+            return r
+        return (row.get("Sample Name") or "").strip()
 
     for row in rows:
         sample_name = _get_sample_id(row)

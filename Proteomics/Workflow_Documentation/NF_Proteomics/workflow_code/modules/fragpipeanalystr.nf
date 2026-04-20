@@ -50,6 +50,8 @@ process FRAGPIPEANALYSTR {
     def volcano_display_names = (params.fp_analyst_volcano_display_names == true || params.fp_analyst_volcano_display_names == 'true') ? 'true' : 'false'
     def volcano_show_gene = (params.fp_analyst_volcano_show_gene == true || params.fp_analyst_volcano_show_gene == 'true') ? 'true' : 'false'
     def assay_suffix = (params.assay_suffix != null && params.assay_suffix != '') ? params.assay_suffix.toString() : ''
+    def fp_zip = (params.fp_analyst_zip == true || params.fp_analyst_zip == 'true') ? 'true' : 'false'
+    def lfq_type_arg = (mode == 'TMT') ? '' : "--lfq_type \"${lfq_type}\""
     def gene_annotations_arg = (gene_annotations_url == null || gene_annotations_url?.toString()?.trim() == '') ? '' : "--gene_annotations \"${gene_annotations_url}\""
     """
     # Create output directory
@@ -72,7 +74,7 @@ process FRAGPIPEANALYSTR {
         --enrichment_database "${enrichment_database}" \\
         --enrichment_direction "${enrichment_direction}" \\
         --gsea_database "${gsea_database}" \\
-        --lfq_type "${lfq_type}" \\
+        ${lfq_type_arg} \\
         --normalization_method "${normalization_method}" \\
         --de_alpha "${de_alpha}" \\
         --de_lfc "${de_lfc}" \\
@@ -85,6 +87,8 @@ process FRAGPIPEANALYSTR {
         --volcano_display_names "${volcano_display_names}" \\
         --volcano_show_gene "${volcano_show_gene}" \\
         ${gene_annotations_arg} \\
+        --assay_suffix "${assay_suffix}" \\
+        --zip "${fp_zip}" \\
         --output_dir "output/"
 
     # Version info

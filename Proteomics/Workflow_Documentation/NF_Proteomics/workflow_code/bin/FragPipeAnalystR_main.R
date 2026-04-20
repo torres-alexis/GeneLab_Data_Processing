@@ -74,7 +74,9 @@ option_list <- list(
   make_option(c("--gene_annotations"), type = "character", default = "",
     help = "Path or URL to gene annotations TSV/CSV. Merges into DE_results on Gene using the annotation column with most matches.", metavar = "STRING"),
   make_option(c("--assay_suffix"), type = "character", default = "",
-    help = "Assay suffix for volcano filenames, e.g. GLProteomics. Empty = no suffix.", metavar = "STRING")
+    help = "Assay suffix for volcano filenames, e.g. GLProteomics. Empty = no suffix.", metavar = "STRING"),
+  make_option(c("--zip"), type = "character", default = "false",
+    help = "If true, write QC_plots*.zip, comparison_plots*.zip, pathway_analysis_plots*.zip, DE_plots*.zip (folder bundles under output_dir)", metavar = "true|false")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -164,7 +166,7 @@ assay_suffix <- trimws(.or(opt$assay_suffix, ""))
 fn_ <- function(base, ext) paste0(base, ".", ext)
 
 # Log raw inputs (reproducibility)
-param_path <- file.path(output_dir, fn_("FragPipeAnalystR_parameters", "txt"))
+param_path <- file.path(output_dir, paste0("FragPipeAnalystR_parameters", assay_suffix, ".txt"))
 writeLines(c(
   "FragPipeAnalystR script parameters",
   "======================================================",
@@ -185,7 +187,8 @@ writeLines(c(
   paste("enrichment_database:", opt$enrichment_database),
   paste("enrichment_direction:", opt$enrichment_direction),
   paste("gsea_database:", opt$gsea_database),
-  paste("gene_annotations:", opt$gene_annotations)
+  paste("gene_annotations:", opt$gene_annotations),
+  paste("zip:", .or(opt$zip, "false"))
 ), param_path)
 
 # Parse typed params (for downstream use)
@@ -214,6 +217,7 @@ gsea_dbs <- if (nzchar(trimws(.or(opt$gsea_database, ""))))
   unique(trimws(strsplit(trimws(opt$gsea_database), "\\s*,\\s*")[[1]])) else character(0)
 volcano_add_names <- .oneof(.or(opt$volcano_display_names, "true"), c("true", "false"), "volcano_display_names") == "true"
 volcano_name_col <- .oneof(.or(opt$volcano_show_gene, "true"), c("true", "false"), "volcano_show_gene") == "true"
+do_zip <- .oneof(.or(opt$zip, "false"), c("true", "false"), "zip") == "true"
 
 cat("Params logged to:", param_path, "\n")
 cat("mode:", mode, "| level:", level, "| lfq_type:", lfq_type, "\n")
@@ -900,5 +904,43 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
     }
   }
   cat("GSEA complete\n")
+}
+
+# --- Optional zip bundles (GL-DPPD: QC_plots.zip, comparison_plots.zip, pathway_analysis_plots.zip, DE_plots.zip) ---
+.zip_subdir <- function(base_dir, zip_stem, subdir) {
+  src <- file.path(base_dir, subdir)
+  if (!dir.exists(src)) {
+    cat("zip: skip (no dir):", subdir, "\n")
+    return(invisible(NULL))
+  }
+  rel <- list.files(src, recursive = TRUE, full.names = FALSE, all.files = TRUE)
+  if (length(rel) == 0) {
+    cat("zip: skip (empty):", subdir, "\n")
+    return(invisible(NULL))
+  }
+  zname <- paste0(zip_stem, sfx, ".zip")
+  dest <- file.path(base_dir, zname)
+  if (file.exists(dest)) unlink(dest)
+  owd <- getwd()
+  on.exit(setwd(owd), add = TRUE)
+  setwd(base_dir)
+  files_in <- file.path(subdir, rel)
+  err <- tryCatch({
+    utils::zip(dest, files = files_in)
+    NULL
+  }, error = function(e) e)
+  if (!is.null(err)) {
+    warning("zip failed for ", zname, ": ", conditionMessage(err))
+  } else {
+    cat("zip:", dest, "\n")
+  }
+  invisible(NULL)
+}
+
+if (do_zip) {
+  .zip_subdir(output_dir, "QC_plots", "qc")
+  .zip_subdir(output_dir, "comparison_plots", "comparison")
+  .zip_subdir(output_dir, "pathway_analysis_plots", "enrichment")
+  .zip_subdir(output_dir, "DE_plots", "de")
 }
 
