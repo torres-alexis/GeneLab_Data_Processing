@@ -74,9 +74,9 @@ option_list <- list(
   make_option(c("--gene_annotations"), type = "character", default = "",
     help = "Path or URL to gene annotations TSV/CSV. Merges into DE_results on Gene using the annotation column with most matches.", metavar = "STRING"),
   make_option(c("--assay_suffix"), type = "character", default = "",
-    help = "Assay suffix for volcano filenames, e.g. GLProteomics. Empty = no suffix.", metavar = "STRING"),
+    help = "Assay suffix after level, e.g. _GLProteomics → filenames like nonimputed_matrix_<level>_GLProteomics.csv; SampleTable/contrasts use suffix only. Empty = no suffix.", metavar = "STRING"),
   make_option(c("--zip"), type = "character", default = "false",
-    help = "If true, write QC_plots*.zip, comparison_plots*.zip, pathway_analysis_plots*.zip, DE_plots*.zip (folder bundles under output_dir)", metavar = "true|false")
+    help = "If true, write QC_plots_<level>*.zip, comparison_plots_<level>*.zip, pathway_analysis_plots_<level>*.zip, DE_plots_<level>*.zip (folder bundles under output_dir)", metavar = "true|false")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -90,7 +90,7 @@ opt <- parse_args(opt_parser)
 }
 
 # LFQ CSV export: rename assay column headers from FragPipe `sample` to `sample_name` (experiment_annotation).
-# `sample_name` is the human-readable column label (Sample Name in SampleTable.csv), not Experiment_Bioreplicate (`sample`).
+# `sample_name` is the human-readable column label (Sample Name in SampleTable*.csv), not Experiment_Bioreplicate (`sample`).
 # Matches either the exact sample id, or sample id plus a known quantification suffix (post-make.names).
 # Only the sample id prefix is substituted; the suffix is preserved. Append to
 # LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES if new per-sample quantity columns appear in combined reports.
@@ -163,10 +163,12 @@ enr_dir_gsea <- file.path(enr_dir, "gsea")
 dir.create(enr_dir_or, showWarnings = FALSE, recursive = TRUE)
 dir.create(enr_dir_gsea, showWarnings = FALSE, recursive = TRUE)
 assay_suffix <- trimws(.or(opt$assay_suffix, ""))
+# Per-level suffix: _<level><assay_suffix>, e.g. _protein_GLProteomics (SampleTable/contrasts: assay_suffix only)
+level_suffix <- paste0("_", level, assay_suffix)
 fn_ <- function(base, ext) paste0(base, ".", ext)
 
 # Log raw inputs (reproducibility)
-param_path <- file.path(output_dir, paste0("FragPipeAnalystR_parameters", assay_suffix, ".txt"))
+param_path <- file.path(output_dir, paste0("FragPipeAnalystR_parameters", level_suffix, ".txt"))
 writeLines(c(
   "FragPipeAnalystR script parameters",
   "======================================================",
@@ -541,7 +543,7 @@ sample_table <- data.frame(
 if ("condition_name" %in% colnames(anno)) {
   sample_table[["condition_name"]] <- anno[["condition_name"]]
 }
-sample_fname <- paste0("SampleTable", if (nzchar(assay_suffix)) assay_suffix else "", ".csv")
+sample_fname <- paste0("SampleTable", assay_suffix, ".csv")
 write.csv(sample_table, file.path(de_dir, sample_fname), row.names = FALSE)
 cat("Sample table saved:", sample_fname, "(", nrow(sample_table), "rows)\n")
 
@@ -682,8 +684,9 @@ de_df <- de_df[, c(other_cols, contrast_cols, fixed_order, group_pairs)]
 
 if (!is.null(lfq_sample_display_map)) de_df <- .lfq_rename_export_df(de_df, lfq_sample_display_map)
 
-write.csv(de_df, file.path(de_dir, fn_("DE_results", "csv")), row.names = FALSE)
-cat("DE_results.csv saved\n")
+de_results_fname <- paste0("DE_results", level_suffix, ".csv")
+write.csv(de_df, file.path(de_dir, de_results_fname), row.names = FALSE)
+cat("DE results saved:", de_results_fname, "\n")
 
 # --- Matrix CSV exports (output_dir root) ---
 # LFQ: assay columns use sample_name (Sample Name), not sample / Experiment_Bioreplicate; see LFQ_EXPORT_KNOWN_SAMPLE_SUFFIXES.
@@ -696,7 +699,7 @@ cat("DE_results.csv saved\n")
   write.csv(df, file.path(output_dir, fname), row.names = FALSE)
   cat(stage, "table saved:", fname, "\n")
 }
-sfx <- assay_suffix
+sfx <- level_suffix
 .write_table_stage(data_se, paste0("nonimputed_matrix", sfx, ".csv"), "Nonimputed", sample_display_map = lfq_sample_display_map)
 if (row_filter_stage_ran) {
   .write_table_stage(filtered_se, paste0("filtered_matrix", sfx, ".csv"), "Filtered", sample_display_map = lfq_sample_display_map)
@@ -723,7 +726,7 @@ for (i in seq_along(comp_names)) {
   contrasts_df[[comp_names[i]]] <- c(pairwise_pairs[2, i], pairwise_pairs[1, i])
 }
 colnames(contrasts_df)[1] <- ""
-contrasts_fname <- paste0("contrasts", if (nzchar(assay_suffix)) assay_suffix else "", ".csv")
+contrasts_fname <- paste0("contrasts", assay_suffix, ".csv")
 write.csv(contrasts_df, file.path(de_dir, contrasts_fname), row.names = FALSE)
 cat("Contrasts table saved:", contrasts_fname, "\n")
 
@@ -748,7 +751,7 @@ for (i in seq_along(contrast_names)) {
     k <- 3L
     p_v$layers <- append(p_v$layers[-k], list(corner$layers[[1]]), after = k - 1L)
     fname_base <- gsub("[[:space:]]+", "_", vol_label)
-    fname_base <- paste0(fname_base, if (nzchar(assay_suffix)) assay_suffix else "", "_volcano")
+    fname_base <- paste0(fname_base, level_suffix, "_volcano")
     ggplot2::ggsave(file.path(volcano_dir, paste0(fname_base, ".pdf")), p_v, width = 8, height = 6)
     ggplot2::ggsave(file.path(volcano_dir, paste0(fname_base, ".png")), p_v, width = 8, height = 6, dpi = 150)
   }, error = function(e) warning("Volcano for ", contrast_names[i], " failed: ", conditionMessage(e)))
@@ -778,16 +781,16 @@ tryCatch({
     alpha = de_alpha, lfc = de_lfc, col_limit = 6, plot = TRUE)
   if (inherits(ht_res, "list") && inherits(ht_res[[1]], "Heatmap")) {
     ht <- ht_res[[1]]
-    pdf(file.path(de_dir, fn_("DE_heatmap", "pdf")), width = 10, height = 8)
+    pdf(file.path(de_dir, paste0("DE_heatmap", level_suffix, ".pdf")), width = 10, height = 8)
     ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
     dev.off()
-    png(file.path(de_dir, fn_("DE_heatmap", "png")), width = 10, height = 8, units = "in", res = 150)
+    png(file.path(de_dir, paste0("DE_heatmap", level_suffix, ".png")), width = 10, height = 8, units = "in", res = 150)
     ComplexHeatmap::draw(ht, heatmap_legend_side = "top")
     dev.off()
     cat("DE heatmap saved\n")
   } else if (inherits(ht_res, "gg")) {
-    ggplot2::ggsave(file.path(de_dir, fn_("DE_heatmap", "pdf")), ht_res, width = 8, height = 4)
-    ggplot2::ggsave(file.path(de_dir, fn_("DE_heatmap", "png")), ht_res, width = 8, height = 4, dpi = 150)
+    ggplot2::ggsave(file.path(de_dir, paste0("DE_heatmap", level_suffix, ".pdf")), ht_res, width = 8, height = 4)
+    ggplot2::ggsave(file.path(de_dir, paste0("DE_heatmap", level_suffix, ".png")), ht_res, width = 8, height = 4, dpi = 150)
     cat("DE heatmap: no significant features (empty plot saved)\n")
   }
 }, error = function(e) warning("DE heatmap failed: ", conditionMessage(e)))
@@ -933,6 +936,8 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
     warning("zip failed for ", zname, ": ", conditionMessage(err))
   } else {
     cat("zip:", dest, "\n")
+    unlink(src, recursive = TRUE)
+    cat("zip: removed dir", subdir, "\n")
   }
   invisible(NULL)
 }
