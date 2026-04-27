@@ -418,10 +418,9 @@ java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.3.jar fragger.params plexA_1
 
 **Output Data:**
 
+- **\*.pepindex** (peptide index files for the FASTA database)
 - **\*.pepXML** (peptide-spectrum matches from the MSFragger database search)
 - **\*.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
-- **\*.pepindex** (peptide index files for the FASTA database)
-- **\*.tsv** (MSFragger results in tab-separated format)
 
 <br>
 
