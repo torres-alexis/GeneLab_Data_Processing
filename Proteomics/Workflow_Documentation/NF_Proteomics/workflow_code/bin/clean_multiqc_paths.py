@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""Clean filesystem paths from MultiQC output data before publication.
+Also cleans pmultiqc-specific paths.
+"""
+
 import json
 import os
 import zipfile
@@ -14,7 +18,19 @@ def clean_path(path):
 def clean_log_line(line):
     """Clean paths in a log line while preserving the log format"""
     path_pattern = r'(?<=: )(/[^\s\]]+)'
-    return re.sub(path_pattern, lambda m: clean_path(m.group(1)), line)
+    line = re.sub(path_pattern, lambda m: clean_path(m.group(1)), line)
+    quoted_path_pattern = r"(?<=')/[^']+"
+    line = re.sub(quoted_path_pattern, lambda m: clean_path(m.group(0)), line)
+    return line
+
+def clean_html_line(line):
+    """Clean the visible MultiQC analysis path in the HTML report"""
+    analysis_path_pattern = r'(<code class="mqc_analysis_path">)(.*?)(</code>)'
+    return re.sub(
+        analysis_path_pattern,
+        lambda m: f"{m.group(1)}{clean_path(m.group(2))}{m.group(3)}",
+        line,
+    )
 
 def detect_module_from_data(data):
     """Detect which MultiQC module was used based on the data structure"""
@@ -95,6 +111,8 @@ def clean_multiqc_data(input_dir, output_dir):
 def process_input(input_path, output_dir):
     """Process the MultiQC data directory"""
     temp_dir = "temp_multiqc"
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
     os.makedirs(temp_dir, exist_ok=True)
     
     # Copy input directory contents directly to temp
@@ -105,12 +123,32 @@ def process_input(input_path, output_dir):
             shutil.copy2(s, d)
         elif os.path.isdir(s):
             shutil.copytree(s, d)
+
+    html_name = os.path.basename(input_path)
+    if html_name.endswith("_data"):
+        html_name = html_name[:-5] + ".html"
+        html_path = os.path.join(os.path.dirname(input_path), html_name)
+        if os.path.exists(html_path):
+            shutil.copy2(html_path, os.path.join(temp_dir, html_name))
     
     # Clean the data
     clean_multiqc_data(temp_dir, temp_dir)
     
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+
+    # Clean and write the MultiQC HTML report in temp directory
+    temp_html = os.path.join(temp_dir, html_name)
+    if os.path.exists(temp_html):
+        with open(temp_html, 'r') as f:
+            lines = f.readlines()
+
+        cleaned_lines = [clean_html_line(line) for line in lines]
+
+        with open(temp_html, 'w') as f:
+            f.writelines(cleaned_lines)
+
+        shutil.copy2(temp_html, os.path.join(output_dir, html_name))
     
     # Create new zip file
     output_name = os.path.basename(input_path)
