@@ -1,7 +1,7 @@
 include { PACKAGE_PROCESSING_INFO } from '../modules/package_processing_info.nf'
 include { GENERATE_MD5SUMS } from '../modules/generate_md5sums.nf'
 include { VALIDATE_PROCESSING } from '../modules/validate_processing.nf'
-include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_processed_protocol.nf'
+include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 
 // Post-processing entry: nextflow run main.nf -entry POST_PROCESSING
 // Expected to only run after main workflow run.
@@ -12,7 +12,7 @@ workflow POST_PROCESSING {
         ch_processed_directory = Channel.fromPath(processed_dir, type: 'dir', checkIfExists: true)
         ch_processing_info = Channel.fromPath("${processed_dir}/processing_scripts", type: 'dir', checkIfExists: true)
         PACKAGE_PROCESSING_INFO(ch_processing_info, processed_dir)
-        GENERATE_MD5SUMS(ch_processed_directory)
+        GENERATE_MD5SUMS(ch_processed_directory, PACKAGE_PROCESSING_INFO.out.zip)
         GENERATE_PROCESSED_PROTOCOL(ch_processed_directory)
         VALIDATE_PROCESSING(
             ch_processed_directory,
