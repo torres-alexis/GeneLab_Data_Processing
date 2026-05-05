@@ -11,9 +11,10 @@ workflow POST_PROCESSING {
         processed_dir = "${params.output_dir}/${params.results_dir ?: (params.accession ?: 'results')}"
         ch_processed_directory = Channel.fromPath(processed_dir, type: 'dir', checkIfExists: true)
         ch_processing_info = Channel.fromPath("${processed_dir}/processing_scripts", type: 'dir', checkIfExists: true)
+        ch_software_versions = Channel.fromPath("${processed_dir}/GeneLab/software_versions_*.md", checkIfExists: true)
         PACKAGE_PROCESSING_INFO(ch_processing_info, processed_dir)
         GENERATE_MD5SUMS(ch_processed_directory, PACKAGE_PROCESSING_INFO.out.zip)
-        GENERATE_PROCESSED_PROTOCOL(ch_processed_directory)
+        GENERATE_PROCESSED_PROTOCOL(ch_processed_directory, ch_software_versions)
         VALIDATE_PROCESSING(
             ch_processed_directory,
             GENERATE_MD5SUMS.out.raw_md5sum,

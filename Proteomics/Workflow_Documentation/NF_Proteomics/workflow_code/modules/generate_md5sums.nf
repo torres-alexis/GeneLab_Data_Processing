@@ -5,6 +5,7 @@ process GENERATE_MD5SUMS {
 
     input:
         path(ch_outdir)
+        path(processing_info)
 
     output:
         path("raw_md5sum${params.assay_suffix}.tsv"), emit: raw_md5sum, optional: true

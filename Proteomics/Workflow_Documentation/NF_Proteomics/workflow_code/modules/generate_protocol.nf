@@ -1,0 +1,34 @@
+process GENERATE_PROCESSED_PROTOCOL {
+    publishDir "${ch_outdir}/GeneLab",
+        mode: params.publish_dir_mode,
+        pattern: "*.txt"
+
+    input:
+        path(ch_outdir)
+        path(software_versions_md)
+
+    output:
+        path("processed_data_protocol${params.assay_suffix}.txt"), emit: processed_protocol
+
+    script:
+        """
+        generate_processed_protocol.py \\
+            --outdir . \\
+            --software_table ${software_versions_md} \\
+            --assay_suffix "${params.assay_suffix}" \\
+            --workflow_version "${workflow.manifest.version}" \\
+            --fragpipe_workflow "${params.fragpipe_workflow ?: ''}" \\
+            --fp_analyst_levels "${params.fp_analyst_levels ?: ''}" \\
+            --fp_analyst_zip "${params.fp_analyst_zip ?: ''}" \\
+            --fp_analyst_lfq_type "${params.fp_analyst_lfq_type ?: ''}" \\
+            --fp_analyst_tmt_quant_type "${params.fp_analyst_tmt_quant_type ?: ''}" \\
+            --normalization_method "${params.fp_analyst_normalization_method ?: ''}" \\
+            --imputation_type "${params.fp_analyst_imputation_type ?: ''}" \\
+            --de_alpha "${params.fp_analyst_de_alpha != null ? params.fp_analyst_de_alpha : ''}" \\
+            --de_lfc "${params.fp_analyst_de_lfc != null ? params.fp_analyst_de_lfc : ''}" \\
+            --de_fdr "${params.fp_analyst_de_fdr ?: ''}" \\
+            --uniprot_id "${params.uniprot_id ?: ''}" \\
+            --reference_proteome "${params.reference_proteome ?: ''}" \\
+            --output "processed_data_protocol${params.assay_suffix}.txt"
+        """
+}
