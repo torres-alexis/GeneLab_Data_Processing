@@ -16,6 +16,7 @@ include { MSSTATS } from '../modules/msstats.nf'
 // include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
+include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
@@ -280,4 +281,5 @@ workflow PROTEOMICS {
             | collectFile(newLine: true)
             | set { ch_final_software_versions }
         SOFTWARE_VERSIONS(output_dir, ch_final_software_versions)
+        GENERATE_PROCESSED_PROTOCOL(ch_out_dir, SOFTWARE_VERSIONS.out.software_versions)
 }
