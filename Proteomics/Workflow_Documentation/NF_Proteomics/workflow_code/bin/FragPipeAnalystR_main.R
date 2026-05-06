@@ -76,7 +76,7 @@ option_list <- list(
   make_option(c("--assay_suffix"), type = "character", default = "",
     help = "Assay suffix after level, e.g. _GLProteomics → filenames like nonimputed_matrix_<level>_GLProteomics.csv; SampleTable/contrasts use suffix only. Empty = no suffix.", metavar = "STRING"),
   make_option(c("--zip"), type = "character", default = "false",
-    help = "If true, write QC_plots_<level>*.zip, comparison_plots_<level>*.zip, pathway_analysis_plots_<level>*.zip, DE_plots_<level>*.zip (folder bundles under output_dir)", metavar = "true|false")
+    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/enrichment/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -154,6 +154,8 @@ comparison_dir <- file.path(output_dir, "comparison")
 dir.create(comparison_dir, showWarnings = FALSE, recursive = TRUE)
 de_dir <- file.path(output_dir, "de")
 dir.create(de_dir, showWarnings = FALSE, recursive = TRUE)
+# Volcano/heatmap under de/ (bundled in DE_plots*.zip). SampleTable, DE_results, contrasts CSVs at output_dir root
+# (with imputed/nonimputed matrices) so they are not only inside the zip and survive removal of de/ after zipping.
 volcano_dir <- file.path(de_dir, "volcano")
 dir.create(volcano_dir, showWarnings = FALSE, recursive = TRUE)
 enr_dir <- file.path(output_dir, "enrichment")
@@ -544,7 +546,7 @@ if ("condition_name" %in% colnames(anno)) {
   sample_table[["condition_name"]] <- anno[["condition_name"]]
 }
 sample_fname <- paste0("SampleTable", assay_suffix, ".csv")
-write.csv(sample_table, file.path(de_dir, sample_fname), row.names = FALSE)
+write.csv(sample_table, file.path(output_dir, sample_fname), row.names = FALSE)
 cat("Sample table saved:", sample_fname, "(", nrow(sample_table), "rows)\n")
 
 # --- DE (FragPipeAnalystR: test_limma, add_rejections) ---
@@ -685,7 +687,7 @@ de_df <- de_df[, c(other_cols, contrast_cols, fixed_order, group_pairs)]
 if (!is.null(lfq_sample_display_map)) de_df <- .lfq_rename_export_df(de_df, lfq_sample_display_map)
 
 de_results_fname <- paste0("DE_results", level_suffix, ".csv")
-write.csv(de_df, file.path(de_dir, de_results_fname), row.names = FALSE)
+write.csv(de_df, file.path(output_dir, de_results_fname), row.names = FALSE)
 cat("DE results saved:", de_results_fname, "\n")
 
 # --- Matrix CSV exports (output_dir root) ---
@@ -727,7 +729,7 @@ for (i in seq_along(comp_names)) {
 }
 colnames(contrasts_df)[1] <- ""
 contrasts_fname <- paste0("contrasts", assay_suffix, ".csv")
-write.csv(contrasts_df, file.path(de_dir, contrasts_fname), row.names = FALSE)
+write.csv(contrasts_df, file.path(output_dir, contrasts_fname), row.names = FALSE)
 cat("Contrasts table saved:", contrasts_fname, "\n")
 
 # --- Volcano plots: title + filenames + corner group labels (replace FPA layer 3 geom_text with num/denom display names) ---
@@ -910,32 +912,35 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
 }
 
 # --- Optional zip bundles (GL-DPPD: QC_plots.zip, comparison_plots.zip, pathway_analysis_plots.zip, DE_plots.zip) ---
+# Zip from inside `subdir` so archive root is plots/files, not an extra `qc/` or `de/` wrapper folder.
 .zip_subdir <- function(base_dir, zip_stem, subdir) {
-  src <- file.path(base_dir, subdir)
+  base_abs <- normalizePath(base_dir, mustWork = TRUE)
+  src <- file.path(base_abs, subdir)
   if (!dir.exists(src)) {
     cat("zip: skip (no dir):", subdir, "\n")
     return(invisible(NULL))
   }
-  rel <- list.files(src, recursive = TRUE, full.names = FALSE, all.files = TRUE)
+  zname <- paste0(zip_stem, sfx, ".zip")
+  dest <- file.path(base_abs, zname)
+  if (file.exists(dest)) unlink(dest)
+  owd <- getwd()
+  setwd(src)
+  on.exit(setwd(owd), add = TRUE)
+  rel <- list.files(".", recursive = TRUE, full.names = FALSE, all.files = TRUE, include.dirs = FALSE)
+  rel <- rel[nzchar(rel)]
   if (length(rel) == 0) {
     cat("zip: skip (empty):", subdir, "\n")
     return(invisible(NULL))
   }
-  zname <- paste0(zip_stem, sfx, ".zip")
-  dest <- file.path(base_dir, zname)
-  if (file.exists(dest)) unlink(dest)
-  owd <- getwd()
-  on.exit(setwd(owd), add = TRUE)
-  setwd(base_dir)
-  files_in <- file.path(subdir, rel)
   err <- tryCatch({
-    utils::zip(dest, files = files_in)
+    utils::zip(dest, files = rel)
     NULL
   }, error = function(e) e)
   if (!is.null(err)) {
     warning("zip failed for ", zname, ": ", conditionMessage(err))
   } else {
     cat("zip:", dest, "\n")
+    setwd(owd)
     unlink(src, recursive = TRUE)
     cat("zip: removed dir", subdir, "\n")
   }
