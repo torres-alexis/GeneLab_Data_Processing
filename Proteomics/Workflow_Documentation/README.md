@@ -6,10 +6,10 @@
 
 |Pipeline Version|Workflow Type|Current Workflow Version (for respective pipeline version)|Nextflow Version|
 |:---------------|:------------|:---------------------------------------------------------|:---------------|
-|*[GL-DPPD-[LFQ-MBR].md](../Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md)|LFQ-MBR|[NF_Proteomics_1.0.0](NF_Proteomics)|25.10.2|
-|*[GL-DPPD-[TMT10].md](../Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md)|TMT10|[NF_Proteomics_1.0.0](NF_Proteomics)|25.10.2|
-|*[GL-DPPD-[TMT16].md](../Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md)|TMT16|[NF_Proteomics_1.0.0](NF_Proteomics)|25.10.2|
-|*[GL-DPPD-[TMT16-phospho].md](../Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md)|TMT16-phospho|[NF_Proteomics_1.0.0](NF_Proteomics)|25.10.2|
+|*[GL-DPPD-[LFQ-MBR].md](../Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md)|LFQ-MBR|[NF_Proteomics_1.0.0](NF_Proteomics)|26.04.0|
+|*[GL-DPPD-[TMT10].md](../Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md)|TMT10|[NF_Proteomics_1.0.0](NF_Proteomics)|26.04.0|
+|*[GL-DPPD-[TMT16].md](../Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md)|TMT16|[NF_Proteomics_1.0.0](NF_Proteomics)|26.04.0|
+|*[GL-DPPD-[TMT16-phospho].md](../Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md)|TMT16-phospho|[NF_Proteomics_1.0.0](NF_Proteomics)|26.04.0|
 
 *Current GeneLab Pipeline/Workflow Implementation
 

@@ -1,7 +1,7 @@
 process STAGE_INPUT {
     tag "${meta.id}"
     
-    publishDir "${output_dir}/RawData",
+    publishDir path: { "${output_dir}/RawData" },
         mode: params.publish_dir_mode,
         pattern: "*.mzML",
         saveAs: { filename -> filename.toString().replaceAll(/\.mzML$/, (params.assay_suffix ?: '') + '.mzML') }

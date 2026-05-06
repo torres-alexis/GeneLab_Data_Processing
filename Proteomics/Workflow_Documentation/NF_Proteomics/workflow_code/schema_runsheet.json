@@ -15,7 +15,12 @@
             "Bioreplicate": {
                 "type": ["string", "integer"],
                 "description": "Biological replicate.",
-                "meta": ["optional"]
+                "meta": ["bioreplicate"]
+            },
+            "Source Name": {
+                "type": "string",
+                "description": "Biological replicate label.",
+                "meta": ["source_name"]
             },
             "data_file": {
                 "type": "string",

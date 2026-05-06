@@ -3,7 +3,7 @@ include { GENERATE_MD5SUMS } from '../modules/generate_md5sums.nf'
 include { VALIDATE_PROCESSING } from '../modules/validate_processing.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 
-// Post-processing entry: nextflow run main.nf -entry POST_PROCESSING
+// Post-processing only: nextflow run main.nf --post_processing true ...
 // Expected to only run after main workflow run.
 // Expects processing_scripts/nextflow_log_GLProteomics.txt, processing_scripts/nextflow_run_command_GLProteomics.txt, and processing_scripts/samples.txt in the processed output directory.
 workflow POST_PROCESSING {

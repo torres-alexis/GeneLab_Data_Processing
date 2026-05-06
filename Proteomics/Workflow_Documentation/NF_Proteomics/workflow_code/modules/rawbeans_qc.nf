@@ -1,9 +1,9 @@
 process RAWBEANS_QC {
     tag "${meta.id}"
     
-    publishDir "${output_dir}/RawBeans/",
+    publishDir path: { "${output_dir}/RawBeans/" },
         mode: params.publish_dir_mode,
-        pattern: "${meta.id}${params.assay_suffix}_qc-report.zip"
+        pattern: { "${meta.id}${params.assay_suffix}_qc-report.zip" }
 
     input:
     val(output_dir)
@@ -36,7 +36,7 @@ process RAWBEANS_QC {
 
 process RAWBEANS_QC_ALL {
     
-    publishDir "${output_dir}/RawBeans/",
+    publishDir path: { "${output_dir}/RawBeans/" },
         mode: params.publish_dir_mode,
         pattern: "All${params.assay_suffix}_qc-report.zip"
     

@@ -1,6 +1,6 @@
 process CHECK_DECOYS_CONTAMS {
     tag "${proteome_fasta.baseName}"
-    publishDir "${output_dir}/Proteome/",
+    publishDir path: { "${output_dir}/Proteome/" },
         mode: params.publish_dir_mode,
         pattern: "output/*",
         saveAs: { filename -> filename.replaceAll(/^output\//, '') }
@@ -34,7 +34,7 @@ process CHECK_DECOYS_CONTAMS {
     # MW markers (P00004, P00698, P01012), UPS (P02768, P99999), Viral (P32503)
     echo Checking contaminants in \$input_fasta
     contaminant_ids="P02769|P00760|P00711|P13645|P04264|O43790|P00004|P00698|P01012|P02768|P99999|P32503"
-    contaminant_pattern="\\|(${contaminant_ids})\\|"
+    contaminant_pattern="\\|(\${contaminant_ids})\\|"
     has_contaminants=false
     if grep -qE "\$contaminant_pattern" \$input_fasta; then
         has_contaminants=true

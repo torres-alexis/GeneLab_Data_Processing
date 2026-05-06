@@ -1,8 +1,7 @@
 process FRAGPIPE {
     tag "${workflow_config.getName()}"
-    containerOptions = "--cleanenv --bind \$PWD,\$HOME/.config,${projectDir}"
     
-    publishDir "${output_dir}/FragPipe/",
+    publishDir path: { "${output_dir}/FragPipe/" },
         mode: params.publish_dir_mode,
         pattern: "output/**",
         saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }

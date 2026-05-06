@@ -19,16 +19,14 @@ include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
-
-ch_dp_tools_plugin = params.dp_tools_plugin ? 
-    Channel.value(file(params.dp_tools_plugin)) : 
-    Channel.value(file("$projectDir/bin/dp_tools__NF_Proteomics"))
-
-output_dir = Channel.value(file(params.output_dir, type: 'dir', checkIfExists: false))
-
 workflow PROTEOMICS {
-    take:
     main:
+        ch_dp_tools_plugin = params.dp_tools_plugin ?
+            Channel.value(file(params.dp_tools_plugin)) :
+            Channel.value(file("$projectDir/bin/dp_tools__NF_Proteomics"))
+
+        output_dir = Channel.value(file(params.output_dir, type: 'dir', checkIfExists: false))
+
         Channel.empty() | set { osd_accession }
         Channel.empty() | set { glds_accession }
         
@@ -53,7 +51,7 @@ workflow PROTEOMICS {
             }
         }
 
-        // One emission from map/combine is a queue, not a value channel → pairs only with first sample unless we use .first()
+        // Emission from map/combine is queue → use .first() to get first value
         ch_out_dir = output_dir.first()
 
         // TMT: data_sheet + sample_sheet (runsheet not used). LFQ: runsheet (or generate from ISA).
@@ -168,20 +166,15 @@ workflow PROTEOMICS {
         } else if (params.fragpipe_workflow) {
             // Or map required input params.fragpipe_workflow (string) to workflow config file path in ${projectDir}/conf/workflows/
             def workflow_file
-            switch(params.fragpipe_workflow) {
-                case 'TMT10':
-                    workflow_file = "${projectDir}/conf/workflows/TMT10.workflow"
-                    break
-                case 'TMT16':
-                    workflow_file = "${projectDir}/conf/workflows/TMT16.workflow"
-                    break
-                case 'TMT16-phospho':
-                    workflow_file = "${projectDir}/conf/workflows/TMT16-phospho.workflow"
-                    break
-                case 'LFQ-MBR':
-                default:
-                    workflow_file = "${projectDir}/conf/workflows/LFQ-MBR.workflow"
-                    break
+            // v2 parser: classic switch/break is not accepted here; keep if-chain for preset mapping
+            if (params.fragpipe_workflow == 'TMT10') {
+                workflow_file = "${projectDir}/conf/workflows/TMT10.workflow"
+            } else if (params.fragpipe_workflow == 'TMT16') {
+                workflow_file = "${projectDir}/conf/workflows/TMT16.workflow"
+            } else if (params.fragpipe_workflow == 'TMT16-phospho') {
+                workflow_file = "${projectDir}/conf/workflows/TMT16-phospho.workflow"
+            } else {
+                workflow_file = "${projectDir}/conf/workflows/LFQ-MBR.workflow"
             }
             fragpipe_config = Channel.value(file(workflow_file))
         } else {
@@ -200,7 +193,7 @@ workflow PROTEOMICS {
         ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
         ch_fragpipe_output_dir = output_dir
             .combine(FRAGPIPE.out.fragpipe_manifest)
-            .map { outdir, _ -> file("${outdir}/FragPipe", type: 'dir') }
+            .map { outdir, fragpipe_manifest -> file("${outdir}/FragPipe", type: 'dir') }
         PMULTIQC(output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
 
         // Resolve gene_annotations_url for DE_results: direct file, or organism + annotations table

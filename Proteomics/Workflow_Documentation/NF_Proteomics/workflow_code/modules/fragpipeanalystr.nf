@@ -1,12 +1,11 @@
 process FRAGPIPEANALYSTR {
     tag "${data_type}"
-    containerOptions = "--cleanenv --bind \$PWD,\$HOME/.config,${projectDir}"
     
-    publishDir "${output_dir}/FragPipeAnalystR/${data_type}/",
+    publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
         mode: params.publish_dir_mode,
         pattern: "output/**",
         saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
-    publishDir "${output_dir}/FragPipeAnalystR/${data_type}/",
+    publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
         mode: params.publish_dir_mode,
         pattern: "versions.yml"
 

@@ -1,6 +1,6 @@
 process GET_PROTEOME {
     tag "${params.uniprot_id}"
-    publishDir "${output_dir}/Proteome/",
+    publishDir path: { "${output_dir}/Proteome/" },
         mode: params.publish_dir_mode,
         pattern: "*.fas"
 

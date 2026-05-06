@@ -1,12 +1,12 @@
 process MSSTATS {
-    publishDir "${output_dir}/MSstats/",
+    publishDir path: { "${output_dir}/MSstats/" },
         mode: params.publish_dir_mode,
         pattern: "msstats_input.csv",
         saveAs: { filename -> "msstats.csv" }
-    publishDir "${output_dir}/MSstats/",
+    publishDir path: { "${output_dir}/MSstats/" },
         mode: params.publish_dir_mode,
         pattern: "msstats_comparison*.csv"
-    publishDir "${output_dir}/MSstats/",
+    publishDir path: { "${output_dir}/MSstats/" },
         mode: params.publish_dir_mode,
         pattern: "msstats_contrasts*.csv"
 

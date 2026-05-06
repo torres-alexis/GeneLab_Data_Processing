@@ -1,6 +1,5 @@
 process SOFTWARE_VERSIONS {
-    containerOptions = "--bind ${projectDir}"
-    publishDir "${ch_outdir}/GeneLab",
+    publishDir path: { "${ch_outdir}/GeneLab" },
         mode: params.publish_dir_mode,
         pattern: "software_versions${params.assay_suffix}.md"
 

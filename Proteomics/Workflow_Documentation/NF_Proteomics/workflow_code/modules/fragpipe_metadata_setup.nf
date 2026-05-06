@@ -1,8 +1,8 @@
 process FRAGPIPE_METADATA_SETUP {
-    publishDir "${ch_outdir}/Metadata",
+    publishDir path: { "${ch_outdir}/Metadata" },
         mode: params.publish_dir_mode,
         pattern: "*.tsv"
-    publishDir "${ch_outdir}/Metadata",
+    publishDir path: { "${ch_outdir}/Metadata" },
         mode: params.publish_dir_mode,
         pattern: "sheets/*",
         saveAs: { filename ->

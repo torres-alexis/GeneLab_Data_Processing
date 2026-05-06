@@ -1,11 +1,11 @@
 process ISA_TO_RUNSHEET {
     tag "${osd_accession}_${glds_accession}"
 
-    publishDir "${ch_outdir}/Metadata",
+    publishDir path: { "${ch_outdir}/Metadata" },
         mode: params.publish_dir_mode,
         pattern: "*.csv"
 
-    publishDir "${ch_outdir}/Metadata",
+    publishDir path: { "${ch_outdir}/Metadata" },
         mode: params.publish_dir_mode,
         pattern: "isa_archive/*",
         saveAs: { filename ->
