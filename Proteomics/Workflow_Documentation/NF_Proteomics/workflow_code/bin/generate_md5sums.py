@@ -11,6 +11,12 @@ import hashlib
 import argparse
 import fnmatch
 
+SKIPPED_FILES_PROCESSED_MD5 = (
+    "filtered_sheet.csv", 
+)
+
+_SKIPPED_PROCESSED_MD5_BASENAMES = frozenset(SKIPPED_FILES_PROCESSED_MD5)
+
 
 def calculate_md5(filepath):
     md5_hash = hashlib.md5()
@@ -103,6 +109,8 @@ def collect_processed_files(outdir, assay_suffix):
     seen = set()
     unique = []
     for fp in sorted(out, key=lambda p: os.path.relpath(p, outdir).lower()):
+        if os.path.basename(fp) in _SKIPPED_PROCESSED_MD5_BASENAMES:
+            continue
         key = os.path.abspath(fp)
         if key in seen:
             continue

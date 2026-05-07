@@ -18,6 +18,8 @@ include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 
+include { FILTER_TECH_REPS } from '../modules/filter_tech_reps.nf'
+
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow PROTEOMICS {
@@ -93,13 +95,34 @@ workflow PROTEOMICS {
             }
         }
 
+        def sheet_in = sheet
+        def sheet_fp
+        if (params.first_technical_replicate_only) {
+            FILTER_TECH_REPS(ch_out_dir, sheet_in)
+            sheet_fp = FILTER_TECH_REPS.out.filtered
+        } else {
+            sheet_fp = sheet_in
+        }
+
         // Convert sheet to list of samples (file metadata + path)
         def sheet_schema = is_tmt ? "$projectDir/schema_data_sheet.json" : "$projectDir/schema_runsheet.json"
-        samples = sheet
+        // Stage + RawBeans QC on full runsheet (all technical replicates)
+        samples_full = sheet_in
             .flatMap { sheet_path ->
                 samplesheetToList(sheet_path, sheet_schema)
             }
             .map { row -> row[0] }
+        // FragPipe manifest + search use first tech rep only when params.first_technical_replicate_only
+        def samples_fp
+        if (params.first_technical_replicate_only) {
+            samples_fp = sheet_fp
+                .flatMap { sheet_path ->
+                    samplesheetToList(sheet_path, sheet_schema)
+                }
+                .map { row -> row[0] }
+        } else {
+            samples_fp = samples_full
+        }
 
         // TMT: parse sample_sheet for organism etc. (sample-centric; same meta structure as runsheet)
         sample_sheet_rows = (is_tmt && params.sample_sheet)
@@ -107,7 +130,7 @@ workflow PROTEOMICS {
             : Channel.empty()
 
         // Stage input mzML files for each sample / fraction
-        STAGE_INPUT(ch_out_dir, samples)
+        STAGE_INPUT(ch_out_dir, samples_full)
         // Run RawBeans QC on each sample's raw data
         RAWBEANS_QC(ch_out_dir, STAGE_INPUT.out.mzml_files)
         // Run RawBeans QC on all samples' raw data
@@ -135,7 +158,7 @@ workflow PROTEOMICS {
 
         // Generate manifest: TMT [data_sheet, sample_sheet]; LFQ [runsheet]
         ch_sample_sheet = (is_tmt && params.sample_sheet) ? Channel.fromPath(params.sample_sheet) : Channel.value(file("${projectDir}/bin/placeholder"))
-        ch_sheets = sheet.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
+        ch_sheets = sheet_fp.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
         FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)
         manifest = FRAGPIPE_METADATA_SETUP.out.manifest
         // }
@@ -184,7 +207,16 @@ workflow PROTEOMICS {
 
         // Set database file in FragPipe Config file. For TMT workflows, also enable MSstats outputs [STUB]
         FRAGPIPE_CONFIG_SETUP(output_dir, fragpipe_config, proteome)
-        FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, STAGE_INPUT.out.mzml_files.map { it[1] }.collect(), FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
+        // Join on id — do not combine(collect()) id lists: Groovy flattens List into tuple slots
+        ch_fragpipe_mzml = params.first_technical_replicate_only
+            ? STAGE_INPUT.out.mzml_files
+                .map { meta, mzml -> tuple(meta.id.toString(), mzml) }
+                .join(samples_fp.map { m -> tuple(m.id.toString(), 1) }, by: 0)
+                .map { id, mzml, fpMarker -> mzml }
+                .collect()
+            : STAGE_INPUT.out.mzml_files.map { it[1] }.collect()
+
+        FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, ch_fragpipe_mzml, FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
 
         ///////////////////////////////////////////////////////////
         // END HEADLESS FRAGPIPE
@@ -204,8 +236,8 @@ workflow PROTEOMICS {
         } else if (params.reference_table) {
             // Organism for gene annotations lookup. PARSE_ANNOTATIONS_TABLE expects "Homo sapiens" -> "homo_sapiens".
             // Both LFQ (runsheet) and TMT (sample_sheet) use samplesheetToList → meta.organism
-            // LFQ `samples` is already meta-only (row[0] after samplesheetToList). TMT rows are [meta, ...] lists.
-            ch_organism_sci = (is_tmt ? sample_sheet_rows : samples)
+            // LFQ `samples_fp` is meta-only (row[0] after samplesheetToList). TMT rows are [meta, ...] lists.
+            ch_organism_sci = (is_tmt ? sample_sheet_rows : samples_fp)
                 | first
                 | map { row ->
                     def meta = row instanceof Map ? row : row[0]

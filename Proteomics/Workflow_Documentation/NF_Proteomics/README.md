@@ -260,6 +260,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
+* `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (LFQ runsheet: Factor Value columns + Bioreplicate; TMT data sheet: plex + TechRepMixture + fraction). (type: boolean, default: true)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: conf/tools)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)
@@ -318,12 +319,12 @@ nextflow run NF_PPP_1.0.0/main.nf \
 **Processing Metadata**
 
 - **LFQ-MBR**
-   - Metadata/sheets/\*\_proteomics\_\*_runsheet.csv (table containing metadata required for processing, including the raw data files location)
+   - Metadata/sheets/\*\_proteomics\_v1_runsheet.csv (table containing metadata required for processing, including the raw data files location)
    - Metadata/\*-ISA.zip (the ISA archive of the OSD datasets to be processed, downloaded from the OSDR)
 
 - **TMT** (TMT10, TMT16, TMT16-phospho)
-   - Metadata/sheets/\*\_proteomics\_\*_data_sheet.csv (table containing metadata required for processing, including the raw data files location)
-   - Metadata/sheets/\*\_proteomics\_\*_sample_sheet.csv (table containing metadata required for processing, including the TMT channel and plex metadata)
+   - Metadata/sheets/\*\_proteomics\_v1_data_sheet.csv (table containing metadata required for processing, including the raw data files location)
+   - Metadata/sheets/\*\_proteomics\_v1_sample_sheet.csv (table containing metadata required for processing, including the TMT channel and plex metadata)
 
 **Version Capturing and Processed-Data Protocol Generation**
 
