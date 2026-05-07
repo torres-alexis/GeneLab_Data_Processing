@@ -2,35 +2,9 @@
 
 > GeneLab, part of [NASA's Open Science Data Repository (OSDR)](https://www.nasa.gov/osdr), has wrapped each step of the Proteomics processing pipeline ([PPP](https://github.com/nasa/GeneLab_Data_Processing/tree/master/Proteomics)) into a Nextflow workflow with validation and verification of output files built in after each step. This repository contains the Nextflow workflow code (NF_Proteomics) along with instructions for installation and usage. Exact workflow run info and PPP version used to process specific datasets that have been released are available in the *nextflow_processing_info.txt file on the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/), which can be found under 'Files' -> 'GeneLab Processed Proteomics Files' -> 'Supplemental Materials'.
 
-> **Click links below to show/hide workflow diagrams**
-
-<!-- <details>
-<summary>NF_Proteomics workflow for GL-DPPD-[TMT10]</summary>
 <p align="center">
-<a href="images/draft_pipeline.png"><img src="images/draft_pipeline.png"></a>
+<a href="images/GL-proteomics-subwayplot.png"><img src="images/GL-proteomics-subwayplot.png" alt="GL proteomics subway plot"></a>
 </p>
-</details>
-
-<details>
-<summary>NF_Proteomics workflow for GL-DPPD-[TMT16]</summary>
-<p align="center">
-<a href="images/draft_pipeline.png"><img src="images/draft_pipeline.png"></a>
-</p>
-</details>
-
-<details>
-<summary>NF_Proteomics workflow for GL-DPPD-[TMT16-phospho]</summary>
-<p align="center">
-<a href="images/draft_pipeline.png"><img src="images/draft_pipeline.png"></a>
-</p>
-</details> -->
-
-<details open>
-<summary>NF_Proteomics workflow</summary>
-<p align="center">
-<a href="images/draft_pipeline.png"><img src="images/draft_pipeline.png"></a>
-</p>
-</details>
 
 ## General Workflow Information
 

@@ -67,7 +67,7 @@ Alexis Torres (GeneLab Data Processing Team)
 
 # General processing overview with example commands  
 
-<img src="../Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png" align="center" alt="Proteomics TMT-16 phosphoproteomics processing workflow [STUB]"/>
+<img src="../Workflow_Documentation/NF_Proteomics/images/GL-proteomics-subwayplot.png" align="center" alt="GL proteomics subway plot"/>
 
 > Exact processing commands and output files listed in **bold** below are included with each relevant mass spectrometry-based proteomics processed dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/). 
 

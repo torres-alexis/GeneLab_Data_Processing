@@ -1,25 +1,13 @@
-# GeneLab bioinformatics processing pipelines for Mass Spectrometry-based Proteomics data
+# GeneLab bioinformatics processing pipelines for mass spectrometry-based proteomics data
 
-> **Documents [`GL-DPPD-[LFQ-MBR].md`](Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md), [`GL-DPPD-[TMT10].md`](Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md), [`GL-DPPD-[TMT16].md`](Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md), and [`GL-DPPD-[TMT16-phospho].md`](Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md) contain overview and example commands for how GeneLab processes Proteomics datasets using the LFQ-MBR, TMT10, TMT16, and TMT16-phospho workflows, respectively. See the [Repository Links](#repository-links) descriptions below for more information. Processed data output files and a GeneLab data processing summary is provided for each GLDS dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
+> **Documents [`GL-DPPD-[LFQ-MBR].md`](Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md), [`GL-DPPD-[TMT10].md`](Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md), [`GL-DPPD-[TMT16].md`](Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md), and [`GL-DPPD-[TMT16-phospho].md`](Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md) contain overview and example commands for how GeneLab processes proteomics datasets using the LFQ-MBR, TMT10, TMT16, and TMT16-phospho workflows, respectively. See the [Repository Links](#repository-links) descriptions below for more information. Processed data output files and a GeneLab data processing summary is provided for each GLDS dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
 
 ---
-## Proteomics Processing Pipelines
+## Proteomics Processing Pipeline
 
 <p align="center">
-<a href="Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png"><img src="Workflow_Documentation/NF_Proteomics/images/draft_pipeline.png"></a>
+<a href="Workflow_Documentation/NF_Proteomics/images/GL-proteomics-subwayplot.png"><img src="Workflow_Documentation/NF_Proteomics/images/GL-proteomics-subwayplot.png"></a>
 </p>
-
-### LFQ-MBR
-<!-- Pipeline diagram will be added here -->
-
-### TMT10
-<!-- Pipeline diagram will be added here -->
-
-### TMT16
-<!-- Pipeline diagram will be added here -->
-
-### TMT16-phospho
-<!-- Pipeline diagram will be added here -->
 
 ---
 ## Repository Links
