@@ -904,6 +904,8 @@ Rscript FragPipeAnalystR_main.R \
 - **pathway_analysis_plots_{level}_GLProteomics.zip** (pathway analysis plots folder)
   - or/ (over-representation analysis: or_database_direction.csv, .pdf, .png per database and direction)
   - gsea/ (GSEA: gsea_database_contrast.csv, .pdf, .png per database and contrast)
+- **or_{database}_{direction}.csv** (over-representation analysis results table for each enrichment database and direction)
+- **gsea_{database}_{contrast}.csv** (GSEA results table for each GSEA database and contrast)
 - **DE_plots_{level}_GLProteomics.zip** (DE plots folder)
   - DE_heatmap.pdf, .png (DE heatmap)
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
