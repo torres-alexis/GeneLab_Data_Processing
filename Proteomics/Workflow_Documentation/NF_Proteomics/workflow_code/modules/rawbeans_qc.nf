@@ -1,9 +1,5 @@
 process RAWBEANS_QC {
     tag "${meta.id}"
-    
-    publishDir path: { "${output_dir}/RawBeans/" },
-        mode: params.publish_dir_mode,
-        pattern: '*_qc-report.zip'
 
     input:
     val(output_dir)

@@ -65,7 +65,7 @@ def collect_first_match(base_dir, pattern):
 
 def collect_processed_files(outdir, assay_suffix):
     out = []
-    out.extend(collect_matches(os.path.join(outdir, "RawBeans"), ["*.zip"]))
+    out.extend(collect_matches(os.path.join(outdir, "RawBeans"), [f"All{assay_suffix}_qc-report.zip"]))
     out.extend(collect_matches(os.path.join(outdir, "Metadata"), [
         "*.csv",
         "*.workflow",
