@@ -19,7 +19,7 @@
             },
             "fraction": {
                 "type": ["string", "integer"],
-                "description": "Fraction number when multiple fractions per plex.",
+                "description": "Alphanumeric fraction identifier within a plex.",
                 "meta": ["fraction"]
             },
             "TechRepMixture": {

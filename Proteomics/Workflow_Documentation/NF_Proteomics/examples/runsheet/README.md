@@ -46,6 +46,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | run | string | Unique identifier for each mzML file (MS run). | NASA_Flies_TMTA_Fr00 |
 | plex | string | Plex identifier (e.g. TMTa, TMTb). | TMTa |
 | TechRepMixture | string | Technical replicate of same mixture. Also maps to FragPipe manifest Bioreplicate. (Default: 1) | 1 |
+| fraction | string | Alphanumeric fraction identifier within a plex. Used with `plex` and `TechRepMixture` to group repeated technical runs for filtering. | 00 |
 | data_file | string | Path to mzML file. | /path/to/NASA_Flies_TMTA_Fr00.mzML |
 <!--| data_type | string | Mass spectrometry acquisition method. Options: DDA | DDA | -->
 <!-- | data_type | string | Mass spectrometry acquisition method. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib. | DDA | -->
