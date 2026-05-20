@@ -261,7 +261,8 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
 * `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (LFQ runsheet: Factor Value columns + Bioreplicate; TMT data sheet: plex + TechRepMixture + fraction). (type: boolean, default: true)
-* `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: conf/tools)
+* `--data_type` - FragPipe manifest data type. Options: DDA, DIA, GPF-DIA, DIA-Quant, DIA-Lib (type: string, default: "DDA")
+* `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)
 * `--philosopher_isoforms` - Include protein isoforms in database when using `uniprot_id` (type: boolean, default: true)

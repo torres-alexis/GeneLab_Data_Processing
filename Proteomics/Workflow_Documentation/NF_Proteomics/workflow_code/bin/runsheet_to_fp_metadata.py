@@ -70,6 +70,12 @@ def main():
         default="",
         help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
     )
+    parser.add_argument(
+        "--data_type",
+        default="DDA",
+        choices=("DDA", "DIA", "GPF-DIA", "DIA-Quant", "DIA-Lib"),
+        help="FragPipe manifest data_type value. Default: DDA.",
+    )
     args = parser.parse_args()
 
     suffix = (args.assay_suffix or "").strip()
@@ -149,7 +155,7 @@ def main():
 
             input_file = f"{sample_name}.mzML"
             experiment = sample_to_experiment.get(sample_name, "1") if mode == "LFQ" else row.get("plex", "").strip() or ""
-            data_type = "DDA"
+            data_type = args.data_type
             bioreplicate = sample_to_biorep.get(sample_name, "1")
             writer.writerow([input_file, experiment or "1", bioreplicate or "1", data_type])
 
