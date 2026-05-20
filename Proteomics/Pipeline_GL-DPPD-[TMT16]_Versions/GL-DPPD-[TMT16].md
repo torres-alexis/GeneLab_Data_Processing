@@ -21,8 +21,6 @@ Alexis Torres (GeneLab Data Processing Team)
 - [**Software used**](#software-used)
 - [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
   - [**1. Raw Data QC**](#1-raw-data-qc)
-    - [1a. RawBeans QC (Samplewise)](#1a-rawbeans-qc-samplewise)
-    - [1b. RawBeans QC (All Samples)](#1b-rawbeans-qc-all-samples)
   - [**2. Download Reference Proteome, Add Decoys and Contaminants to FASTA**](#2-download-reference-proteome-add-decoys-and-contaminants-to-fasta)
   - [**3. Configure Metadata**](#3-configure-metadata)
     - [3a. Create data sheet and sample sheet](#3a-create-data-sheet-and-sample-sheet)
@@ -76,41 +74,6 @@ Alexis Torres (GeneLab Data Processing Team)
 
 <br>
 
-### 1a. RawBeans QC (Samplewise)
-
-```bash
-create-qc-report.py \
-  --input *.mzML \
-  --output-dir . \
-  --batch \
-  --cores 1
-
-cd *
-zip -r ../*_GLProteomics_qc-report.zip qc-report.html resources/
-cd ..
-```
-
-**Parameter Definitions:**
-
-- `--input` – input mzML file path
-- `--output-dir` – the output directory to store results
-- `--batch` – creates a report for each sample
-- `--cores` – number of CPU cores to use for processing
-
-**Input Data:**
-
-- \*.mzML (input mass spectrometry raw data in mzML format)
-
-**Output Data:**
-
-- qc-report.html (RawBeans QC report HTML file)
-- resources/ (directory containing supporting files for the QC report HTML)
-- **\*_GLProteomics_qc-report.zip** (zip archive containing RawBeans QC report HTML file and supporting files)
-
-<br>
-
-### 1b. RawBeans QC (All Samples)
-
 ```bash
 create-qc-report.py \
   --input *.mzML \
@@ -122,7 +85,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 **Parameter Definitions:**
 
-- `--input` – multiple mzML files provided as individual paths separated by spaces
+- `--input` – all input mzML files provided as individual paths separated by spaces
 - `--output-dir` – the output directory to store results
 - `--cores` – number of CPU cores to use for processing
 
@@ -139,7 +102,6 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 <br>
 
 ---
-
 ## 2. Download Reference Proteome, Add Decoys and Contaminants to FASTA
 
 ```bash
@@ -979,8 +941,8 @@ Rscript FragPipeAnalystR_main.R \
   - feature/gene/boxplot/, feature/gene/violinplot/ (gene run: top 10 by gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
   - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
 - **pathway_analysis_plots_{level}_GLProteomics.zip** (pathway analysis plots folder)
-  - or/ (over-representation analysis: or_database_direction.csv, .pdf, .png per database and direction)
-  - gsea/ (GSEA: gsea_database_contrast.csv, .pdf, .png per database and contrast)
+  - or/ (over-representation analysis plots: or_database_direction.pdf, .png per database and direction)
+  - gsea/ (GSEA plots: gsea_database_contrast.pdf, .png per database and contrast)
 - **or_{database}_{direction}.csv** (over-representation analysis results table for each enrichment database and direction)
 - **gsea_{database}_{contrast}.csv** (GSEA results table for each GSEA database and contrast)
 - **DE_plots_{level}_GLProteomics.zip** (DE plots folder)

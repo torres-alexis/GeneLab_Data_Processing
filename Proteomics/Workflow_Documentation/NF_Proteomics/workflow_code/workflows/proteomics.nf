@@ -6,7 +6,7 @@ include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { ISA_TO_TMT_SHEETS } from '../modules/isa_to_tmt_sheets.nf'
 include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
 include { STAGE_INPUT } from '../modules/stage_input.nf'
-include { RAWBEANS_QC } from '../modules/rawbeans_qc.nf'
+// include { RAWBEANS_QC } from '../modules/rawbeans_qc.nf'
 include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
@@ -132,7 +132,7 @@ workflow PROTEOMICS {
         // Stage input mzML files for each sample / fraction
         STAGE_INPUT(ch_out_dir, samples_full)
         // Run RawBeans QC on each sample's raw data
-        RAWBEANS_QC(ch_out_dir, STAGE_INPUT.out.mzml_files)
+        // RAWBEANS_QC(ch_out_dir, STAGE_INPUT.out.mzml_files)
         // Run RawBeans QC on all samples' raw data
         RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
 
