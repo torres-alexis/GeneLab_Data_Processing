@@ -163,6 +163,22 @@ def main():
 
     if mode == "LFQ":
         exp_fieldnames = ["file", "sample", "sample_name", "condition", "condition_name", "replicate"]
+        sample_to_display_name = {}
+        sample_display_from_source = {}
+        for row in rows:
+            input_file_path = row.get("data_file", "").strip()
+            if not input_file_path:
+                continue
+            sample_id = _get_sample_id(row)
+            experiment = sample_to_experiment.get(sample_id, "1")
+            bioreplicate = sample_to_biorep.get(sample_id, "1")
+            sample = f"{experiment}_{bioreplicate}"
+            source_name = (row.get("Source Name") or "").strip()
+            display_name = source_name or (row.get("Sample Name") or "").strip() or sample_id
+            if sample not in sample_to_display_name or (source_name and not sample_display_from_source.get(sample, False)):
+                sample_to_display_name[sample] = display_name
+                sample_display_from_source[sample] = bool(source_name)
+
         exp_rows = []
         for row in rows:
             input_file_path = row.get("data_file", "").strip()
@@ -172,8 +188,7 @@ def main():
             experiment = sample_to_experiment.get(sample_id, "1")
             bioreplicate = sample_to_biorep.get(sample_id, "1")
             sample = f"{experiment}_{bioreplicate}"
-            isa_sample_name = (row.get("Sample Name") or "").strip()
-            sample_name_out = isa_sample_name
+            sample_name_out = sample_to_display_name.get(sample, sample_id)
             cond_name = _condition_name_from_factors(row, factor_columns) or "Experiment"
             cond_safe = _condition_from_factors(row, factor_columns) or "Experiment"
             exp_rows.append({
