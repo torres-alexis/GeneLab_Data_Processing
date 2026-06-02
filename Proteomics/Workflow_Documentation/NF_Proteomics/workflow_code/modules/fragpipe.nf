@@ -1,10 +1,10 @@
 process FRAGPIPE {
     tag "${workflow_config.getName()}"
     
-    publishDir path: { "${output_dir}/FragPipe/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/**",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
+    // publishDir path: { "${output_dir}/FragPipe/" },
+    //     mode: params.publish_dir_mode,
+    //     pattern: "output/**",
+    //     saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
     // publishDir "${output_dir}/MSstats/",
     //     mode: params.publish_dir_mode,
     //     pattern: "output/msstats.csv",
@@ -24,7 +24,6 @@ process FRAGPIPE {
     path(experiment_annotation)
 
     output:
-    path("output/**"), emit: fragpipe_outputs
     path("output/fragpipe-files.fp-manifest"), emit: fragpipe_manifest
     path("versions.yml"), emit: versions
     // LFQ / shared
@@ -33,6 +32,8 @@ process FRAGPIPE {
     path("output/experiment_annotation.tsv"), emit: experiment_annotation, optional: true
     path("output/combined_protein.tsv"), emit: combined_protein, optional: true
     path("output/combined_peptide.tsv"), emit: combined_peptide, optional: true
+    path("output/combined*.tsv"), emit: combined_tables, optional: true
+    path("output/tmt-report/*.tsv"), emit: tmt_report_tables, optional: true
     // TMT tmt-report/ (suffix from prot_norm: 0=None, 1=MD, 2=GN, -1=All; glob matches whatever TMT-Integrator produced)
     path("output/tmt-report/abundance_protein_*.tsv"), emit: abundance_protein, optional: true
     path("output/tmt-report/abundance_peptide_*.tsv"), emit: abundance_peptide, optional: true

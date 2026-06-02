@@ -11,6 +11,7 @@ include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
 include { FRAGPIPE } from '../modules/fragpipe.nf'
+include { CLEAN_FRAGPIPE_TABLES } from '../modules/clean_fragpipe_tables.nf'
 include { PMULTIQC } from '../modules/pmultiqc.nf'
 include { MSSTATS } from '../modules/msstats.nf'
 // include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
@@ -222,12 +223,21 @@ workflow PROTEOMICS {
         // END HEADLESS FRAGPIPE
         ///////////////////////////////////////////////////////////
 
-        // Run MultiQC with pmultiqc FragPipe plugin
+        // Run pmultiqc with FragPipe plugin
         ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
-        ch_fragpipe_output_dir = output_dir
-            .combine(FRAGPIPE.out.fragpipe_manifest)
-            .map { outdir, fragpipe_manifest -> file("${outdir}/FragPipe", type: 'dir') }
+        ch_fragpipe_output_dir = FRAGPIPE.out.fragpipe_manifest.map { fragpipe_manifest -> fragpipe_manifest.parent }
         PMULTIQC(output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
+
+        // Pass in FragPipe tables to clean and publish; run downstream modules with original tables
+        ch_fragpipe_tables_to_clean = (params.fragpipe_workflow?.startsWith('TMT') ?
+            FRAGPIPE.out.tmt_report_tables :
+            FRAGPIPE.out.combined_tables
+        ).collect()
+        CLEAN_FRAGPIPE_TABLES(
+            ch_out_dir,
+            ch_fragpipe_tables_to_clean,
+            FRAGPIPE_METADATA_SETUP.out.experiment_annotation
+        )
 
         // Resolve gene_annotations_url for DE_results: direct file, or organism + annotations table
         gene_annotations_url = Channel.value(null)
