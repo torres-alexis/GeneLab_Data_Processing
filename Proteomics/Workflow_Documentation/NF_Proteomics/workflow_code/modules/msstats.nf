@@ -1,8 +1,6 @@
 process MSSTATS {
-    publishDir path: { "${output_dir}/MSstats/" },
-        mode: params.publish_dir_mode,
-        pattern: "msstats_input.csv",
-        saveAs: { filename -> "msstats.csv" }
+    // MSstats inputs (e.g. msstats.csv, msstats_ptm.csv) are published under FragPipe/
+    // This process only publishes MSstats results here.
     publishDir path: { "${output_dir}/MSstats/" },
         mode: params.publish_dir_mode,
         pattern: "msstats_comparison*.csv"

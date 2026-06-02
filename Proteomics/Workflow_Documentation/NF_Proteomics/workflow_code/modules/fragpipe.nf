@@ -1,18 +1,18 @@
 process FRAGPIPE {
     tag "${workflow_config.getName()}"
     
-    // publishDir path: { "${output_dir}/FragPipe/" },
-    //     mode: params.publish_dir_mode,
-    //     pattern: "output/**",
-    //     saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
-    // publishDir "${output_dir}/MSstats/",
-    //     mode: params.publish_dir_mode,
-    //     pattern: "output/msstats.csv",
-    //     saveAs: { filename -> "msstats_fragpipe.csv" }
-    // publishDir "${output_dir}/MSstats/",
-    //     mode: params.publish_dir_mode,
-    //     pattern: "output/msstats_ptm.csv",
-    //     saveAs: { filename -> "msstats_ptm_fragpipe.csv" }
+    // TMT: publish plex-level combined tables
+    publishDir path: { "${output_dir}/FragPipe/" },
+        mode: params.publish_dir_mode,
+        pattern: "output/combined*.tsv",
+        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') },
+        enabled: params.fragpipe_workflow?.startsWith('TMT')
+
+    // MSstats inputs (e.g. msstats.csv, msstats_ptm.csv)
+    publishDir path: { "${output_dir}/FragPipe/" },
+        mode: params.publish_dir_mode,
+        pattern: "output/msstats*.csv",
+        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
 
     input:
     val(output_dir)
