@@ -746,12 +746,12 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 
 **Output Data:**
 
-- abundance_protein_MD.tsv (TMTIntegrator protein-level table; log2 abundance per channel)
-- abundance_peptide_MD.tsv (TMTIntegrator peptide-level table; log2 abundance per channel)
-- abundance_gene_MD.tsv (TMTIntegrator gene-level table; log2 abundance per channel)
-- ratio_protein_MD.tsv (TMTIntegrator protein-level table; log2(channel/reference) per channel)
-- ratio_peptide_MD.tsv (TMTIntegrator peptide-level table; log2(channel/reference) per channel)
-- ratio_gene_MD.tsv (TMTIntegrator gene-level table; log2(channel/reference) per channel)
+- **abundance_protein_MD.tsv** (TMTIntegrator protein-level table; log2 abundance per channel)
+- **abundance_peptide_MD.tsv** (TMTIntegrator peptide-level table; log2 abundance per channel)
+- **abundance_gene_MD.tsv** (TMTIntegrator gene-level table; log2 abundance per channel)
+- **ratio_protein_MD.tsv** (TMTIntegrator protein-level table; log2(channel/reference) per channel)
+- **ratio_peptide_MD.tsv** (TMTIntegrator peptide-level table; log2(channel/reference) per channel)
+- **ratio_gene_MD.tsv** (TMTIntegrator gene-level table; log2(channel/reference) per channel)
 
 <br>
 
