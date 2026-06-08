@@ -40,7 +40,7 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4h. Filter Results by FDR](#4h-filter-results-by-fdr)
     - [4i. Generate Reports](#4i-generate-reports)
     - [4j. IonQuant TMT Reporter Ion Extraction](#4j-ionquant-tmt-reporter-ion-extraction)
-    - [4k. TMTIntegrator TMT Quantification](#4k-tmtintegrator-tmt-quantification)
+    - [4k. TMT-Integrator TMT Quantification](#4k-tmt-integrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
   - [**6. FragPipeAnalystR Downstream Analysis**](#6-fragpipeanalystr-downstream-analysis)
 
@@ -299,7 +299,7 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 
 - fragger.params (MSFragger parameter configuration file)
 - msbooster_params.txt (MSBooster parameter configuration file)
-- tmt-integrator-conf.yml (TMTIntegrator configuration file)
+- tmt-integrator-conf.yml (TMT-Integrator configuration file)
 - filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
 - filelist_ionquant.txt (file list for IonQuant)
 - modmasses_ionquant.txt (modification masses file for IonQuant)
@@ -723,7 +723,7 @@ java -Djava.awt.headless=true -Xmx64G \
 
 <br>
 
-### 4k. TMTIntegrator TMT Quantification
+### 4k. TMT-Integrator TMT Quantification
 
 ```bash
 java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
@@ -736,22 +736,22 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 
 - `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `-jar` – executes JAR file
-- `tmt-integrator-conf.yml` – TMTIntegrator configuration file
+- `tmt-integrator-conf.yml` – TMT-Integrator configuration file
 - `*/psm.tsv` – PSM files with TMT reporter ion intensities
 
 **Input Data:**
 
-- tmt-integrator-conf.yml (TMTIntegrator configuration file, output from [Step 4a](#4a-launch-fragpipe))
+- tmt-integrator-conf.yml (TMT-Integrator configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - psm.tsv (PSM reports with TMT reporter ion intensities, output from [Step 4j](#4j-ionquant-tmt-reporter-ion-extraction))
 
 **Output Data:**
 
-- **abundance_protein_MD.tsv** (TMTIntegrator protein-level table; log2 abundance per channel)
-- **abundance_peptide_MD.tsv** (TMTIntegrator peptide-level table; log2 abundance per channel)
-- **abundance_gene_MD.tsv** (TMTIntegrator gene-level table; log2 abundance per channel)
-- **ratio_protein_MD.tsv** (TMTIntegrator protein-level table; log2(channel/reference) per channel)
-- **ratio_peptide_MD.tsv** (TMTIntegrator peptide-level table; log2(channel/reference) per channel)
-- **ratio_gene_MD.tsv** (TMTIntegrator gene-level table; log2(channel/reference) per channel)
+- **abundance_protein_MD.tsv** (TMT-Integrator protein-level table; log2 abundance per channel)
+- **abundance_peptide_MD.tsv** (TMT-Integrator peptide-level table; log2 abundance per channel)
+- **abundance_gene_MD.tsv** (TMT-Integrator gene-level table; log2 abundance per channel)
+- **ratio_protein_MD.tsv** (TMT-Integrator protein-level table; log2(channel/reference) per channel)
+- **ratio_peptide_MD.tsv** (TMT-Integrator peptide-level table; log2(channel/reference) per channel)
+- **ratio_gene_MD.tsv** (TMT-Integrator gene-level table; log2(channel/reference) per channel)
 
 <br>
 
@@ -889,7 +889,7 @@ Rscript FragPipeAnalystR_main.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (table mapping TMT channels to samples)
-- `--quantification_file` – path to TMTIntegrator abundance file (abundance_protein_MD.tsv, abundance_gene_MD.tsv, or abundance_peptide_MD.tsv)
+- `--quantification_file` – path to TMT-Integrator abundance file (abundance_protein_MD.tsv, abundance_gene_MD.tsv, or abundance_peptide_MD.tsv)
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein`, `gene`, or `peptide`
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling)
@@ -919,9 +919,9 @@ Rscript FragPipeAnalystR_main.R \
 **Input Data:**
 
 - experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
-- abundance_protein_MD.tsv (TMTIntegrator protein-level abundance table, output from [Step 4k](#4k-tmtintegrator-tmt-quantification))
-- abundance_gene_MD.tsv (TMTIntegrator gene-level abundance table, output from [Step 4k](#4k-tmtintegrator-tmt-quantification))
-- abundance_peptide_MD.tsv (TMTIntegrator peptide-level abundance table, output from [Step 4k](#4k-tmtintegrator-tmt-quantification))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
 - annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
 
 **Output Data:**
