@@ -189,7 +189,7 @@ runsheet_to_fp_metadata.py \
   - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
   - Experiment (FragPipe experiment string (from `Factor Value[...]` columns))
   - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
-  - Data type (from runsheet `data_type` column))
+  - Data type (`DDA` from runsheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
   - file (mzML basename (`*.mzML`))

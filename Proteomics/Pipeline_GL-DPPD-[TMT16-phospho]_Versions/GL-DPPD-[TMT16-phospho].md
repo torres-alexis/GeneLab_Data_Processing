@@ -192,7 +192,7 @@ runsheet_to_fp_metadata.py \
   - Path (mzML basename from data sheet `run` (`*.mzML`))
   - Experiment (plex identifier from data sheet `plex`)
   - Bioreplicate (mixture technical replicate alphanumeric identifier (from data sheet `TechRepMixture`, or `1` if empty))
-  - Data type (from data sheet `data_type` column))
+  - Data type (`DDA` from runsheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
   - plex (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
