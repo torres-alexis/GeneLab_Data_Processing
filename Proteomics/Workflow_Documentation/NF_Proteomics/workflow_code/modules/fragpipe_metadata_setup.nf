@@ -23,10 +23,9 @@ process FRAGPIPE_METADATA_SETUP {
     script:
     def is_tmt = params.fragpipe_workflow?.contains('TMT')
     def assay_suffix_flag = params.assay_suffix ? "--assay_suffix ${params.assay_suffix}" : ""
-    def data_type_flag = params.data_type ? "--data_type ${params.data_type}" : ""
     def sheet_flag = is_tmt ? "--data_sheet ${sheets[0]} --sample_sheet ${sheets[1]}" : "--runsheet ${sheets[0]}"
     """
-    runsheet_to_fp_metadata.py ${sheet_flag} ${assay_suffix_flag} ${data_type_flag}
+    runsheet_to_fp_metadata.py ${sheet_flag} ${assay_suffix_flag}
 
     # Create output dir and copy input sheet(s) there for publishing
     mkdir -p sheets

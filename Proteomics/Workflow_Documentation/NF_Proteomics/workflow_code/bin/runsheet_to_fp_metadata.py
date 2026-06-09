@@ -7,6 +7,7 @@ Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to FragPipe manifest.t
   --sample_sheet: TMT only; required for experiment_annotation (paired with --data_sheet).
 
 Outputs (cwd): manifest[.suffix].tsv and experiment_annotation[.suffix].tsv — use --assay_suffix for stem (e.g. _GLProteomics → manifest_GLProteomics.tsv).
+Manifest data_type column: from runsheet/data_sheet `data_type` per row.
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
   LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
 TMT: Experiment=plex; Bioreplicate=TechRepMixture or "1"; plex column must match FragPipe folder (plex_Bioreplicate).
@@ -18,6 +19,19 @@ import csv
 import re
 import sys
 from collections import Counter
+
+DATA_TYPE_CHOICES = ("DDA", "DIA")
+
+
+def _row_data_type(row: dict) -> str:
+    val = (row.get("data_type") or "").strip()
+    if not val:
+        return "DDA"
+    if val not in DATA_TYPE_CHOICES:
+        sys.exit(
+            f"Error: invalid data_type '{val}' (expected one of {', '.join(DATA_TYPE_CHOICES)})"
+        )
+    return val
 
 
 def _make_names_safe(s: str) -> str:
@@ -69,12 +83,6 @@ def main():
         "--assay_suffix",
         default="",
         help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
-    )
-    parser.add_argument(
-        "--data_type",
-        default="DDA",
-        choices=("DDA", "DIA", "GPF-DIA", "DIA-Quant", "DIA-Lib"),
-        help="FragPipe manifest data_type value. Default: DDA.",
     )
     args = parser.parse_args()
 
@@ -155,7 +163,7 @@ def main():
 
             input_file = f"{sample_name}.mzML"
             experiment = sample_to_experiment.get(sample_name, "1") if mode == "LFQ" else row.get("plex", "").strip() or ""
-            data_type = args.data_type
+            data_type = _row_data_type(row)
             bioreplicate = sample_to_biorep.get(sample_name, "1")
             writer.writerow([input_file, experiment or "1", bioreplicate or "1", data_type])
 

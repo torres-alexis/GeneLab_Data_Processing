@@ -187,20 +187,20 @@ runsheet_to_fp_metadata.py \
 
 **Output Data:**
 
-- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:)
+- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename from data sheet `run` (`*.mzML`))
   - Experiment (plex identifier from data sheet `plex`)
   - Bioreplicate (mixture technical replicate alphanumeric identifier (from data sheet `TechRepMixture`, or `1` if empty))
-  - Data type (preset value (`DDA`))
+  - Data type (from data sheet `data_type` column))
 
-- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:)
+- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
   - plex (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
   - channel (TMT reporter channel from sample sheet `channel`)
   - sample (R-safe sample identifier from sample sheet `Sample Name`)
   - sample_name (same as `sample`)
   - condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values)
   - condition_name (human-readable condition)
-  - replicate (biological replicate replicate alphanumeric identifier (from sample sheet `Bioreplicate` column if present; else `1`))
+  - replicate (biological replicate replicate alphanumeric identifier (from sample sheet `Bioreplicate` column if present; else `1`)))
 
 <br>
 

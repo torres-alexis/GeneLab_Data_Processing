@@ -40,7 +40,7 @@
             "data_type": {
                 "type": "string",
                 "description": "Mass spectrometry data type",
-                "enum": ["DDA", "DIA", "GPF-DIA", "DIA-Quant", "DIA-Lib"],
+                "enum": ["DDA", "DIA"],
                 "meta": ["data_type"]
             },
             "organism": {
