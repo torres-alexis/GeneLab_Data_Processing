@@ -851,6 +851,7 @@ Rscript FragPipeAnalystR_main.R \
 **Output Data:**
 
 - **FragPipeAnalystR_parameters_{level}_GLProteomics.txt** (run parameters)
+- **FragPipeAnalystR_{level}_GLProteomics.RData** (R data file containing SummarizedExperiment object)
 - **nonimputed_matrix_{level}_GLProteomics.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
 - **imputed_matrix_{level}_GLProteomics.csv** (same structure as nonimputed_matrix_{level}_GLProteomics.csv; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
 - **QC_plots_{level}_GLProteomics.zip** (QC plots folder)
