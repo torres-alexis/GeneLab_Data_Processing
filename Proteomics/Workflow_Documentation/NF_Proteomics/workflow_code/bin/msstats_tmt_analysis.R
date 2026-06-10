@@ -56,17 +56,22 @@ write.csv(input_tmt, "msstats_input.csv", row.names = FALSE)
 
 setwd(rootDir)
 
+has_norm <- any(annotation$Condition == "Norm", na.rm = TRUE)
+use_reference_norm <- has_norm && length(unique(annotation$Run)) > 1
+
 quant <- proteinSummarization(
   input_tmt,
   method = "msstats",
   global_norm = TRUE,
-  reference_norm = FALSE,
+  reference_norm = use_reference_norm,
   remove_norm_channel = TRUE,
   remove_empty_channel = TRUE
 )
 
 all_conditions <- sort(unique(annotation$Condition))
-all_conditions <- all_conditions[!is.na(all_conditions) & all_conditions != "" & all_conditions != "Empty"]
+all_conditions <- all_conditions[
+  !is.na(all_conditions) & all_conditions != "" & !all_conditions %in% c("Empty", "Norm")
+]
 conditions <- all_conditions
 
 if (length(conditions) > 1) {

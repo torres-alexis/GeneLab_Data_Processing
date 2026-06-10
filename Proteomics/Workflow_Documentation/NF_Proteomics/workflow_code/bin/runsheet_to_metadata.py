@@ -11,7 +11,8 @@ Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (T
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
   LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
-TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
+  TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
+  MSstatsTMT annotation only: sample-sheet condition Pool is written as Norm (bridge channel); experiment_annotation keeps Pool for FragPipe/FPAR.
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
 """
 
@@ -69,6 +70,13 @@ def _condition_from_factors(row: dict, factor_columns: list) -> str:
     return _make_names_safe(_sanitize_for_fragpipe(raw))
 
 
+def _msstats_condition(condition: str) -> str:
+    """MSstatsTMT bridge/pool channels must use Condition Norm (not in experiment_annotation)."""
+    if condition.strip().lower() == "pool":
+        return "Norm"
+    return condition
+
+
 def _require_tmt_cell(row: dict, column: str) -> str:
     """Require a non-empty TMT data sheet column value."""
     run = (row.get("run") or "").strip()
@@ -108,7 +116,7 @@ def _write_msstats_tmt_annotation(
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
         plex_to_channels.setdefault(plex, []).append(
-            {"channel": channel, "bioreplicate": biorep, "condition": cond}
+            {"channel": channel, "bioreplicate": biorep, "condition": _msstats_condition(cond)}
         )
 
     if not plex_to_channels:
