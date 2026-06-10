@@ -21,7 +21,9 @@ Alexis Torres (GeneLab Data Processing Team)
 - [**Software used**](#software-used)
 - [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
   - [**1. Raw Data QC**](#1-raw-data-qc)
-  - [**2. Download Reference Proteome, Add Decoys and Contaminants to FASTA**](#2-download-reference-proteome-add-decoys-and-contaminants-to-fasta)
+  - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
+    - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
+    - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
   - [**3. Configure Metadata**](#3-configure-metadata)
     - [3a. Create data sheet and sample sheet](#3a-create-data-sheet-and-sample-sheet)
     - [3b. Create manifest and experiment annotation](#3b-create-manifest-and-experiment-annotation)
@@ -105,23 +107,50 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 <br>
 
 ---
-## 2. Download Reference Proteome, Add Decoys and Contaminants to FASTA
+## 2. Create Proteome FASTA Database
+
+### 2a. Download Proteome from UniProt
 
 ```bash
-  philosopher database \
-    --id UPXXXXXXXXX \
-    --reviewed \
-    --contam
+philosopher workspace --init
+philosopher database \
+  --id UPXXXXXXXXX \
+  --reviewed \
+  --nodecoys
 ```
+
 **Parameter Definitions:**
 
 - `--id` – UniProt proteome ID (e.g., UP000059680)
 - `--reviewed` – restrict to reviewed (Swiss-Prot) proteome entries
+- `--nodecoys` – do not append decoys (added in [Step 2b](#2b-add-decoys-and-contaminants-to-fasta))
+
+**Output Data:**
+
+- \*-reviewed-*.fas (reference proteome FASTA)
+
+<br>
+
+### 2b. Add Decoys and Contaminants to FASTA
+
+```bash
+philosopher workspace --init
+philosopher database \
+  --custom /path/to/proteome.fasta \
+  --prefix rev_ \
+  --contam
+philosopher workspace --clean
+```
+
+**Parameter Definitions:**
+
+- `--custom` – path to reference FASTA from [Step 2a](#2a-download-proteome-from-uniprot)
+- `--prefix rev_` – prefix for reversed decoy sequences
 - `--contam` – add 116 common contaminant proteins to the FASTA database (see [Philosopher Database Wiki](https://github.com/Nesvilab/philosopher/wiki/Database))
 
 **Output Data:**
 
-- \*-decoys-reviewed-contam-*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
+- \*-decoys-reviewed-contam-\*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
 
 <br>
 
@@ -303,7 +332,7 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 
 - TMT10.workflow (FragPipe workflow configuration file for TMT-10 workflow)
 - manifest_GLProteomics.tsv (FragPipe input table, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
-- \*-decoys-reviewed-contam-*.fas (proteome FASTA database, output from [Step 2](#2-download-reference-proteome-add-decoys-and-contaminants-to-fasta))
+- \*-decoys-reviewed-contam-*.fas (proteome FASTA database, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
 - \*.mzML (input mass spectrometry raw data in mzML format)
 - \*_annotation.txt (channel-sample annotation table for each plex, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
 
@@ -387,7 +416,7 @@ java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.3.jar fragger.params plexA_1
 
 - fragger.params (MSFragger parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - \*.mzML (input mass spectrometry raw data in mzML format)
-- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-download-reference-proteome-add-decoys-and-contaminants-to-fasta))
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
 
 **Output Data:**
 
@@ -547,7 +576,7 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
 
 **Input Data:**
 
-- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2-download-reference-proteome-add-decoys-and-contaminants-to-fasta))
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
 
 **Output Data:**
 
@@ -797,10 +826,10 @@ java -Djava.awt.headless=true -Xmx64G \
 - peptide.tsv (plex-specific peptide report with TMT reporter ion intensities and additional data added from IonQuant)
 - ion.tsv (plex-specific ion report with TMT reporter ion intensities and additional data added from IonQuant)
 - psm.tsv (plex-specific PSM report with TMT reporter ion intensities and additional data added from IonQuant)
-- **combined_protein.tsv** (combined protein report with TMT reporter ion intensities across all plexes)
-- **combined_peptide.tsv** (combined peptide report with TMT reporter ion intensities and additional data across all plexes)
-- **combined_ion.tsv** (combined ion report with TMT reporter ion intensities and additional data across all plexes)
-- **combined_modified_peptide.tsv** (combined modified peptide report with TMT reporter ion intensities and additional data across all plexes)
+- combined_protein.tsv (combined protein report with TMT reporter ion intensities across all plexes)
+- combined_peptide.tsv (combined peptide report with TMT reporter ion intensities and additional data across all plexes)
+- combined_ion.tsv (combined ion report with TMT reporter ion intensities and additional data across all plexes)
+- combined_modified_peptide.tsv (combined modified peptide report with TMT reporter ion intensities and additional data across all plexes)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 
@@ -836,6 +865,7 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 - **ratio_peptide_MD.tsv** (peptide-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **ratio_gene_MD.tsv** (gene-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **msstats.csv** (input file for MSstatsTMT differential abundance analysis)
+- **msstats_ptm.csv** (input file for MSstatsPTM post-translational modification analysis)
 
 <br>
 
