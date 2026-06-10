@@ -6,7 +6,7 @@ library(MSstatsTMT)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 3) {
-  stop("Usage: msstats_tmt_analysis.R <rootDir> <msstats_tmt_annotation.tsv> <msstats_dir_or_file> [assay_suffix]")
+  stop("Usage: msstats_tmt_analysis.R <rootDir> <MSstatsTMT_annotation.csv> <msstats_dir_or_file> [assay_suffix]")
 }
 rootDir <- args[1]
 annotation_path <- args[2]
@@ -19,7 +19,7 @@ annotation <- read.csv(annotation_path, sep = "\t", stringsAsFactors = FALSE, ch
 required <- c("Run", "Fraction", "TechRepMixture", "Mixture", "Channel", "BioReplicate", "Condition")
 missing <- setdiff(required, colnames(annotation))
 if (length(missing) > 0) {
-  stop("msstats_tmt_annotation missing columns: ", paste(missing, collapse = ", "))
+  stop("MSstatsTMT annotation missing columns: ", paste(missing, collapse = ", "))
 }
 
 collect_msstats_files <- function(path) {
@@ -47,13 +47,6 @@ if (length(msstats_files) == 0) {
 }
 
 msstats_data <- read_msstats_table(msstats_files)
-
-if (!"Is.Unique" %in% colnames(msstats_data) && !any(grepl("^126$|^127N$|^Channel", colnames(msstats_data)))) {
-  stop(
-    "msstats.csv is not Philosopher TMT format (missing Is.Unique / channel columns). ",
-    "Expected FragPipe TMT msstats export with Philosopher intensities."
-  )
-}
 
 input_tmt <- PhilosophertoMSstatsTMTFormat(
   input = msstats_data,

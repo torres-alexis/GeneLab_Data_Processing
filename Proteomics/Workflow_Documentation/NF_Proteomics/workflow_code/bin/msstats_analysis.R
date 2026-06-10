@@ -31,7 +31,7 @@ if (assay_suffix != "") {
     raw$Run <- gsub(assay_suffix, "", raw$Run, fixed = TRUE)
 }
 
-# Read experiment_annotation (same source as FragPipeAnalystR_main.R; condition/condition_name from runsheet_to_fp_metadata)
+# Read experiment_annotation (same source as FragPipeAnalystR_main.R; condition/condition_name from runsheet_to_metadata)
 anno <- read.table(experiment_annotation_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 colnames(anno) <- tolower(colnames(anno))
 if (!"condition" %in% colnames(anno)) {

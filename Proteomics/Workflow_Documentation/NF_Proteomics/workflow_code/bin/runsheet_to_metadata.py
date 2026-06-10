@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 """
-Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to FragPipe manifest.tsv and experiment_annotation.tsv.
+Convert runsheet (LFQ) or data_sheet + sample_sheet (TMT) to downstream metadata tables:
+FragPipe manifest, FragPipeAnalystR experiment_annotation, and (TMT) MSstatsTMT annotation.
 
   --runsheet: LFQ input (one row per mzML). TMT: pass --data_sheet first, then --sample_sheet. Mode: data_sheet→TMT, runsheet→LFQ.
   --sample_sheet: TMT only; required for experiment_annotation (paired with --data_sheet).
 
-Outputs (cwd): manifest[.suffix].tsv and experiment_annotation[.suffix].tsv — use --assay_suffix for stem (e.g. _GLProteomics → manifest_GLProteomics.tsv).
+Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (TMT) MSstatsTMT_annotation[.suffix].csv.
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
   LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
@@ -68,6 +69,76 @@ def _condition_from_factors(row: dict, factor_columns: list) -> str:
     return _make_names_safe(_sanitize_for_fragpipe(raw))
 
 
+def _write_msstats_tmt_annotation(
+    data_rows: list,
+    sample_rows: list,
+    sample_fieldnames: list,
+    output_path: str,
+) -> None:
+    """MSstatsTMT annotation: Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition."""
+    factor_cols = [c for c in sample_fieldnames if c.startswith("Factor Value[")]
+
+    plex_to_channels = {}
+    for row in sample_rows:
+        plex = (row.get("plex") or "").strip()
+        channel = (row.get("channel") or "").strip()
+        if not plex or not channel:
+            continue
+        sample_name = (row.get("Sample Name") or "").strip()
+        biorep = (row.get("Bioreplicate") or row.get("Bioreplicate") or "1").strip() or "1"
+        cond = _condition_from_factors(row, factor_cols)
+        if not cond:
+            cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
+        plex_to_channels.setdefault(plex, []).append(
+            {"channel": channel, "bioreplicate": biorep, "condition": cond}
+        )
+
+    if not plex_to_channels:
+        sys.exit("Error: sample_sheet has no plex/channel rows")
+
+    fieldnames = [
+        "Run",
+        "Fraction",
+        "TechRepMixture",
+        "Mixture",
+        "Channel",
+        "BioReplicate",
+        "Condition",
+    ]
+    out_rows = []
+    for row in data_rows:
+        run = (row.get("run") or "").strip()
+        if not run:
+            sys.exit(f"Error: data_sheet row missing run: {row}")
+        plex = (row.get("plex") or "").strip()
+        if not plex:
+            sys.exit(f"Error: data_sheet row missing plex for run {run}")
+        fraction = (row.get("fraction") or "1").strip() or "1"
+        tech_rep = (row.get("TechRepMixture") or "1").strip() or "1"
+        channels = plex_to_channels.get(plex)
+        if not channels:
+            sys.exit(f"Error: no sample_sheet channels for plex {plex} (run {run})")
+        for ch in channels:
+            out_rows.append(
+                {
+                    "Run": run,
+                    "Fraction": fraction,
+                    "TechRepMixture": tech_rep,
+                    "Mixture": plex,
+                    "Channel": ch["channel"],
+                    "BioReplicate": ch["bioreplicate"],
+                    "Condition": ch["condition"],
+                }
+            )
+
+    with open(output_path, "w", newline="\n") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(out_rows)
+
+    print(f"MSstatsTMT annotation written to {output_path} ({len(out_rows)} rows)")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert runsheet CSV to FragPipe manifest TSV"
@@ -82,7 +153,7 @@ def main():
     parser.add_argument(
         "--assay_suffix",
         default="",
-        help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, experiment_annotation_GLProteomics.tsv). Default: manifest.tsv, experiment_annotation.tsv.",
+        help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, MSstatsTMT_annotation_GLProteomics.csv). Default: manifest.tsv, experiment_annotation.tsv.",
     )
     args = parser.parse_args()
 
@@ -90,6 +161,7 @@ def main():
     manifest_stem = f"manifest{suffix}" if suffix else "manifest"
     manifest_path = f"{manifest_stem}.tsv"
     exp_anno_path = f"{manifest_stem.replace('manifest', 'experiment_annotation', 1)}.tsv"
+    msstats_tmt_anno_path = f"MSstatsTMT_annotation{suffix}.csv" if suffix else "MSstatsTMT_annotation.csv"
 
     input_file = args.data_sheet or args.runsheet
     if not input_file:
@@ -280,6 +352,9 @@ def main():
             writer.writeheader()
             writer.writerows(exp_rows)
         print(f"Experiment annotation written to {exp_anno_path}")
+
+        data_rows = [r for r in rows if (r.get("data_file") or "").strip()]
+        _write_msstats_tmt_annotation(data_rows, sample_rows, sample_fieldnames, msstats_tmt_anno_path)
 
 
 if __name__ == "__main__":

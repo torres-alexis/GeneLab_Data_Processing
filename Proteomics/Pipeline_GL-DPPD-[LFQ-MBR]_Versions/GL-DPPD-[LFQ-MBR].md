@@ -169,7 +169,7 @@ dpt-isa-to-runsheet --accession OSD-# \
 ### 3b. Create Manifest and Experiment Annotation from Runsheet
 
 ```bash
-runsheet_to_fp_metadata.py \
+runsheet_to_metadata.py \
   --runsheet {OSD-Accession-ID}_Proteomics_LFQ_v{version}_runsheet.csv \
   --assay_suffix _GLProteomics
 ```
