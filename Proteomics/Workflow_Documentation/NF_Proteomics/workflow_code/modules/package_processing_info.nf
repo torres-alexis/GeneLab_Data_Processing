@@ -4,7 +4,7 @@ process PACKAGE_PROCESSING_INFO {
         pattern: "*.zip"
 
     input:
-        path(processing_scripts)
+        path(processing_info)
         val(ch_outdir)
 
     output:
@@ -12,7 +12,7 @@ process PACKAGE_PROCESSING_INFO {
 
     script:
     """
-    for f in ${processing_scripts}/nextflow*.txt; do
+    for f in ${processing_info}/nextflow*.txt; do
         echo "Purging file paths from \$f"
         clean_paths.sh "\$f"
 
@@ -23,6 +23,6 @@ process PACKAGE_PROCESSING_INFO {
     done
         
     # Zip 
-    zip -r processing_info${params.assay_suffix}.zip processing_scripts
+    zip -r processing_info${params.assay_suffix}.zip processing_info
     """
 }

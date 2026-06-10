@@ -54,13 +54,13 @@ def main():
         log.write(f"assay_suffix: {args.assay_suffix}\n\n")
 
         check_dir(outdir, log)
-        for dirname in ("RawData", "RawBeans", "Metadata", "FragPipe", "pmultiqc", "GeneLab", "processing_scripts"):
+        for dirname in ("RawData", "RawBeans", "Metadata", "FragPipe", "pmultiqc", "GeneLab", "processing_info"):
             check_dir(os.path.join(outdir, dirname), log)
 
-        processing_scripts_dir = os.path.join(outdir, "processing_scripts")
-        check_nonempty_file(os.path.join(processing_scripts_dir, "samples.txt"), log)
-        check_nonempty_glob(os.path.join(processing_scripts_dir, f"nextflow_log*{args.assay_suffix}.txt"), log)
-        check_nonempty_glob(os.path.join(processing_scripts_dir, f"nextflow_run_command*{args.assay_suffix}.txt"), log)
+        processing_info_dir = os.path.join(outdir, "processing_info")
+        check_nonempty_file(os.path.join(processing_info_dir, "samples.txt"), log)
+        check_nonempty_glob(os.path.join(processing_info_dir, f"nextflow_log*{args.assay_suffix}.txt"), log)
+        check_nonempty_glob(os.path.join(processing_info_dir, f"nextflow_run_command*{args.assay_suffix}.txt"), log)
 
         check_nonempty_file(os.path.join(outdir, "GeneLab", f"raw_md5sum{args.assay_suffix}.tsv"), log)
         check_nonempty_file(os.path.join(outdir, "GeneLab", f"processed_md5sum{args.assay_suffix}.tsv"), log)

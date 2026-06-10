@@ -4,12 +4,12 @@ include { VALIDATE_PROCESSING } from '../modules/validate_processing.nf'
 
 // Post-processing only: nextflow run main.nf --post_processing true ...
 // Expected to only run after main workflow run.
-// Expects processing_scripts/nextflow_log_GLProteomics.txt, processing_scripts/nextflow_run_command_GLProteomics.txt, and processing_scripts/samples.txt in the processed output directory.
+// Expects processing_info/nextflow_log_GLProteomics.txt, processing_info/nextflow_run_command_GLProteomics.txt, and processing_info/samples.txt in the processed output directory.
 workflow POST_PROCESSING {
     main:
         processed_dir = "${params.output_dir}/${params.results_dir ?: (params.accession ?: 'results')}"
         ch_processed_directory = Channel.fromPath(processed_dir, type: 'dir', checkIfExists: true)
-        ch_processing_info = Channel.fromPath("${processed_dir}/processing_scripts", type: 'dir', checkIfExists: true)
+        ch_processing_info = Channel.fromPath("${processed_dir}/processing_info", type: 'dir', checkIfExists: true)
         PACKAGE_PROCESSING_INFO(ch_processing_info, processed_dir)
         GENERATE_MD5SUMS(ch_processed_directory, PACKAGE_PROCESSING_INFO.out.zip)
         VALIDATE_PROCESSING(

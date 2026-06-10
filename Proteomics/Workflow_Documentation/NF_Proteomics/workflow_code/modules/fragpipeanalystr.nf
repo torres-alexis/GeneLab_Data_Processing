@@ -11,7 +11,7 @@ process FRAGPIPEANALYSTR {
             }
             f.replaceFirst(/^output\//, '')
         }
-    publishDir path: { "${output_dir}/processing_scripts/" },
+    publishDir path: { "${output_dir}/processing_info/" },
         mode: params.publish_dir_mode,
         pattern: "output/**",
         saveAs: { filename ->
