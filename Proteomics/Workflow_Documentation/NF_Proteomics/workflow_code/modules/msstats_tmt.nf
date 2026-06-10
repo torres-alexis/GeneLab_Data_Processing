@@ -9,7 +9,7 @@ process MSSTATS_TMT {
     input:
     val(output_dir)
     path(msstats_tmt_annotation)
-    path(msstats_tmt_csv)
+    path(msstats_csv)
 
     output:
     path("versions.yml"), emit: versions
@@ -18,13 +18,7 @@ process MSSTATS_TMT {
 
     script:
     """
-    mkdir -p msstats_inputs
-    for f in ${msstats_tmt_csv}; do
-      base=\$(basename "\$(dirname "\$f")")
-      cp "\$f" "msstats_inputs/\${base}_msstats.csv"
-    done
-
-    msstats_tmt_analysis.R . ${msstats_tmt_annotation} msstats_inputs ${params.assay_suffix}
+    msstats_tmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
 
     echo '"${task.process}":' > versions.yml
     echo "    msstatstmt: \$(Rscript -e 'cat(as.character(packageVersion(\"MSstatsTMT\")))' 2>/dev/null || echo 'unknown')" >> versions.yml

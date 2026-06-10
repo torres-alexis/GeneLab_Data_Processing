@@ -11,7 +11,7 @@ Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (T
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
 LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
   LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
-TMT: Experiment=plex; Bioreplicate=TechRepMixture or "1"; plex column must match FragPipe folder (plex_Bioreplicate).
+TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
 """
 
@@ -69,6 +69,24 @@ def _condition_from_factors(row: dict, factor_columns: list) -> str:
     return _make_names_safe(_sanitize_for_fragpipe(raw))
 
 
+def _require_tmt_cell(row: dict, column: str) -> str:
+    """Require a non-empty TMT data sheet column value."""
+    run = (row.get("run") or "").strip()
+    val = (row.get(column) or "").strip()
+    if not val:
+        sys.exit(f"Error: data_sheet row missing {column} for run {run or row}")
+    return val
+
+
+def _require_sample_bioreplicate(row: dict) -> str:
+    """Require a non-empty sample sheet Bioreplicate value."""
+    sample_name = (row.get("Sample Name") or "").strip()
+    val = (row.get("Bioreplicate") or "").strip()
+    if not val:
+        sys.exit(f"Error: sample_sheet row missing Bioreplicate for Sample Name {sample_name or row}")
+    return val
+
+
 def _write_msstats_tmt_annotation(
     data_rows: list,
     sample_rows: list,
@@ -85,7 +103,7 @@ def _write_msstats_tmt_annotation(
         if not plex or not channel:
             continue
         sample_name = (row.get("Sample Name") or "").strip()
-        biorep = (row.get("Bioreplicate") or row.get("Bioreplicate") or "1").strip() or "1"
+        biorep = _require_sample_bioreplicate(row)
         cond = _condition_from_factors(row, factor_cols)
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
@@ -113,8 +131,8 @@ def _write_msstats_tmt_annotation(
         plex = (row.get("plex") or "").strip()
         if not plex:
             sys.exit(f"Error: data_sheet row missing plex for run {run}")
-        fraction = (row.get("fraction") or "1").strip() or "1"
-        tech_rep = (row.get("TechRepMixture") or "1").strip() or "1"
+        fraction = _require_tmt_cell(row, "fraction")
+        tech_rep = _require_tmt_cell(row, "TechRepMixture")
         channels = plex_to_channels.get(plex)
         if not channels:
             sys.exit(f"Error: no sample_sheet channels for plex {plex} (run {run})")
@@ -215,11 +233,12 @@ def main():
             else:
                 sample_to_biorep[sample_name] = "1"
         elif mode == "TMT":
+            if not row.get("data_file", "").strip():
+                continue
             plex = row.get("plex", "").strip()
             if not plex:
                 sys.exit(f"Error: TMT mode requires 'plex' column in data sheet. Missing for Sample Name: {sample_name}")
-            biorep = row.get("TechRepMixture", "").strip()
-            sample_to_biorep[sample_name] = biorep if biorep else "1"
+            sample_to_biorep[sample_name] = _require_tmt_cell(row, "TechRepMixture")
 
     with open(manifest_path, "w", newline="\n") as f:
         writer = csv.writer(f, delimiter="\t")
@@ -236,7 +255,12 @@ def main():
             input_file = f"{sample_name}.mzML"
             experiment = sample_to_experiment.get(sample_name, "1") if mode == "LFQ" else row.get("plex", "").strip() or ""
             data_type = _row_data_type(row)
-            bioreplicate = sample_to_biorep.get(sample_name, "1")
+            if mode == "TMT":
+                bioreplicate = sample_to_biorep.get(sample_name)
+                if not bioreplicate:
+                    sys.exit(f"Error: missing TechRepMixture for run {sample_name}")
+            else:
+                bioreplicate = sample_to_biorep.get(sample_name, "1")
             writer.writerow([input_file, experiment or "1", bioreplicate or "1", data_type])
 
     print(f"Manifest written to {manifest_path}")
@@ -330,7 +354,7 @@ def main():
                 if not sample_name:
                     continue
                 channel = row.get("channel", "").strip()
-                replicate = row.get("Bioreplicate", "").strip() or "1"
+                replicate = _require_sample_bioreplicate(row)
                 cond_name = _condition_name_from_factors(row, factor_cols)
                 cond_safe = _condition_from_factors(row, factor_cols) if cond_name else _sanitize_for_fragpipe(sample_name)
                 sample_base = _sanitize_for_fragpipe(sample_name) or sample_name

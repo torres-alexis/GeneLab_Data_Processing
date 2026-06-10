@@ -190,17 +190,26 @@ runsheet_to_metadata.py \
 - **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename from data sheet `run` (`*.mzML`))
   - Experiment (plex identifier from data sheet `plex`)
-  - Bioreplicate (mixture technical replicate alphanumeric identifier (from data sheet `TechRepMixture`, or `1` if empty))
-  - Data type (`DDA` from runsheet `data_type` column))
+  - Bioreplicate (mixture/experiment technical replicate identifier from data sheet `TechRepMixture`)
+  - Data type (`DDA` from data sheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
-  - plex (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
+  - plex (`{Experiment}_{Bioreplicate}` (from manifest `Experiment` and `Bioreplicate`))
   - channel (TMT reporter channel from sample sheet `channel`)
   - sample (R-safe sample identifier from sample sheet `Sample Name`)
   - sample_name (same as `sample`)
   - condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values)
   - condition_name (human-readable condition)
-  - replicate (biological replicate replicate alphanumeric identifier (from sample sheet `Bioreplicate` column if present; else `1`)))
+  - replicate (biological replicate identifier from sample sheet `Bioreplicate`))
+
+- **MSstatsTMT_annotation_GLProteomics.csv** (MSstatsTMT input table; columns in order:
+  - Run (run identifier from data sheet `run`)
+  - Fraction (LC fraction identifier from data sheet `fraction`)
+  - TechRepMixture (mixture/experiment technical replicate identifier from data sheet `TechRepMixture`)
+  - Mixture (plex identifier from data sheet `plex`)
+  - Channel (TMT reporter channel from sample sheet `channel`)
+  - BioReplicate (biological replicate identifier from sample sheet `Bioreplicate`)
+  - Condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values))
 
 <br>
 

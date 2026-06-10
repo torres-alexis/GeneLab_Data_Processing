@@ -1,7 +1,7 @@
 process CLEAN_FRAGPIPE_TABLES {
     tag "fragpipe_tables"
 
-    publishDir path: { params.fragpipe_workflow?.startsWith('TMT') ? "${output_dir}/FragPipe/tmt-report/" : "${output_dir}/FragPipe/" },
+    publishDir path: { "${output_dir}/FragPipe/" },
         mode: params.publish_dir_mode,
         pattern: "output/*.tsv",
         saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }

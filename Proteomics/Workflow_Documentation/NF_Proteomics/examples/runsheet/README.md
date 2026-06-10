@@ -43,9 +43,9 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | run | string | Unique identifier for each mzML file (MS run). | NASA_Flies_TMTA_Fr00 |
-| plex | string | Plex identifier (e.g. TMTa, TMTb). | TMTa |
-| TechRepMixture | string | Technical replicate of same mixture. Also maps to FragPipe manifest Bioreplicate. (Default: 1) | 1 |
-| fraction | string | Alphanumeric fraction identifier within a plex. Used with `plex` and `TechRepMixture` to group repeated technical runs for filtering. | 00 |
+| plex | string | Plex / experiment identifier (e.g. TMTa, TMTb). | TMTa |
+| TechRepMixture | string | Technical replicate of the same TMT mixture (same plex). Use `1` when the mixture was run once. Maps to FragPipe manifest `Bioreplicate`, MSstatsTMT `TechRepMixture`, and Fragpipe plex folder `{plex}_{TechRepMixture}`. | 1 |
+| fraction | string | Alphanumeric fraction identifier within a plex. Used with `plex` and `TechRepMixture` to group technical replicates for filtering. | 00 |
 | data_file | string | Path to mzML file. | /path/to/NASA_Flies_TMTA_Fr00.mzML |
 | data_type | string | Mass spectrometry acquisition method. Written to FragPipe manifest. (Options: DDA) | DDA |
 
@@ -59,7 +59,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
 | plex | string | Plex identifier. Must match data sheet. | TMTa |
 | channel | string | TMT channel. | 127N |
-| Bioreplicate | string | Alphanumeric biological replicate identifier. If omitted, assigned sequentially from runsheet row order (1, 2, 3...). | 1 |
+| Bioreplicate | string | Biological replicate identifier. | 1 |
 | Factor Value[...] | string | A set of one or more columns specifying the experimental group the sample belongs to. In the simplest form, a column named 'Factor Value[group]' is sufficient. | male |
 
 

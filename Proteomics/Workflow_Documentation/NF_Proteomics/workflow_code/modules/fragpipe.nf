@@ -1,24 +1,14 @@
 process FRAGPIPE {
     tag "${workflow_config.getName()}"
-    
-    // TMT: publish plex-level combined tables
+
     publishDir path: { "${output_dir}/FragPipe/" },
         mode: params.publish_dir_mode,
-        pattern: "output/combined*.tsv",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') },
-        enabled: params.fragpipe_workflow?.startsWith('TMT')
+        pattern: "output/msstats.csv",
+        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
 
-    // TMT: publish tmt-report tables
-    publishDir path: { "${output_dir}/FragPipe/tmt-report/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/tmt-report/*.tsv",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\/tmt-report\//, '') },
-        enabled: params.fragpipe_workflow?.startsWith('TMT')
-
-    // MSstats inputs (e.g. msstats.csv, msstats_ptm.csv)
     publishDir path: { "${output_dir}/FragPipe/" },
         mode: params.publish_dir_mode,
-        pattern: "output/msstats*.csv",
+        pattern: "output/msstats_ptm.csv",
         saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
 
     input:
@@ -36,7 +26,6 @@ process FRAGPIPE {
     // LFQ / shared
     path("output/msstats.csv"), emit: msstats_csv, optional: true
     path("output/msstats_ptm.csv"), emit: msstats_ptm_csv, optional: true
-    path("output/**/msstats.csv"), emit: msstats_tmt_csv, optional: true
     path("output/experiment_annotation.tsv"), emit: experiment_annotation, optional: true
     path("output/combined_protein.tsv"), emit: combined_protein, optional: true
     path("output/combined_peptide.tsv"), emit: combined_peptide, optional: true

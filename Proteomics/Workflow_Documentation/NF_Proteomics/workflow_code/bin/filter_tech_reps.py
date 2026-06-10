@@ -3,7 +3,9 @@
 
 import argparse
 import csv
+import shutil
 import sys
+from pathlib import Path
 
 
 def _factor_tuple(row, fieldnames):
@@ -35,6 +37,11 @@ def main():
     ap.add_argument("--mode", choices=("lfq", "tmt"), required=True)
     ap.add_argument("--input", required=True)
     ap.add_argument("--output", required=True)
+    ap.add_argument(
+        "--publish-if-changed",
+        default="",
+        help="Copy output to this path only when row count decreases.",
+    )
     args = ap.parse_args()
 
     with open(args.input, newline="", encoding="utf-8") as f:
@@ -56,6 +63,11 @@ def main():
         w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
         w.writeheader()
         w.writerows(out)
+
+    if args.publish_if_changed and len(out) < len(rows):
+        publish_path = Path(args.publish_if_changed)
+        publish_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(args.output, publish_path)
 
     print(f"filter_tech_reps: {len(rows)} -> {len(out)} ({args.mode})", file=sys.stderr)
 

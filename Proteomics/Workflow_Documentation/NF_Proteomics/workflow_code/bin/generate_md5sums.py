@@ -74,7 +74,8 @@ def collect_processed_files(outdir, assay_suffix):
     ]))
     out.extend(collect_matches(os.path.join(outdir, "FragPipe"), [
         "combined_*.tsv",
-        "msstats*.csv",
+        "msstats.csv",
+        "msstats_ptm.csv",
         "abundance_*.tsv",
         "ratio_*.tsv",
         f"fragpipe{assay_suffix}.zip",

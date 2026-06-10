@@ -278,7 +278,7 @@ workflow PROTEOMICS {
             MSSTATS_TMT(
                 output_dir,
                 FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
-                FRAGPIPE.out.msstats_tmt_csv
+                FRAGPIPE.out.msstats_csv
             )
             ch_tmt_versions = MSSTATS_TMT.out.versions
         }
