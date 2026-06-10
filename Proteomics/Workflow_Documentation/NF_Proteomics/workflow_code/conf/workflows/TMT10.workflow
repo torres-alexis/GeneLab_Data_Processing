@@ -1,4 +1,4 @@
-# Workflow: LFQ-MBR
+# Workflow: TMT10
 
 crystalc.run-crystalc=false
 database.decoy-tag=rev_
@@ -248,10 +248,10 @@ ptmprophet.override-defaults=false
 ptmprophet.run-ptmprophet=false
 ptmshepherd.adv_params=false
 ptmshepherd.annotate_assigned_mods=false
-ptmshepherd.annotation-common=false
+ptmshepherd.annotation-common=true
 ptmshepherd.annotation-custom=false
 ptmshepherd.annotation-glyco=false
-ptmshepherd.annotation-unimod=true
+ptmshepherd.annotation-unimod=false
 ptmshepherd.annotation_file=
 ptmshepherd.annotation_tol=0.01
 ptmshepherd.cap_y_ions=
@@ -309,12 +309,12 @@ ptmshepherd.spectra_ppmtol=20
 ptmshepherd.use_glycan_fragment_probs=false
 ptmshepherd.use_msfragger_localization=false
 ptmshepherd.varmod_masses=
-quantitation.run-label-free-quant=true
+quantitation.run-label-free-quant=false
 run-psm-validation=true
 run-validation-tab=true
 saintexpress.cmd-opts=
-saintexpress.max-replicates=10
-saintexpress.run-saint-express=false
+saintexpress.max-replicates=3
+saintexpress.run-saint-express=true
 saintexpress.virtual-controls=100
 skyline.fdr=1
 skyline.generate-skyline-quant-report=false
