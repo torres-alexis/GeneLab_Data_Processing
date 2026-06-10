@@ -86,6 +86,7 @@ def collect_processed_files(outdir, assay_suffix):
         "msstats*.csv",
         "abundance_*.tsv",
         "ratio_*.tsv",
+        f"fragpipe{assay_suffix}.zip",
     ]))
 
     fpa_dir = os.path.join(outdir, "FragPipeAnalystR")

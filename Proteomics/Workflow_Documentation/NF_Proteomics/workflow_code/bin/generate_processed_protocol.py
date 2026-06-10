@@ -25,7 +25,9 @@ def parse_args():
     parser.add_argument("--de_lfc", default="", help="FragPipeAnalystR DE minimum |log2 fold change|")
     parser.add_argument("--de_fdr", default="", help="FragPipeAnalystR multiple-testing correction method")
     parser.add_argument("--uniprot_id", default="", help="UniProt proteome ID, if used")
-    parser.add_argument("--reference_proteome", default="", help="Reference proteome path, if used")
+    parser.add_argument("--reference_proteome", default="", help="User-supplied reference proteome path param, if used")
+    parser.add_argument("--reference_table", default="", help="GL-DPPD-7110-A reference table path/URL, if used for proteome")
+    parser.add_argument("--used_proteome", default="", help="Proteome FASTA staged by the pipeline (decoys/contams applied)")
     parser.add_argument("--output", default=None, help="Protocol output filename")
     return parser.parse_args()
 
@@ -44,6 +46,14 @@ def parse_software_versions(md_file):
 
 def version(software_versions, program):
     return software_versions.get(program, "unknown")
+
+
+def protocol_path_value(value):
+    """Use basename for local paths; keep URLs unchanged for reproducible protocol metadata."""
+    s = "" if value is None else str(value).strip()
+    if not s or s.startswith(("http://", "https://")):
+        return s
+    return os.path.basename(s)
 
 
 def protocol_document(fragpipe_workflow):
@@ -93,15 +103,32 @@ def generate_protocol_content(args, software_versions):
     header = f"# GeneLab Proteomics Pipeline Protocol — {dppd}{args.assay_suffix}\n"
     header += f"# Date: {current_date}\n\n"
 
+    used_proteome = protocol_path_value(getattr(args, "used_proteome", None))
+    used_proteome_note = f" ({used_proteome})" if used_proteome else ""
+
     database_sentence = ""
-    if args.uniprot_id:
+    if args.reference_table:
+        uniprot_note = f" (UniProt proteome {args.uniprot_id})" if args.uniprot_id else ""
         database_sentence = (
-            f"A protein sequence database was generated from UniProt proteome {args.uniprot_id} "
+            f"A pinned reference proteome from the GeneLab GL-DPPD-7110-A annotations table "
+            f"({protocol_path_value(args.reference_table)}){uniprot_note}{used_proteome_note} was prepared "
             f"with decoys and contaminants using Philosopher (version {version(software_versions, 'Philosopher')}). "
         )
-    elif args.reference_proteome:
+    elif args.uniprot_id:
         database_sentence = (
-            f"A user-supplied protein sequence database ({os.path.basename(args.reference_proteome)}) was prepared "
+            f"A protein sequence database was generated from UniProt proteome {args.uniprot_id}"
+            f"{used_proteome_note} with decoys and contaminants using Philosopher "
+            f"(version {version(software_versions, 'Philosopher')}). "
+        )
+    elif args.reference_proteome:
+        proteome_label = used_proteome or protocol_path_value(args.reference_proteome)
+        database_sentence = (
+            f"A user-supplied protein sequence database ({proteome_label}) was prepared "
+            f"with decoys and contaminants using Philosopher (version {version(software_versions, 'Philosopher')}). "
+        )
+    elif used_proteome:
+        database_sentence = (
+            f"A protein sequence database ({used_proteome}) was prepared "
             f"with decoys and contaminants using Philosopher (version {version(software_versions, 'Philosopher')}). "
         )
 
@@ -201,8 +228,9 @@ def load_saved_config(protocol_path):
 
 
 def save_config(args, output_path, software_versions):
+    path_keys = {"reference_table", "reference_proteome", "used_proteome"}
     config = {
-        key: value
+        key: protocol_path_value(value) if key in path_keys else value
         for key, value in vars(args).items()
         if key not in {"from_protocol", "outdir", "output", "software_table", "software_versions"}
     }

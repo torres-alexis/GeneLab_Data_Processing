@@ -2,7 +2,7 @@
 options(timeout=3600)
 .libPaths(Sys.getenv("R_LIBS_USER"))
 # Load required libraries
-library(tidyverse)
+library(dplyr)
 library(AnnotationForge)
 library(BiocManager)
 
@@ -26,6 +26,13 @@ install_annotations <- function(target_organism, refTablePath = NULL) {
     target_taxid <- ref_table %>%
         filter(species == target_organism) %>%
         pull(taxon)
+
+    # NCBI Gene records may use species-level tax_id when the CSV strain taxon has none
+    ncbi_taxid_overrides <- c("Aspergillus niger" = 5061)
+    if (target_organism %in% names(ncbi_taxid_overrides)) {
+        target_taxid <- unname(ncbi_taxid_overrides[target_organism])
+        cat(paste0("Using NCBI tax_id ", target_taxid, " for org.db build (CSV strain taxon has no Gene records)\n"))
+    }
     
     # Parse organism's name in the reference table to create the org.db name (target_org_db)
     target_species_designation <- ref_table %>%
@@ -46,7 +53,7 @@ install_annotations <- function(target_organism, refTablePath = NULL) {
         pull(strain) %>%
         gsub("[^A-Za-z0-9]", "", .)
     
-    if (!is.na(strain) && strain != "") {
+    if (!is.na(strain) && strain != "" && target_organism != "Aspergillus niger") {
         species <- paste0(species, strain)
     }
     
@@ -75,11 +82,17 @@ install_annotations <- function(target_organism, refTablePath = NULL) {
                 tryCatch({
                     BiocManager::install(c("AnnotationForge", "biomaRt", "GO.db"), ask = FALSE)
                     library(AnnotationForge)
+                    ncbi_cache <- Sys.getenv("NCBIFilesDir")
+                    if (!nzchar(ncbi_cache)) {
+                        stop("Set NCBIFilesDir to the shared NCBI_cache directory before building org.db packages")
+                    }
+                    cat(paste0("Using shared NCBI cache: ", ncbi_cache, "\n"))
                     makeOrgPackageFromNCBI(
                         version = "0.1",
                         author = "Your Name <your.email@example.com>",
                         maintainer = "Your Name <your.email@example.com>",
                         outputDir = "./",
+                        NCBIFilesDir = ncbi_cache,
                         tax_id = target_taxid,
                         genus = genus,
                         species = species

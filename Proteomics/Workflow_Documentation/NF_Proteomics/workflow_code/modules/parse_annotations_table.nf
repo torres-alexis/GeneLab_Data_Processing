@@ -1,6 +1,6 @@
-// Parse GeneLab Reference Annotations table to resolve organism -> gene_annotations_url.
-// Table format: https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv
-// Organism key: species column (index 1), e.g. "Homo sapiens". Input organism_sci: "homo_sapiens".
+// Parse GL-DPPD-7110-A reference annotations CSV for organism -> gene_annotations_url + proteome FASTA.
+// Table: GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv
+// Organism key: species column (index 1), e.g. "Mus musculus". Input organism_sci: "mus_musculus".
 
 process PARSE_ANNOTATIONS_TABLE {
   tag "Organism: ${organism_sci}"
@@ -11,25 +11,42 @@ process PARSE_ANNOTATIONS_TABLE {
 
   output:
     val(gene_annotations_url), emit: gene_annotations_url
+    val(proteome_source), emit: proteome_source
+    val(uniprot_id), emit: uniprot_id
 
   exec:
     def organisms = [:]
     if (annotations_csv_url_string.startsWith('http://') || annotations_csv_url_string.startsWith('https://')) {
       annotations_csv_url_string.toURL().splitEachLine(",") { fields ->
-        organisms[fields[1]] = fields
+        if (fields.size() > 1) {
+          organisms[fields[1]] = fields
+        }
       }
     } else {
       new File(annotations_csv_url_string).splitEachLine(",") { fields ->
-        organisms[fields[1]] = fields
+        if (fields.size() > 1) {
+          organisms[fields[1]] = fields
+        }
       }
     }
 
     def organism_key = organism_sci.capitalize().replace("_", " ")
     if (organisms.containsKey(organism_key)) {
-      gene_annotations_url = organisms[organism_key][10]
-      println "Gene annotations URL for '${organism_key}': ${gene_annotations_url}"
+      def row = organisms[organism_key]
+      gene_annotations_url = row.size() > 10 ? row[10] : null
+      uniprot_id = row.size() > 12 ? row[12] : null
+      proteome_source = row.size() > 13 ? row[13] : null
+      if (gene_annotations_url == '') gene_annotations_url = null
+      if (uniprot_id == '') uniprot_id = null
+      if (proteome_source == '') proteome_source = null
+      println "Reference table match for '${organism_key}':"
+      println "  gene_annotations_url: ${gene_annotations_url ?: '(empty)'}"
+      println "  uniprot_id: ${uniprot_id ?: '(empty)'}"
+      println "  proteome: ${proteome_source ?: '(empty)'}"
     } else {
-      println "WARNING: Organism '${organism_key}' not in annotations table. Skipping DE annotations."
+      println "WARNING: Organism '${organism_key}' not in reference annotations table."
       gene_annotations_url = null
+      uniprot_id = null
+      proteome_source = null
     }
 }

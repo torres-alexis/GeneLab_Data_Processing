@@ -16,7 +16,35 @@ import os
 from pathlib import Path
 
 
-def setup_workflow_config(input_file, proteome_path, assay_suffix, output_dir):
+def normalize_tmt_extraction_tool(value):
+    """Case-insensitive tmt_extraction_tool param to expected value."""
+    expected_values = {
+        "philosopher": "Philosopher",
+        "ionquant": "IonQuant",
+    }
+    key = value.strip().lower()
+    if key not in expected_values:
+        raise ValueError(
+            f"Unsupported tmt_extraction_tool {value!r}; expected Philosopher or IonQuant"
+        )
+    return expected_values[key]
+
+
+def set_or_update_key(lines, key, value):
+    """Set key=value in workflow lines, replacing an existing entry or appending."""
+    prefix = f"{key}="
+    line = f"{key}={value}\n"
+    for i, existing in enumerate(lines):
+        if existing.strip().startswith(prefix):
+            lines[i] = line
+            return lines
+    lines.append(line)
+    return lines
+
+
+def setup_workflow_config(
+    input_file, proteome_path, assay_suffix, output_dir, tmt=False, tmt_extraction_tool="Philosopher"
+):
     """Read workflow config, add/update database.db-path, and save with assay suffix."""
     # Read the input workflow file
     with open(input_file, 'r') as f:
@@ -51,7 +79,13 @@ def setup_workflow_config(input_file, proteome_path, assay_suffix, output_dir):
                 insert_index = i
                 break
         lines.insert(insert_index, db_path_line)
-    
+
+    if tmt:
+        extraction_tool = normalize_tmt_extraction_tool(tmt_extraction_tool)
+        lines = set_or_update_key(lines, "tmtintegrator.extraction_tool", extraction_tool)
+        if extraction_tool == "Philosopher":
+            lines = set_or_update_key(lines, "tmtintegrator.philosopher-msstats", "true")
+
     # Get input basename and apply assay suffix
     input_basename = os.path.basename(input_file)
     input_name, input_ext = os.path.splitext(input_basename)
@@ -123,6 +157,16 @@ def main():
         action="store_true",
         help="Print JSON to stdout"
     )
+    parser.add_argument(
+        "--tmt",
+        action="store_true",
+        help="TMT workflow options",
+    )
+    parser.add_argument(
+        "--tmt_extraction_tool",
+        default="Philosopher",
+        help="tmtintegrator.extraction_tool (Philosopher or IonQuant)",
+    )
     args = parser.parse_args()
     
     try:
@@ -131,7 +175,9 @@ def main():
             args.input,
             args.proteome,
             args.assay_suffix,
-            args.output
+            args.output,
+            tmt=args.tmt,
+            tmt_extraction_tool=args.tmt_extraction_tool,
         )
         
         # Convert to JSON

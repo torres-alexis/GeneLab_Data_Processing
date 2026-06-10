@@ -4,7 +4,23 @@ process FRAGPIPEANALYSTR {
     publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
         mode: params.publish_dir_mode,
         pattern: "output/**",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
+        saveAs: { filename ->
+            def f = filename.toString()
+            if (f.endsWith('.RData') || f.endsWith('.Rdata')) {
+                return null
+            }
+            f.replaceFirst(/^output\//, '')
+        }
+    publishDir path: { "${output_dir}/processing_scripts/" },
+        mode: params.publish_dir_mode,
+        pattern: "output/**",
+        saveAs: { filename ->
+            def f = filename.toString()
+            if (f.endsWith('.RData') || f.endsWith('.Rdata')) {
+                return f.replaceFirst(/^output\//, '')
+            }
+            null
+        }
     publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
         mode: params.publish_dir_mode,
         pattern: "versions.yml"

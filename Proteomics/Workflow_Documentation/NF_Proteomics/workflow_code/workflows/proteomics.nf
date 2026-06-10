@@ -1,5 +1,6 @@
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 include { GET_PROTEOME } from '../modules/get_proteome.nf'
+include { FETCH_REFERENCE_PROTEOME } from '../modules/fetch_reference_proteome.nf'
 include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
@@ -12,9 +13,10 @@ include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
 include { FRAGPIPE } from '../modules/fragpipe.nf'
 include { CLEAN_FRAGPIPE_TABLES } from '../modules/clean_fragpipe_tables.nf'
+include { ZIP_FRAGPIPE_OUTPUTS } from '../modules/zip_fragpipe_outputs.nf'
 include { PMULTIQC } from '../modules/pmultiqc.nf'
 include { MSSTATS } from '../modules/msstats.nf'
-// include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
+include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
@@ -137,24 +139,42 @@ workflow PROTEOMICS {
         // Run RawBeans QC on all samples' raw data
         RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
 
-        // Validate database input: cannot specify both uniprot_id and reference_proteome
-        if (params.uniprot_id && params.reference_proteome) {
-            error "ERROR: Cannot specify both uniprot_id and reference_proteome. Use EITHER uniprot_id to download from UniProt OR reference_proteome to use a custom fasta file."
-        }
-        
-        if (!params.uniprot_id && !params.reference_proteome) {
-            error "ERROR: Must specify either uniprot_id or reference_proteome."
+        // Organism from runsheet / sample_sheet (one per dataset). Used for reference table lookups.
+        ch_organism_sci = (is_tmt ? sample_sheet_rows : samples_fp)
+            | first
+            | map { row ->
+                def meta = row instanceof Map ? row : row[0]
+                meta?.organism ? meta.organism.toString().replaceAll(" ","_").toLowerCase().trim() : ""
+            }
+
+        if (params.reference_table) {
+            PARSE_ANNOTATIONS_TABLE(Channel.value(params.reference_table), ch_organism_sci)
         }
 
-        // Download proteome fasta file from UniProt or use input fasta file
+        // Reference proteome: explicit params override; else resolve from GL-DPPD-7110-A table + runsheet organism.
+        if (params.uniprot_id && params.reference_proteome) {
+            error "ERROR: Cannot specify both uniprot_id and reference_proteome."
+        }
+
         if (params.uniprot_id) {
-            // Download and prepare from UniProt using GET_PROTEOME
             GET_PROTEOME(output_dir)
             proteome = GET_PROTEOME.out.proteome_fasta
-        } else {
-            // Check if fasta file contains decoys and contaminants using input fasta file
+        } else if (params.reference_proteome) {
             CHECK_DECOYS_CONTAMS(output_dir, file(params.reference_proteome))
             proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
+        } else if (params.reference_table) {
+            ch_proteome_source = PARSE_ANNOTATIONS_TABLE.out.proteome_source
+                .map { src ->
+                    if (!src) {
+                        error "ERROR: No proteome in reference_table for this organism. Specify uniprot_id or reference_proteome."
+                    }
+                    src
+                }
+            FETCH_REFERENCE_PROTEOME(output_dir, ch_proteome_source)
+            CHECK_DECOYS_CONTAMS(output_dir, FETCH_REFERENCE_PROTEOME.out.proteome_fasta)
+            proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
+        } else {
+            error "ERROR: Must specify uniprot_id, reference_proteome, or reference_table with a matching organism row."
         }
 
         // Generate manifest: TMT [data_sheet, sample_sheet]; LFQ [runsheet]
@@ -239,26 +259,14 @@ workflow PROTEOMICS {
             FRAGPIPE_METADATA_SETUP.out.experiment_annotation
         )
 
-        // Resolve gene_annotations_url for DE_results: direct file, or organism + annotations table
+        ZIP_FRAGPIPE_OUTPUTS(ch_out_dir, ch_fragpipe_output_dir)
+
+        // Resolve gene_annotations_url for DE_results: direct file, or organism + reference table
         gene_annotations_url = Channel.value(null)
         if (params.gene_annotations_file) {
             gene_annotations_url = Channel.value(params.gene_annotations_file)
         } else if (params.reference_table) {
-            // Organism for gene annotations lookup. PARSE_ANNOTATIONS_TABLE expects "Homo sapiens" -> "homo_sapiens".
-            // Both LFQ (runsheet) and TMT (sample_sheet) use samplesheetToList → meta.organism
-            // LFQ `samples_fp` is meta-only (row[0] after samplesheetToList). TMT rows are [meta, ...] lists.
-            ch_organism_sci = (is_tmt ? sample_sheet_rows : samples_fp)
-                | first
-                | map { row ->
-                    def meta = row instanceof Map ? row : row[0]
-                    meta?.organism ? meta.organism.toString().replaceAll(" ","_").toLowerCase().trim() : ""
-                }
-            ch_organism_branched = ch_organism_sci.branch { org ->
-                has_org: org && org.toString().trim()
-                skip: true
-            }
-            PARSE_ANNOTATIONS_TABLE(Channel.value(params.reference_table), ch_organism_branched.has_org)
-            gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url.mix(ch_organism_branched.skip.map { null })
+            gene_annotations_url = PARSE_ANNOTATIONS_TABLE.out.gene_annotations_url
         }
         ch_lfq_versions = Channel.empty()
         ch_tmt_versions = Channel.empty()
@@ -266,12 +274,14 @@ workflow PROTEOMICS {
             MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.msstats_csv)
             ch_lfq_versions = MSSTATS.out.versions
         }
-        // MSstatsTMT - metadata  
-        // if (params.fragpipe_workflow?.startsWith('TMT')) {
-        //     def takeFirst = { p -> p instanceof List ? p[0] : p }
-        //     MSSTATS_TMT(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.abundance_peptide.map(takeFirst), sheet)
-        //     ch_tmt_versions = MSSTATS_TMT.out.versions
-        // }
+        if (params.fragpipe_workflow?.startsWith('TMT')) {
+            MSSTATS_TMT(
+                output_dir,
+                FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
+                FRAGPIPE.out.msstats_tmt_csv
+            )
+            ch_tmt_versions = MSSTATS_TMT.out.versions
+        }
 
         // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
         def fp_levels = params.fp_analyst_levels ?
@@ -318,10 +328,28 @@ workflow PROTEOMICS {
             | mix(PMULTIQC.out.versions)
             | mix(FRAGPIPE_METADATA_SETUP.out.versions)
             | mix(ch_lfq_versions)
+            | mix(ch_tmt_versions)
         ch_software_versions
             | unique
             | collectFile(newLine: true)
             | set { ch_final_software_versions }
         SOFTWARE_VERSIONS(output_dir, ch_final_software_versions)
-        GENERATE_PROCESSED_PROTOCOL(ch_out_dir, SOFTWARE_VERSIONS.out.software_versions)
+
+        if (params.uniprot_id) {
+            ch_protocol_uniprot = Channel.value(params.uniprot_id.toString())
+        } else if (params.reference_table) {
+            ch_protocol_uniprot = PARSE_ANNOTATIONS_TABLE.out.uniprot_id.map { uid -> uid?.toString() ?: '' }
+        } else {
+            ch_protocol_uniprot = Channel.value('')
+        }
+        ch_protocol_reference_table = Channel.value(params.reference_table?.toString() ?: '')
+        ch_protocol_reference_proteome = Channel.value(params.reference_proteome?.toString() ?: '')
+        GENERATE_PROCESSED_PROTOCOL(
+            ch_out_dir,
+            SOFTWARE_VERSIONS.out.software_versions,
+            proteome,
+            ch_protocol_uniprot,
+            ch_protocol_reference_table,
+            ch_protocol_reference_proteome
+        )
 }

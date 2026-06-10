@@ -6,6 +6,10 @@ process GENERATE_PROCESSED_PROTOCOL {
     input:
         path(ch_outdir)
         path(software_versions_md)
+        path(proteome_fasta)
+        val(uniprot_id)
+        val(reference_table)
+        val(reference_proteome)
 
     output:
         path("processed_data_protocol${params.assay_suffix}.txt"), emit: processed_protocol
@@ -27,8 +31,10 @@ process GENERATE_PROCESSED_PROTOCOL {
             --de_alpha "${params.fp_analyst_de_alpha != null ? params.fp_analyst_de_alpha : ''}" \\
             --de_lfc "${params.fp_analyst_de_lfc != null ? params.fp_analyst_de_lfc : ''}" \\
             --de_fdr "${params.fp_analyst_de_fdr ?: ''}" \\
-            --uniprot_id "${params.uniprot_id ?: ''}" \\
-            --reference_proteome "${params.reference_proteome ?: ''}" \\
+            --uniprot_id "${uniprot_id}" \\
+            --reference_proteome "${reference_proteome}" \\
+            --reference_table "${reference_table}" \\
+            --used_proteome ${proteome_fasta} \\
             --output "processed_data_protocol${params.assay_suffix}.txt"
         """
 }

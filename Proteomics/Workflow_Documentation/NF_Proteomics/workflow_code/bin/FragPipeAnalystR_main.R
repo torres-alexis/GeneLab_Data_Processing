@@ -76,7 +76,7 @@ option_list <- list(
   make_option(c("--assay_suffix"), type = "character", default = "",
     help = "Assay suffix after level, e.g. _GLProteomics → filenames like nonimputed_matrix_<level>_GLProteomics.csv; SampleTable/contrasts use suffix only. Empty = no suffix.", metavar = "STRING"),
   make_option(c("--zip"), type = "character", default = "false",
-    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/enrichment/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false")
+    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/pathway_analysis/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -158,12 +158,12 @@ dir.create(de_dir, showWarnings = FALSE, recursive = TRUE)
 # (with imputed/nonimputed matrices) so they are not only inside the zip and survive removal of de/ after zipping.
 volcano_dir <- file.path(de_dir, "volcano")
 dir.create(volcano_dir, showWarnings = FALSE, recursive = TRUE)
-enr_dir <- file.path(output_dir, "enrichment")
-dir.create(enr_dir, showWarnings = FALSE, recursive = TRUE)
-enr_dir_or <- file.path(enr_dir, "or")
-enr_dir_gsea <- file.path(enr_dir, "gsea")
-dir.create(enr_dir_or, showWarnings = FALSE, recursive = TRUE)
-dir.create(enr_dir_gsea, showWarnings = FALSE, recursive = TRUE)
+pathway_dir <- file.path(output_dir, "pathway_analysis")
+dir.create(pathway_dir, showWarnings = FALSE, recursive = TRUE)
+pathway_dir_or <- file.path(pathway_dir, "or")
+pathway_dir_gsea <- file.path(pathway_dir, "gsea")
+dir.create(pathway_dir_or, showWarnings = FALSE, recursive = TRUE)
+dir.create(pathway_dir_gsea, showWarnings = FALSE, recursive = TRUE)
 assay_suffix <- trimws(.or(opt$assay_suffix, ""))
 # Per-level suffix: _<level><assay_suffix>, e.g. _protein_GLProteomics (SampleTable/contrasts: assay_suffix only)
 level_suffix <- paste0("_", level, assay_suffix)
@@ -816,7 +816,7 @@ for (db in enrichment_dbs) {
       or_res <- or_test(de_se, database = db_or, direction = toupper(dir), alpha = de_alpha, log2_threshold = de_lfc)
       if (!is.null(or_res) && nrow(or_res) > 0) {
         safe_name <- paste0("or_", gsub("[^A-Za-z0-9_-]", "_", db), "_", tolower(dir))
-        write.csv(or_res, file.path(enr_dir_or, paste0(safe_name, ".csv")), row.names = FALSE)
+        write.csv(or_res, file.path(pathway_dir_or, paste0(safe_name, ".csv")), row.names = FALSE)
         or_plot <- or_res
         if ("contrast" %in% colnames(or_plot)) {
           cm <- as.character(or_plot$contrast)
@@ -826,8 +826,8 @@ for (db in enrichment_dbs) {
         }
         p_or <- plot_or(or_plot, alpha = de_alpha)
         if (!is.null(p_or)) {
-          ggplot2::ggsave(file.path(enr_dir_or, paste0(safe_name, ".pdf")), p_or, width = 10, height = 6)
-          ggplot2::ggsave(file.path(enr_dir_or, paste0(safe_name, ".png")), p_or, width = 10, height = 6, dpi = 150)
+          ggplot2::ggsave(file.path(pathway_dir_or, paste0(safe_name, ".pdf")), p_or, width = 10, height = 6)
+          ggplot2::ggsave(file.path(pathway_dir_or, paste0(safe_name, ".png")), p_or, width = 10, height = 6, dpi = 150)
         }
         cat("Enrichment saved:", db, dir, "\n")
       } else {
@@ -893,13 +893,13 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
       tryCatch({
         gsea_res <- GSEA_test(de_se_gsea, col = col_stat, database = db_gsea, convert = TRUE)
         if (!is.null(gsea_res) && nrow(gsea_res) > 0) {
-          write.csv(gsea_res, file.path(enr_dir_gsea, paste0(safe_name, ".csv")), row.names = FALSE)
+          write.csv(gsea_res, file.path(pathway_dir_gsea, paste0(safe_name, ".csv")), row.names = FALSE)
           gsea_plot <- gsea_res[!duplicated(gsea_res$ID), , drop = FALSE]
           n_cat <- min(15L, max(1L, floor(nrow(gsea_plot) / 2)))
           p_gsea <- tryCatch(plot_GSEA(gsea_plot, categroies = n_cat), error = function(e) NULL)
           if (!is.null(p_gsea)) {
-            ggplot2::ggsave(file.path(enr_dir_gsea, paste0(safe_name, ".pdf")), p_gsea, width = 10, height = 6)
-            ggplot2::ggsave(file.path(enr_dir_gsea, paste0(safe_name, ".png")), p_gsea, width = 10, height = 6, dpi = 150)
+            ggplot2::ggsave(file.path(pathway_dir_gsea, paste0(safe_name, ".pdf")), p_gsea, width = 10, height = 6)
+            ggplot2::ggsave(file.path(pathway_dir_gsea, paste0(safe_name, ".png")), p_gsea, width = 10, height = 6, dpi = 150)
           }
           cat("GSEA saved:", db, contrast_names[i], "\n")
         } else {
@@ -911,9 +911,14 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   cat("GSEA complete\n")
 }
 
+# Published SummarizedExperiment for downstream replotting (GL-DPPD output).
+rdata_path <- file.path(output_dir, paste0("FragPipeAnalystR", level_suffix, ".RData"))
+save(de_se, file = rdata_path)
+cat("Saved RData:", rdata_path, "\n")
+
 # --- Optional zip bundles (GL-DPPD: QC_plots.zip, comparison_plots.zip, pathway_analysis_plots.zip, DE_plots.zip) ---
-# Zip from inside `subdir` so archive root is plots/files, not an extra `qc/` or `de/` wrapper folder.
-.zip_subdir <- function(base_dir, zip_stem, subdir) {
+# QC/comparison/de: zip from inside subdir (flat archive root). pathway_analysis: keep subdir prefix in zip.
+.zip_subdir <- function(base_dir, zip_stem, subdir, exclude = character(0), remove_after = TRUE, include_subdir_prefix = FALSE) {
   base_abs <- normalizePath(base_dir, mustWork = TRUE)
   src <- file.path(base_abs, subdir)
   if (!dir.exists(src)) {
@@ -924,16 +929,27 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   dest <- file.path(base_abs, zname)
   if (file.exists(dest)) unlink(dest)
   owd <- getwd()
-  setwd(src)
   on.exit(setwd(owd), add = TRUE)
-  rel <- list.files(".", recursive = TRUE, full.names = FALSE, all.files = TRUE, include.dirs = FALSE)
-  rel <- rel[nzchar(rel)]
-  if (length(rel) == 0) {
+  if (include_subdir_prefix) {
+    setwd(base_abs)
+    rel <- list.files(subdir, recursive = TRUE, full.names = FALSE, all.files = TRUE, include.dirs = FALSE)
+    rel <- rel[nzchar(rel)]
+    rel_zip <- file.path(subdir, rel)
+  } else {
+    setwd(src)
+    rel <- list.files(".", recursive = TRUE, full.names = FALSE, all.files = TRUE, include.dirs = FALSE)
+    rel <- rel[nzchar(rel)]
+    rel_zip <- rel
+  }
+  for (pattern in exclude) {
+    rel_zip <- rel_zip[!grepl(pattern, rel_zip)]
+  }
+  if (length(rel_zip) == 0) {
     cat("zip: skip (empty):", subdir, "\n")
     return(invisible(NULL))
   }
   err <- tryCatch({
-    utils::zip(dest, files = rel)
+    utils::zip(dest, files = rel_zip)
     NULL
   }, error = function(e) e)
   if (!is.null(err)) {
@@ -941,8 +957,19 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   } else {
     cat("zip:", dest, "\n")
     setwd(owd)
-    unlink(src, recursive = TRUE)
-    cat("zip: removed dir", subdir, "\n")
+    if (remove_after) {
+      unlink(src, recursive = TRUE)
+      cat("zip: removed dir", subdir, "\n")
+    } else {
+      to_remove <- if (include_subdir_prefix) file.path(base_abs, rel_zip) else file.path(src, rel_zip)
+      unlink(to_remove, recursive = FALSE)
+      dirs <- list.dirs(src, recursive = TRUE, full.names = TRUE)
+      dirs <- dirs[order(nchar(dirs), decreasing = TRUE)]
+      for (dir in dirs) {
+        if (length(list.files(dir, all.files = TRUE, no.. = TRUE)) == 0) unlink(dir, recursive = FALSE)
+      }
+      cat("zip: removed bundled files from", subdir, "\n")
+    }
   }
   invisible(NULL)
 }
@@ -950,7 +977,7 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
 if (do_zip) {
   .zip_subdir(output_dir, "QC_plots", "qc")
   .zip_subdir(output_dir, "comparison_plots", "comparison")
-  .zip_subdir(output_dir, "pathway_analysis_plots", "enrichment")
+  .zip_subdir(output_dir, "pathway_analysis_plots", "pathway_analysis", exclude = "\\.csv$", remove_after = FALSE, include_subdir_prefix = TRUE)
   .zip_subdir(output_dir, "DE_plots", "de")
 }
 

@@ -11,10 +11,12 @@ ref_tab_path <- "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/
 readme_path <- "https://github.com/nasa/GeneLab_Data_Processing/tree/master/GeneLab_Reference_Annotations/Workflow_Documentation/GL_RefAnnotTable-A/README.md"
 
 # List currently supported organisms 
-currently_accepted_orgs <- c("Arabidopsis thaliana", "Bacillus subtilis", "Brachypodium distachyon", 
-                             "Caenorhabditis elegans", "Danio rerio", "Drosophila melanogaster", 
-                             "Escherichia coli", "Homo sapiens", "Lactobacillus acidophilus", 
-                             "Mus musculus", "Mycobacterium marinum", "Oryza sativa", 
+currently_accepted_orgs <- c("Arabidopsis thaliana", "Aspergillus fumigatus", "Aspergillus niger",
+                             "Bacillus pumilus", "Bacillus subtilis", "Brachypodium distachyon",
+                             "Caenorhabditis elegans", "Danio rerio", "Daphnia magna",
+                             "Drosophila melanogaster", "Enterobacter cloacae",
+                             "Eruca vesicaria", "Escherichia coli", "Homo sapiens", "Lactobacillus acidophilus", 
+                             "Lolium multiflorum", "Mus musculus", "Mycobacterium marinum", "Oryza sativa", 
                              "Oryzias latipes", "Pseudomonas aeruginosa", "Rattus norvegicus", 
                              "Saccharomyces cerevisiae", "Salmonella enterica", "Serratia liquefaciens", 
                              "Staphylococcus aureus", "Streptococcus mutans", "Vibrio fischeri")
@@ -54,7 +56,7 @@ ref_tab_path <- if (length(args) >= 2) args[2] else ref_tab_path
 ######################## Set up environment #############################
 #########################################################################
 
-required_packages <- c("tidyverse", "STRINGdb", "PANTHER.db", "rtracklayer")
+required_packages <- c("dplyr", "tidyr", "stringr", "STRINGdb", "PANTHER.db", "rtracklayer")
 # Check for required packages other than the org-specific db #
 report_package_needed <- function(package_name) {
   cat(paste0("\n  The package '", package_name, "' is required. Please see:\n"))
@@ -70,7 +72,9 @@ for (pkg in required_packages) {
 }
 
 # Import libraries
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(stringr)
 library(STRINGdb)
 library(PANTHER.db)
 library(rtracklayer)
@@ -99,8 +103,13 @@ gtf_link <- target_info$gtf # Path to reference assembly GTF
 target_short_name <- target_info$name # PANTHER / UNIPROT short name; blank if not available
 ref_source <- target_info$ref_source # Reference files source  
 
-# Error handling for missing values
-if (is.na(target_taxid) || is.na(target_org_db) || is.na(target_organism) || is.na(gtf_link)) {
+# Error handling for missing values (org.db optional for no_org_db organisms; see list below)
+no_org_db_early <- c("Lactobacillus acidophilus", "Mycobacterium marinum", "Oryza sativa", "Pseudomonas aeruginosa",
+                     "Serratia liquefaciens", "Staphylococcus aureus", "Streptococcus mutans", "Vibrio fischeri",
+                     "Daphnia magna")
+needs_org_db <- !(target_organism %in% no_org_db_early)
+if (is.na(target_taxid) || is.na(target_organism) || is.na(gtf_link) || gtf_link == "" ||
+    (needs_org_db && (is.na(target_org_db) || target_org_db == ""))) {
   stop(paste("Error: Missing data for target organism", target_organism, "in reference table."))
 }
 
@@ -109,7 +118,7 @@ base_gtf_filename <- basename(gtf_link)
 base_output_name <- str_replace(base_gtf_filename, ".gtf.gz", "")
 
 # Add the species name to base_output_name if the reference source is not ENSEMBL
-if (!(ref_source %in% c("ensembl_plants", "ensembl_bacteria", "ensembl"))) {
+if (!(ref_source %in% c("ensembl_plants", "ensembl_bacteria", "ensembl", "ensembl_fungi", "ensembl_metazoa"))) {
   base_output_name <- paste(str_replace(target_organism, " ", "_"), base_output_name, sep = "_")
 }
 
@@ -164,8 +173,10 @@ install_and_load_org_db <- function(target_organism, target_org_db, ref_tab_path
   
   # If target_org_db is provided, try to install it from Bioconductor
   if (!is.na(target_org_db) && target_org_db != "") {
-    BiocManager::install(target_org_db, ask = FALSE)
-    
+    if (!requireNamespace(target_org_db, quietly = TRUE)) {
+      BiocManager::install(target_org_db, ask = FALSE)
+    }
+
     # Check if the package was successfully loaded
     if (!requireNamespace(target_org_db, quietly = TRUE)) {
       # Source the install script to create the database locally
@@ -187,7 +198,8 @@ install_and_load_org_db <- function(target_organism, target_org_db, ref_tab_path
 
 # Define list of supported organisms which do not use annotations from an org.db
 no_org_db <- c("Lactobacillus acidophilus", "Mycobacterium marinum", "Oryza sativa", "Pseudomonas aeruginosa",
-               "Serratia liquefaciens", "Staphylococcus aureus", "Streptococcus mutans", "Vibrio fischeri")
+               "Serratia liquefaciens", "Staphylococcus aureus", "Streptococcus mutans", "Vibrio fischeri",
+               "Daphnia magna")
 
 # Run the function unless the target_organism is in no_org_db and update target_org_db with the result
 if (!(target_organism %in% no_org_db) && (target_organism %in% currently_accepted_orgs)) {
@@ -204,16 +216,23 @@ if (!(target_organism %in% no_org_db) && (target_organism %in% currently_accepte
 
 gtf_keytype_mappings <- list(
   "Arabidopsis thaliana" = c(gene_id = "TAIR"),
+  "Aspergillus fumigatus" = c(gene_id = "gene_id"),
+  "Aspergillus niger" = c(gene_id = "gene_id"),
+  "Bacillus pumilus" = c(gene_id = "gene_id", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", db_xref = "ENTREZID"),
   "Bacillus subtilis" = c(gene_id = "ENSEMBL", gene_name = "SYMBOL"),
   "Brachypodium distachyon" = c(gene_id = "ENSEMBL", transcript_id = "ACCNUM"),
-  "Caenorhabditis elegans" = c(gene_id = "ENSEMBL"),  
+  "Caenorhabditis elegans" = c(gene_id = "ENSEMBL"),
+  "Daphnia magna" = c(gene_id = "gene_id", product = "GENENAME", protein_id = "REFSEQ"),
+  "Enterobacter cloacae" = c(gene_id = "ENSEMBL"),
+  "Eruca vesicaria" = c(gene_id = "gene_id"),
   "Escherichia coli" = c(gene_id = "ENSEMBL", gene_name = "SYMBOL"),
   "Lactobacillus acidophilus" = c(gene_id = "LOCUS", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
+  "Lolium multiflorum" = c(gene_id = "gene_id"),
   "Mycobacterium marinum" = c(gene_id = "LOCUS", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
   "Pseudomonas aeruginosa" = c(gene_id = "LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
   "Salmonella enterica" = c(gene_id = "ENSEMBL", db_xref = "ENTREZID"),
   "Serratia liquefaciens" = c(gene_id = "LOCUS", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
-  "Staphylococcus aureus" = c(gene_id = "LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
+  "Staphylococcus aureus" = c(gene_id = "LOCUS", gene = "SYMBOL", product = "GENENAME"),
   "Streptococcus mutans" = c(gene_id = "LOCUS", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
   "Vibrio fischeri" = c(gene_id = "LOCUS", old_locus_tag = "OLD_LOCUS", gene = "SYMBOL", product = "GENENAME", Ontology_term = "GO"),
   "default" = c(gene_id = "ENSEMBL")
@@ -236,6 +255,19 @@ colnames(annot_gtf) <- wanted_gtf_keytypes
 # Save the name of the primary key type (gene_id) being used 
 primary_keytype <- wanted_gtf_keytypes[1]
 
+# VectorBase Afu IDs (Afu1g00100) -> NCBI/UniProt ORF locus (AFUA_1G00100); 1:1 mapping.
+vectorbase_to_kegg <- function(gene_ids) {
+  vapply(gene_ids, function(x) {
+    m <- regmatches(x, regexec("(?i)^Afu([0-9]+)g([0-9]+)$", x, perl = TRUE))[[1]]
+    if (length(m) != 3) return(NA_character_)
+    sprintf("AFUA_%sG%s", m[2], sprintf("%05d", as.integer(m[3])))
+  }, character(1))
+}
+
+if (target_organism == "Aspergillus fumigatus") {
+  annot_gtf$LOCUS <- vectorbase_to_kegg(annot_gtf[[primary_keytype]])
+}
+
 # Filter out unwanted genes from the GTF
 
 # Define filtering criteria for specific organisms
@@ -257,8 +289,8 @@ if (!is.null(filter_pattern)) {
   }
 }
 
-# Remove "Gene:" labels on ENTREZ IDs 
-if (target_organism == "Salmonella enterica") { 
+# Remove "GeneID:" prefix on NCBI GTF db_xref ENTREZ IDs
+if (target_organism %in% c("Salmonella enterica", "Bacillus pumilus")) {
   annot_gtf <- annot_gtf %>% dplyr::mutate(ENTREZID = gsub("^GeneID:", "", ENTREZID)) %>% as.data.frame
 }
 
@@ -270,8 +302,14 @@ annot_orgdb <- annot_gtf
 
 # Define the initial keys to pull from the organism-specific database
 orgdb_keytypes_list <- list(
+  "Aspergillus fumigatus" = c("GENENAME", "REFSEQ", "ENTREZID"),
+  "Aspergillus niger" = c("REFSEQ", "ENTREZID"),
+  "Bacillus pumilus" = c("GENENAME", "REFSEQ"),
   "Brachypodium distachyon" = c("GENENAME", "REFSEQ", "ENTREZID"),
+  "Enterobacter cloacae" = c("GENENAME"),
+  "Eruca vesicaria" = c("GENENAME", "REFSEQ"),
   "Escherichia coli" = c("GENENAME", "REFSEQ", "ENTREZID"),
+  "Lolium multiflorum" = c("GENENAME", "REFSEQ"),
   "Caenorhabditis elegans" = c("SYMBOL", "GENENAME", "REFSEQ", "ENTREZID", "GO"),
   "Salmonella enterica" = c("SYMBOL", "GENENAME", "REFSEQ"),
   "Saccharomyces cerevisiae" = c("GENENAME", "ALIAS", "REFSEQ", "ENTREZID"),
@@ -291,10 +329,15 @@ wanted_org_db_keytypes <- if (target_organism %in% names(orgdb_keytypes_list)) {
 
 # Define mappings for query and keytype based on target organism
 orgdb_keytype_mappings <- list(
+  "Aspergillus fumigatus" = list(query = "LOCUS", keytype = "ALIAS"),
+  "Aspergillus niger" = list(query = "gene_id", keytype = "ALIAS"),
+  "Bacillus pumilus" = list(query = "ENTREZID", keytype = "ENTREZID"),
   "Bacillus subtilis" = list(query = "SYMBOL", keytype = "SYMBOL"),
   "Brachypodium distachyon" = list(query = "ACCNUM", keytype = "ACCNUM"),
   "Caenorhabditis elegans" = list(query = primary_keytype, keytype = "ENSEMBL"),
-  "Escherichia coli" = list(query = "SYMBOL", keytype = "SYMBOL"),
+  "Enterobacter cloacae" = list(query = "ENSEMBL", keytype = "SYMBOL"),
+  "Eruca vesicaria" = list(query = "gene_id", keytype = "SYMBOL"),
+  "Lolium multiflorum" = list(query = "gene_id", keytype = "SYMBOL"),
   "Salmonella enterica" = list(query = "ENTREZID", keytype = "ENTREZID"),
   "default" = list(query = primary_keytype, keytype = primary_keytype)
 )
@@ -366,10 +409,12 @@ if (target_organism == "Saccharomyces cerevisiae") {
 #########################################################################
 
 # Define organisms that do not use STRING annotations
-no_stringdb <- c("Pseudomonas aeruginosa", "Staphylococcus aureus")
+no_stringdb <- c("Pseudomonas aeruginosa", "Staphylococcus aureus", "Lolium multiflorum", "Eruca vesicaria", "Aspergillus niger")
 
 # Define the key type used for mapping to STRING
 stringdb_query_list <- list(
+  "Aspergillus fumigatus" = "LOCUS",
+  "Bacillus pumilus" = "OLD_LOCUS",
   "Lactobacillus acidophilus" = "OLD_LOCUS",
   "Mycobacterium marinum" = "OLD_LOCUS",
   "Serratia liquefaciens" = "OLD_LOCUS",
@@ -388,7 +433,7 @@ stringdb_query <- if (!is.null(stringdb_query_list[[target_organism]])) {
 # Handle organisms which do not use the GTF's gene_id keys to map to STRING 
 # These are microbial species for which NCBI references were used rather than ENSEMBL,
 # for which the STRING accessions match the GTF's gene_name keys, but not the gene_id keys.
-uses_old_locus <- c("Lactobacillus acidophilus", "Mycobacterium marinum", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri")
+uses_old_locus <- c("Bacillus pumilus", "Lactobacillus acidophilus", "Mycobacterium marinum", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri")
 # Handle STRING annotation processing based on the target organism
 if (target_organism %in% uses_old_locus) {
   # If the target organism is one of the NOENTRY organisms, handle the OLD_LOCUS splitting
@@ -413,7 +458,6 @@ if (target_organism == "Bacillus subtilis") {
 # Map alternative taxonomy IDs for organisms not directly supported by STRING
 taxid_map <- list(
   "Saccharomyces cerevisiae" = 4932,
-  "Brassica rapa" = 51351,
   "Serratia liquefaciens" = 614
 )
 
@@ -424,8 +468,9 @@ target_taxid <- if (!is.null(taxid_map[[target_organism]])) {
   target_taxid
 }
 
-# Initialize string_map
+# Initialize string_map and string_db
 string_map <- NULL
+string_db <- NULL
 
 # If the target organism is supported by STRING, get STRING annotations
 if (!(target_organism %in% no_stringdb)) {
@@ -444,7 +489,7 @@ if (!is.null(string_map)) {
 
 if (!is.null(string_map)) {
   # Determine the appropriate join key
-  join_key <- if (target_organism %in% c("Lactobacillus acidophilus", "Mycobacterium marinum", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri")) {
+  join_key <- if (target_organism %in% c("Bacillus pumilus", "Lactobacillus acidophilus", "Mycobacterium marinum", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri")) {
     primary_keytype
   } else {
     stringdb_query
@@ -474,11 +519,12 @@ annot_stringdb <- as.data.frame(annot_stringdb)
 #########################################################################
 
 # Define organisms that do not use PANTHER annotations 
-no_panther_db <- c("Caenorhabditis elegans", "Mycobacterium marinum", "Oryza sativa", "Staphylococcus aureus", "Lactobacillus acidophilus", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri", "Pseudomonas aeruginosa")
+no_panther_db <- c("Caenorhabditis elegans", "Mycobacterium marinum", "Oryza sativa", "Staphylococcus aureus", "Lactobacillus acidophilus", "Serratia liquefaciens", "Streptococcus mutans", "Vibrio fischeri", "Pseudomonas aeruginosa",
+                   "Aspergillus niger", "Bacillus pumilus", "Daphnia magna", "Enterobacter cloacae", "Eruca vesicaria", "Lolium multiflorum")
 
 annot_pantherdb <- annot_stringdb
 
-if (!(target_organism %in% no_panther_db)) {
+if (!(target_organism %in% no_panther_db) && !is.na(target_short_name) && target_short_name != "" && "ENTREZID" %in% names(annot_stringdb)) {
   
   # Define the key type in the annotation table used to map to PANTHER DB
   pantherdb_query = "ENTREZID"

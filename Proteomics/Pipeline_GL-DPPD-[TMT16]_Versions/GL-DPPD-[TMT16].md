@@ -716,8 +716,6 @@ java -Djava.awt.headless=true -Xmx64G \
 - **combined_peptide.tsv** (combined peptide report with TMT reporter ion intensities and additional data across all plexes)
 - **combined_ion.tsv** (combined ion report with TMT reporter ion intensities and additional data across all plexes)
 - **combined_modified_peptide.tsv** (combined modified peptide report with TMT reporter ion intensities and additional data across all plexes)
-- **msstats.csv** (input file for MSstats downstream differential analysis)
-- **msstats_ptm.csv** (input file for MSstatsPTM PTM (post-translational modification) analysis)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 
@@ -746,12 +744,13 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 
 **Output Data:**
 
-- **abundance_protein_MD.tsv** (TMT-Integrator protein-level table; log2 abundance per channel)
-- **abundance_peptide_MD.tsv** (TMT-Integrator peptide-level table; log2 abundance per channel)
-- **abundance_gene_MD.tsv** (TMT-Integrator gene-level table; log2 abundance per channel)
-- **ratio_protein_MD.tsv** (TMT-Integrator protein-level table; log2(channel/reference) per channel)
-- **ratio_peptide_MD.tsv** (TMT-Integrator peptide-level table; log2(channel/reference) per channel)
-- **ratio_gene_MD.tsv** (TMT-Integrator gene-level table; log2(channel/reference) per channel)
+- **abundance_protein_MD.tsv** (protein-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities; `_MD` suffix = median centering normalization per sample)
+- **abundance_peptide_MD.tsv** (peptide-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **abundance_gene_MD.tsv** (gene-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **ratio_protein_MD.tsv** (protein-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_peptide_MD.tsv** (peptide-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_gene_MD.tsv** (gene-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **msstats.csv** (input file for MSstatsTMT differential abundance analysis)
 
 <br>
 

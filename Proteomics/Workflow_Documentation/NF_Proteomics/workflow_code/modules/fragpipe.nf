@@ -8,6 +8,13 @@ process FRAGPIPE {
         saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') },
         enabled: params.fragpipe_workflow?.startsWith('TMT')
 
+    // TMT: publish tmt-report tables
+    publishDir path: { "${output_dir}/FragPipe/tmt-report/" },
+        mode: params.publish_dir_mode,
+        pattern: "output/tmt-report/*.tsv",
+        saveAs: { filename -> filename.toString().replaceFirst(/^output\/tmt-report\//, '') },
+        enabled: params.fragpipe_workflow?.startsWith('TMT')
+
     // MSstats inputs (e.g. msstats.csv, msstats_ptm.csv)
     publishDir path: { "${output_dir}/FragPipe/" },
         mode: params.publish_dir_mode,
@@ -29,6 +36,7 @@ process FRAGPIPE {
     // LFQ / shared
     path("output/msstats.csv"), emit: msstats_csv, optional: true
     path("output/msstats_ptm.csv"), emit: msstats_ptm_csv, optional: true
+    path("output/**/msstats.csv"), emit: msstats_tmt_csv, optional: true
     path("output/experiment_annotation.tsv"), emit: experiment_annotation, optional: true
     path("output/combined_protein.tsv"), emit: combined_protein, optional: true
     path("output/combined_peptide.tsv"), emit: combined_peptide, optional: true
@@ -76,6 +84,9 @@ process FRAGPIPE {
         --threads ${task.cpus} \\
         --config-tools-folder ${fragpipe_tools}
     
+    # Delete all staged mzML copies before staging outputs (TMT plex dirs + LFQ workdir).
+    find . -name '*.mzML' -delete 2>/dev/null || true
+
     # After FragPipe runs, move everything from work folder into output folder
     # (except: mzML files, proteome, tools folder, input manifest, updated workflow config)
     # Move entire folders/directories into output/, preserving structure

@@ -668,7 +668,7 @@ java -Djava.awt.headless=true -Xmx64G \
 - **combined_ion.tsv** (combined ion report with MS1 quantification data and additional data across all samples)
 - **combined_site_*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
 - **msstats.csv** (input file for MSstats downstream differential analysis)
-- **msstats_ptm.csv** (input file for MSstatsPTM PTM (post-translational modification) analysis)
+- **msstats_ptm.csv** (input file for MSstatsPTM post-translational modification analysis)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 <!-- - *.mbrbin (match-between-runs binary data file for MBR feature matching) -->

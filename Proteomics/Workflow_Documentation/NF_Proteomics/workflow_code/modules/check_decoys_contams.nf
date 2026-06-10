@@ -1,5 +1,4 @@
 process CHECK_DECOYS_CONTAMS {
-    tag "${proteome_fasta.baseName}"
     publishDir path: { "${output_dir}/Proteome/" },
         mode: params.publish_dir_mode,
         pattern: "output/*",
@@ -68,9 +67,12 @@ process CHECK_DECOYS_CONTAMS {
         [ -z "\$PHILO" ] && { echo "ERROR: Philosopher not found" >&2; exit 1; }
         "\${PHILO}" workspace --init
         "\${PHILO}" database --custom \$input_fasta \$decoy_flag \$contam_flag
+        processed_fasta=\$(ls -t *.fa* 2>/dev/null | head -1)
+        [ -z "\$processed_fasta" ] && { echo "ERROR: Philosopher did not produce a FASTA output (*.fa*)" >&2; exit 1; }
+        cp "\$processed_fasta" output/
         "\${PHILO}" workspace --clean
+    else
+        cp \$input_fasta output/
     fi
-    
-    cp \$input_fasta output/
     """
 }
