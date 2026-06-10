@@ -25,7 +25,8 @@ CONFIG = {
         ["MultiQC", "https://multiqc.info/"],
         ["pmultiqc", "https://github.com/bigbio/pmultiqc"],
         ["R", "https://www.r-project.org/"],
-        ["MSstats", "https://github.com/Vitek-Lab/MSstats"],
+        ["MSstats", "https://msstats.org/"],
+        ["MSstatsTMT", "https://msstats.org/"],
         ["FragPipeAnalystR", "https://github.com/Nesvilab/FragPipeAnalystR"],
     ]
 }

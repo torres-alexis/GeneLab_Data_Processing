@@ -59,7 +59,7 @@ Alexis Torres (GeneLab Data Processing Team)
 |MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
 |R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
-|MSstats|4.18.0|[https://github.com/Vitek-Lab/MSstats](https://github.com/Vitek-Lab/MSstats)|
+|MSstats|4.18.0|[https://msstats.org/](https://msstats.org/)|
 |FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
 

@@ -21,7 +21,7 @@ process MSSTATS_TMT {
     msstats_tmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
 
     echo '"${task.process}":' > versions.yml
-    echo "    msstatstmt: \$(Rscript -e 'cat(as.character(packageVersion(\"MSstatsTMT\")))' 2>/dev/null || echo 'unknown')" >> versions.yml
+    echo "    MSstatsTMT: \$(Rscript -e 'cat(as.character(packageVersion(\"MSstatsTMT\")))' 2>/dev/null || echo 'unknown')" >> versions.yml
     echo "    r: \$(R --version 2>&1 | head -n1 | sed 's/.*version \\([0-9.]*\\).*/\\1/' || echo 'unknown')" >> versions.yml
     """
 }

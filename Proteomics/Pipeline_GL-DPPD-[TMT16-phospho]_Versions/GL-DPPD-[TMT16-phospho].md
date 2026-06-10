@@ -43,7 +43,8 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4k. IonQuant TMT Reporter Ion Extraction](#4k-ionquant-tmt-reporter-ion-extraction)
     - [4l. TMT-Integrator TMT Quantification](#4l-tmt-integrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
-  - [**6. FragPipeAnalystR Downstream Analysis**](#6-fragpipeanalystr-downstream-analysis)
+  - [**6. MSstatsTMT Differential Abundance Analysis**](#6-msstatstmt-differential-abundance-analysis)
+  - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
 
 ---
 
@@ -58,6 +59,7 @@ Alexis Torres (GeneLab Data Processing Team)
 |MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
 |R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
+|MSstatsTMT|2.18.0|[https://msstats.org/](https://msstats.org/)|
 |FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
 
@@ -805,7 +807,6 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 - **ratio_single-site_MD.tsv** (single PTM site–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **ratio_multi-site_MD.tsv** (multi-site PTM–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **msstats.csv** (input file for MSstatsTMT differential abundance analysis)
-- **msstats_ptm.csv** (input file for MSstatsPTM post-translational modification analysis)
 
 <br>
 
@@ -851,7 +852,35 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 
 ---
 
-## 6. FragPipeAnalystR Downstream Analysis
+## 6. MSstatsTMT Differential Abundance Analysis
+
+```bash
+msstats_tmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLProteomics
+```
+
+**Parameter Definitions:**
+
+- `msstats_tmt_analysis.R` – R script for MSstatsTMT differential abundance analysis
+- `.` – root directory for output
+- `MSstatsTMT_annotation_GLProteomics.csv` – MSstatsTMT annotation (Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition; output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- `msstats.csv` – Philosopher MSstats input file from FragPipe
+- `_GLProteomics` – assay suffix appended to output filenames
+
+**Input Data:**
+
+- msstats.csv (MSstats input file, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- MSstatsTMT_annotation_GLProteomics.csv (MSstatsTMT annotation table, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+
+**Output Data:**
+
+- **msstats_comparison_GLProteomics.csv** (all MSstatsTMT pairwise comparisons)
+- **msstats_contrasts_GLProteomics.csv** (contrast definitions)
+
+<br>
+
+---
+
+## 7. FragPipeAnalystR Downstream Analysis
 
 The FragPipeAnalystR downstream analysis script is executed four times: once using the **protein**-level quantification file (abundance_protein_MD.tsv), once using the **gene**-level quantification file (abundance_gene_MD.tsv), once using the **peptide**-level quantification file (abundance_peptide_MD.tsv), and once using the **site**-level quantification file (abundance_single-site_MD.tsv).
 
