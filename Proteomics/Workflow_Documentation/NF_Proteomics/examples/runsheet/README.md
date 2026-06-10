@@ -22,7 +22,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | RR10_KDN_WT_BSL_B1 |
-| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/GL_RefAnnotTable-A_1.1.0/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
+| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
 | data_file | string (url or local path) | Location of the mass spectrometry data file in mzML format. | /path/to/plex1/RR10_KDN_WT_BSL_B1.mzML |
 | data_type | string | Mass spectrometry acquisition method. Written to FragPipe manifest. (Options: DDA) | DDA |
 | Bioreplicate | string | Alphanumeric biological replicate identifier. If omitted, assigned sequentially from runsheet row order (1, 2, 3...). | 1 |
@@ -56,7 +56,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Column Name | Type | Description | Example |
 |:------------|:-----|:------------|:--------|
 | Sample Name | string | Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters. | SFug_M1 |
-| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/GL_RefAnnotTable-A_1.1.0/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
+| organism | string | Species name used to map to the appropriate gene annotations file. Supported species can be found in the `species` column of the [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) file. | Mus musculus |
 | plex | string | Plex identifier. Must match data sheet. | TMTa |
 | channel | string | TMT channel. | 127N |
 | Bioreplicate | string | Alphanumeric biological replicate identifier. If omitted, assigned sequentially from runsheet row order (1, 2, 3...). | 1 |

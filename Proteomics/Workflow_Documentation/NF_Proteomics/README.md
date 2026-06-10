@@ -120,6 +120,8 @@ export NXF_SINGULARITY_CACHEDIR=$(pwd)/singularity
 
 While in the location containing the `NF_PPP_1.0.0` directory that was downloaded in [step 2](#2-download-the-workflow-files), you are now able to run the workflow.
 
+For organisms listed in the [GeneLab annotations table](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv), the workflow automatically stages the pinned reference proteome from the table `proteome` column (Figshare URL or local path) and resolves gene annotation files from `genelab_annots_link` using the `organism` field in the runsheet (LFQ) or sample sheet (TMT).
+
 Below are examples of how to run the NF_Proteomics workflow:
 > Note: Nextflow commands use both single hyphen arguments (e.g. -help) that denote general nextflow arguments and double hyphen arguments (e.g. --reference_version) that denote workflow specific parameters.  Take care to use the proper number of hyphens for each argument.
 
@@ -135,8 +137,7 @@ Below are examples of how to run the NF_Proteomics workflow:
 nextflow run NF_PPP_1.0.0/main.nf \ 
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
-   --accession OSD-581 \ 
-   --uniprot_id UP001231189
+   --accession OSD-581
 ```
 
 <br>
@@ -161,11 +162,10 @@ nextflow run NF_PPP_1.0.0/main.nf \
 nextflow run NF_PPP_1.0.0/main.nf \ 
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
-   --runsheet </path/to/runsheet> \ 
-   --uniprot_id UP001231189
+   --runsheet </path/to/runsheet>
 ```
 
-> Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
+> Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md). The runsheet `organism` must match a `species` value in the [GeneLab annotations table](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) unless you supply `--uniprot_id` or `--reference_proteome`.
 
 <br>
 
@@ -176,8 +176,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
    --fragpipe_workflow_config </path/to/LFQ-MBR_edited.workflow> \
-   --runsheet </path/to/runsheet> \ 
-   --uniprot_id UP001231189
+   --runsheet </path/to/runsheet>
 ```
 
 > Note: Use `--fragpipe_workflow_config` to override the default FragPipe workflow with a custom `.workflow` file. For example, `LFQ-MBR_edited.workflow` may have `msfragger.fragment_mass_tolerance=300` set (from the default value of 20).
@@ -191,8 +190,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
    -profile singularity,local \
    --data_sheet </path/to/data_sheet.csv> \ 
    --sample_sheet </path/to/sample_sheet.csv> \
-   --fragpipe_workflow TMT10 \
-   --uniprot_id UP000000803
+   --fragpipe_workflow TMT10
 ```
 
 > Note: TMT workflows require both a data sheet and a sample sheet. See [runsheet examples](examples/runsheet/README.md) for OSD-514 TMT10 formats. Use `TMT10`, `TMT16`, or `TMT16-phospho` for `--fragpipe_workflow` as appropriate.
@@ -213,7 +211,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--accession` - The OSD or GLDS ID for the dataset to be processed, eg. `GLDS-194` or `OSD-194`
 
-* `--uniprot_id` - UniProt proteome ID(s) (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
+* `--fragpipe_workflow` - FragPipe workflow configuration option: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
 
 <br>
 
@@ -223,13 +221,15 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--reference_proteome` - Path to a custom reference proteome FASTA file
 
+* `--fragpipe_workflow` - FragPipe workflow configuration option: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
+
 <br>
 
 **Additional Required Parameters For [4c](#4c-run-the-lfq-mbr-workflow-on-a-custom-dataset):**
 
 * `--runsheet` - Path to the runsheet file containing data file paths and metadata required for processing
 
-* `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
+* `--fragpipe_workflow` - FragPipe workflow configuration option: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
 
 <br>
 
@@ -237,9 +237,9 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--runsheet` - Path to the runsheet file containing data file paths and metadata required for processing
 
-* `--uniprot_id` - UniProt proteome ID (e.g., `UP001231189`). The workflow will download the proteome FASTA from UniProt.
+* `--fragpipe_workflow` - FragPipe workflow configuration option: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
 
-* `--fragpipe_workflow_config` - Path to a custom FragPipe `.workflow` file 
+* `--fragpipe_workflow_config` - Path to a custom FragPipe `.workflow` file
 
 <br>
 
@@ -249,9 +249,19 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--sample_sheet` - Path to the sample sheet containing sample level metadata and sample-to-channel mapping
 
-* `--fragpipe_workflow` - Fragpipe workflow configuration option: `TMT10`, `TMT16`, or `TMT16-phospho`
+* `--fragpipe_workflow` - FragPipe workflow configuration option: `TMT10`, `TMT16`, or `TMT16-phospho`
 
-* `--uniprot_id` - UniProt proteome ID (e.g., `UP000000803` for *Drosophila melanogaster*). The workflow will download the proteome FASTA from UniProt.
+<br>
+
+**Reference proteome (one of the following; default = annotations table lookup):**
+
+* `--reference_table` - Path or URL to [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv). With runsheet/sample-sheet `organism`, resolves the pinned `proteome` FASTA and `genelab_annots_link` for DE_results. This is the default when `--uniprot_id` and `--reference_proteome` are unset.
+
+* `--uniprot_id` - Optional override: UniProt proteome ID (e.g., `UP001231189`). Downloads via Philosopher `--id` instead of staging the table `proteome` column. Mutually exclusive with `--reference_proteome`.
+
+* `--reference_proteome` - Optional override: path to a pre-formed reference proteome FASTA. Mutually exclusive with `--uniprot_id`.
+
+> Note: For organisms not listed in the annotations table, or rows with an empty `proteome` column, specify `--uniprot_id` or `--reference_proteome`.
 
 <br>
 
@@ -262,9 +272,12 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
 * `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (LFQ runsheet: Factor Value columns + Bioreplicate; TMT data sheet: plex + TechRepMixture + fraction). (type: boolean, default: true)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: "${projectDir}/conf/tools")
+* `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
-* `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `uniprot_id` (type: boolean, default: true)
-* `--philosopher_isoforms` - Include protein isoforms in database when using `uniprot_id` (type: boolean, default: false)
+* `--uniprot_id` - UniProt proteome ID override; live download via Philosopher `--id` (type: string, default: null). Mutually exclusive with `--reference_proteome`. Not needed when the organism row in `--reference_table` has a `proteome` URL/path.
+* `--reference_proteome` - Custom reference proteome FASTA path (type: string, default: null). Mutually exclusive with `--uniprot_id`.
+* `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `--uniprot_id` (type: boolean, default: true)
+* `--philosopher_isoforms` - Include protein isoforms in database when using `--uniprot_id` (type: boolean, default: false)
 * `--philosopher_enzyme` - Enzyme for digestion: trypsin, lys_c, lys_n, glu_c, chymotrypsin (type: string, default: "trypsin")
 * `--philosopher_spike_in` - Path to spike-in FASTA file to add to database (e.g., iRT peptides) (type: string, default: null)
 * `--philosopher_contaminants` - Add common contaminant proteins (type: boolean, default: true)
@@ -298,7 +311,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--fp_analyst_volcano_display_names` - Display names on significant volcano points (type: boolean, default: true)
 * `--fp_analyst_volcano_show_gene` - Show gene names (true) or protein/peptide ID (false) in volcano (type: boolean, default: true)
 * `--multiqc_config` - Path to MultiQC config (type: string, default: conf/multiqc.config)
-* `--reference_table` - Path or URL to GeneLab Reference Annotations table for gene annotations lookup (type: string, default: [GL-DPPD-7110-A_annotations.csv](https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/refs/heads/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv))
+* `--reference_table` - Path or URL to GeneLab Reference Annotations table for organism lookup (type: string, default: [GL-DPPD-7110-A_annotations.csv](https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/refs/heads/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv)). Resolves pinned `proteome` FASTA and `genelab_annots_link` from runsheet/sample-sheet `organism` when `--uniprot_id` and `--reference_proteome` are unset.
 * `--gene_annotations_file` - Override: direct path/URL to gene annotations table (type: string, default: null)
 * `--assay_suffix` - Suffix to append to output filenames (type: string, default: "_GLProteomics")
 * `--output_dir` - Parent path for workflow outputs (type: string, default: ".")
