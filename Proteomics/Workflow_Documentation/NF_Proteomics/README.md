@@ -102,7 +102,7 @@ To avoid this issue, run the following command to fetch the Singularity images p
 > Note: This command should be run in the location containing the `NF_PPP_1.0.0` directory that was downloaded in [step 2](#2-download-the-workflow-files) above. Depending on your network speed, fetching the images will take ~20 minutes. Approximately 8GB of RAM is needed to download and build the Singularity images.
 
 ```bash
-bash NF_PPP_1.0.0/bin/prepull_singularity.sh NF_PPP_1.0.0/config/by_docker_image.config
+bash NF_PPP_1.0.0/bin/prepull_singularity.sh NF_PPP_1.0.0/conf/by_docker_image.config
 ```
 
 
