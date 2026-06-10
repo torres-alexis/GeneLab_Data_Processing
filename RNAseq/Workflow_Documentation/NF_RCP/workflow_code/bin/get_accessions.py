@@ -6,6 +6,20 @@ import re
 import sys
 import json
 
+
+def _extract_glds(identifiers):
+    """OSDR API returns identifiers as a list or legacy string."""
+    if isinstance(identifiers, (list, tuple)):
+        return [str(x) for x in identifiers if re.fullmatch(r"GLDS-\d+", str(x))]
+    return re.findall(r"GLDS-\d+", str(identifiers or ""))
+
+
+def _identifiers_include(identifiers, token):
+    if isinstance(identifiers, (list, tuple)):
+        return token in [str(x) for x in identifiers]
+    return token in str(identifiers or "")
+
+
 def get_osd_and_glds(accession, api_url):
     # Fetch data from the API
     try:
@@ -32,7 +46,7 @@ def get_osd_and_glds(accession, api_url):
             if osd_id == accession:
                 metadata = osd_data.get("metadata", {})
                 identifiers = metadata.get("identifiers", "")
-                glds_accessions = re.findall(r'GLDS-\d+', identifiers)
+                glds_accessions = _extract_glds(identifiers)
                 break
     
     elif accession.startswith('GLDS-'):
@@ -42,7 +56,7 @@ def get_osd_and_glds(accession, api_url):
         for osd_id, osd_data in data.items():
             metadata = osd_data.get("metadata", {})
             identifiers = metadata.get("identifiers", "")
-            if accession in identifiers:
+            if _identifiers_include(identifiers, accession):
                 osd_accession = metadata.get("accession")
                 break
     else:
