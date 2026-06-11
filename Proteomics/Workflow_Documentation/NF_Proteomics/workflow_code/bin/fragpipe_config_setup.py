@@ -80,11 +80,11 @@ def setup_workflow_config(
                 break
         lines.insert(insert_index, db_path_line)
 
-    # if tmt:
-    #     extraction_tool = normalize_tmt_extraction_tool(tmt_extraction_tool)
-    #     lines = set_or_update_key(lines, "tmtintegrator.extraction_tool", extraction_tool)
-    #     if extraction_tool == "Philosopher":
-    #         lines = set_or_update_key(lines, "tmtintegrator.philosopher-msstats", "true")
+    if tmt:
+        extraction_tool = normalize_tmt_extraction_tool(tmt_extraction_tool)
+        lines = set_or_update_key(lines, "tmtintegrator.extraction_tool", extraction_tool)
+        if extraction_tool == "Philosopher":
+            lines = set_or_update_key(lines, "tmtintegrator.philosopher-msstats", "true")
 
     # Get input basename and apply assay suffix
     input_basename = os.path.basename(input_file)
