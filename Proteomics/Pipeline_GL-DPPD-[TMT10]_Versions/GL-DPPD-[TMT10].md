@@ -865,7 +865,6 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 - **ratio_peptide_MD.tsv** (peptide-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **ratio_gene_MD.tsv** (gene-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
 - **msstats.csv** (input file for MSstatsTMT differential abundance analysis)
-- **msstats_ptm.csv** (input file for MSstatsPTM post-translational modification analysis)
 
 <br>
 
