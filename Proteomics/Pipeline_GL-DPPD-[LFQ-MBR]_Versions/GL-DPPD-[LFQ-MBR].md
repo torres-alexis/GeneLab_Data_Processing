@@ -81,16 +81,16 @@ Alexis Torres (GeneLab Data Processing Team)
 create-qc-report.py \
   --input *.mzML \
   --output-dir . \
-  --cores 1
+  --cores 8
 
-zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
+zip -r rawbeans_report_GLProteomics.zip qc-report.html resources/
 ```
 
 **Parameter Definitions:**
 
 - `--input` – all input mzML files provided as individual paths separated by spaces
 - `--output-dir` – the output directory to store results
-- `--cores` – number of CPU cores to use for processing
+- `--cores` – maximum number of mzML files processed in parallel
 
 **Input Data:**
 
@@ -100,7 +100,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 - qc-report.html (RawBeans QC report HTML file for all samples)
 - resources/ (directory containing supporting files for the QC report HTML)
-- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
+- **rawbeans_report_GLProteomics.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
 
 <br>
 
@@ -214,17 +214,17 @@ runsheet_to_metadata.py \
 
 - **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
-  - Experiment (FragPipe experiment string (from `Factor Value[...]` columns))
-  - Bioreplicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`))
+  - Experiment (FragPipe experiment string from joined `Factor Value[...]` columns)
+  - Bioreplicate (from runsheet `Bioreplicate` if set; else by `Source Name` if present; else sequential within each condition)
   - Data type (`DDA` from runsheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
   - file (mzML basename (`*.mzML`))
-  - sample (`{Experiment}_{Bioreplicate}` (matches manifest `Experiment` and `Bioreplicate`))
-  - sample_name (sample name from runsheet `Sample Name`)
+  - sample (`{Experiment}_{Bioreplicate}` composite key from manifest `Experiment` and `Bioreplicate`)
+  - sample_name (human-readable name from runsheet `Source Name` when provided, else `Sample Name`)
   - condition (R-safe condition symbol from joined `Factor Value[...]` values)
   - condition_name (human-readable condition)
-  - replicate (biological replicate replicate alphanumeric identifier (from runsheet `Bioreplicate` column if present; else sequential by `condition`)))
+  - replicate (same as manifest Bioreplicate for this sample))
 
 <br>
 
@@ -603,10 +603,10 @@ java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
 **Output Data:**
 
 - protein.fas (FASTA file containing FDR-filtered protein sequences identified)
-- protein.tsv (sample-specific protein report)
-- peptide.tsv (sample-specific peptide report)
-- psm.tsv (sample-specific PSM report)
-- ion.tsv (sample-specific ion report)
+- protein.tsv (sample-specific FDR-filtered protein results; one row per protein group)
+- peptide.tsv (sample-specific FDR-filtered search results; one row per identified peptide sequence; ions collapsed)
+- psm.tsv (sample-specific FDR-filtered search results; one row per peptide-spectrum match (PSM))
+- ion.tsv (sample-specific FDR-filtered search results; one row per peptide sequence, charge, and modification state; PSMs collapsed)
 
 <br>
 
@@ -711,9 +711,8 @@ java -Djava.awt.headless=true -Xmx64G \
 multiqc --fragpipe-plugin \
   -o /path/to/pmultiqc/output/directory \
   -n multiqc_GLProteomics \
+  -z \
   /path/to/FragPipe/output/directory
-
-clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/directory
 ```
 
 **Parameter Definitions:**
@@ -721,10 +720,8 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 - `--fragpipe-plugin` – enable FragPipe plugin for MultiQC to process FragPipe output files
 - `-o` – the output directory to store results
 - `-n` – prefix name for output files
+- `-z` – compress the MultiQC data directory
 - `/path/to/FragPipe/output/directory` – the directory containing FragPipe output files, provided as a positional argument
-- `clean_multiqc_paths.py` – Python script to clean absolute paths (if present) from MultiQC data files and create a zip archive
-- `multiqc_GLProteomics_data` – name of the MultiQC data directory to process
-- `/path/to/pmultiqc/output/directory` – output directory where the zip file will be created
 
 **Input Data:**
 
@@ -739,7 +736,7 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 **Output Data:**
 
 - **multiqc_GLProteomics.html** (MultiQC output html summary)
-- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data with cleaned paths)
+- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data)
 
 <br>
 
@@ -894,8 +891,8 @@ Rscript FragPipeAnalystR_main.R \
 - **pathway_analysis_plots_{level}_GLProteomics.zip** (pathway analysis plots folder)
   - or/ (over-representation analysis plots: or_database_direction.pdf, .png per database and direction)
   - gsea/ (GSEA plots: gsea_database_contrast.pdf, .png per database and contrast)
-- **or_{database}_{direction}.csv** (over-representation analysis results table for each enrichment database and direction)
-- **gsea_{database}_{contrast}.csv** (GSEA results table for each GSEA database and contrast)
+- **or_{database}_{direction}_{level}_GLProteomics.csv** (over-representation analysis results table for each enrichment database and direction)
+- **gsea_{database}_{contrast}_{level}_GLProteomics.csv** (GSEA results table for each GSEA database and contrast)
 - **DE_plots_{level}_GLProteomics.zip** (DE plots folder)
   - DE_heatmap.pdf, .png (DE heatmap)
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)

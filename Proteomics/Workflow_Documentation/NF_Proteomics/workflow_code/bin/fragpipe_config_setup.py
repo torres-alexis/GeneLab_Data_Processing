@@ -5,6 +5,7 @@ Setup FragPipe workflow config file (.workflow).
 
 Summary:
   - Add/update database.db-path with proteome fasta file path basename
+  - TMT (Philosopher): extraction_tool, philosopher-msstats, ionquant.run-ionquant=false
   - Apply assay suffix to output filename
   - Convert to JSON format
 """
@@ -85,6 +86,7 @@ def setup_workflow_config(
         lines = set_or_update_key(lines, "tmtintegrator.extraction_tool", extraction_tool)
         if extraction_tool == "Philosopher":
             lines = set_or_update_key(lines, "tmtintegrator.philosopher-msstats", "true")
+            lines = set_or_update_key(lines, "ionquant.run-ionquant", "false")
 
     # Get input basename and apply assay suffix
     input_basename = os.path.basename(input_file)

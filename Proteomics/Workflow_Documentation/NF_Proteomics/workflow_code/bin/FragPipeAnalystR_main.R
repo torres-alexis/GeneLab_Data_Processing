@@ -815,7 +815,7 @@ for (db in enrichment_dbs) {
     tryCatch({
       or_res <- or_test(de_se, database = db_or, direction = toupper(dir), alpha = de_alpha, log2_threshold = de_lfc)
       if (!is.null(or_res) && nrow(or_res) > 0) {
-        safe_name <- paste0("or_", gsub("[^A-Za-z0-9_-]", "_", db), "_", tolower(dir))
+        safe_name <- paste0("or_", gsub("[^A-Za-z0-9_-]", "_", db), "_", tolower(dir), level_suffix)
         write.csv(or_res, file.path(pathway_dir_or, paste0(safe_name, ".csv")), row.names = FALSE)
         or_plot <- or_res
         if ("contrast" %in% colnames(or_plot)) {
@@ -889,7 +889,7 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
       de_se_gsea <- de_se[idx, ]
       rowData(de_se_gsea)$ID <- rd$ID[match(idx, rownames(rd))]
       safe_contrast <- gsub("[^A-Za-z0-9_-]", "_", contrast_names[i])
-      safe_name <- paste0("gsea_", gsub("[^A-Za-z0-9_-]", "_", db), "_", safe_contrast)
+      safe_name <- paste0("gsea_", gsub("[^A-Za-z0-9_-]", "_", db), "_", safe_contrast, level_suffix)
       tryCatch({
         gsea_res <- GSEA_test(de_se_gsea, col = col_stat, database = db_gsea, convert = TRUE)
         if (!is.null(gsea_res) && nrow(gsea_res) > 0) {

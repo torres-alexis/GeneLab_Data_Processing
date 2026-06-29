@@ -22,7 +22,7 @@
             },
             "Bioreplicate": {
                 "type": ["string", "integer"],
-                "description": "Biological replicate."
+                "description": "Biological replicate ID for MSstatsTMT BioReplicate and FragPipeAnalystR replicate. From sample sheet value if set; else by Source Name if present; else from Sample Name.",
             },
             "organism": {
                 "type": "string",
@@ -31,7 +31,7 @@
             },
             "Source Name": {
                 "type": "string",
-                "description": "Biological replicate label."
+                "description": "Identifier linking TMT channels from the same biological subject."
             }
         },
         "required": ["Sample Name", "plex", "channel"],

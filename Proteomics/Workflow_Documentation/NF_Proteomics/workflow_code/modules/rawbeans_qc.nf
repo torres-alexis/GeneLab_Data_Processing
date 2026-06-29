@@ -16,7 +16,7 @@ process RAWBEANS_QC {
         --input ${mzml_file} \\
         --output-dir . \\
         --batch \\
-        --cores 1
+        --cores ${task.cpus}
 
     # Create zip file with HTML and resources folder (cd to get files at root level)
     # create-qc-report.py creates folder from input basename (meta.id)
@@ -31,17 +31,17 @@ process RAWBEANS_QC {
 }
 
 process RAWBEANS_QC_ALL {
-    
+
     publishDir path: { "${output_dir}/RawBeans/" },
         mode: params.publish_dir_mode,
-        pattern: "All${params.assay_suffix}_qc-report.zip"
+        pattern: "rawbeans_report${params.assay_suffix}.zip"
     
     input:
     val(output_dir)
     path(mzml_files)
 
     output:
-    path("All${params.assay_suffix}_qc-report.zip"), emit: qc_report
+    path("rawbeans_report${params.assay_suffix}.zip"), emit: qc_report
     path("versions.yml"), emit: versions
 
     script:
@@ -50,10 +50,10 @@ process RAWBEANS_QC_ALL {
     create-qc-report.py \\
         --input ${mzml_files} \\
         --output-dir . \\
-        --cores 1
+        --cores ${task.cpus}
 
     # Create zip file with HTML and resources folder
-    zip -r All${params.assay_suffix}_qc-report.zip qc-report.html resources/
+    zip -r rawbeans_report${params.assay_suffix}.zip qc-report.html resources/
 
     # Version info
     echo '"${task.process}":' > versions.yml

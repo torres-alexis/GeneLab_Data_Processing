@@ -60,9 +60,6 @@ print(anno[, intersect(c("file", "condition", "condition_name"), colnames(anno))
 print("Unique Condition values in raw data after matching:")
 print(table(raw$Condition, useNA = "always"))
 
-# Write processed CSV as intermediate file
-write.csv(raw, "msstats_input.csv", row.names = FALSE)
-
 # Change root directory for MSstats
 print(str_c("Root DIR: ", rootDir))
 setwd(rootDir)

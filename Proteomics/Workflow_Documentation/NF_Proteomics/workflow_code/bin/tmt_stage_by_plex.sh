@@ -8,7 +8,7 @@
 # Usage: cd DIR_WITH_MZML_FILES && tmt_stage_by_plex.sh [MANIFEST] [EXP_ANNOT] [TMT_FORMAT]
 #   Run from dir containing the mzML files. Creates TMTa_1/, TMTb_1/, etc. in cwd.
 #   MANIFEST   - manifest.tsv (file, experiment, bioreplicate, data_type; no header). Default: manifest.tsv
-#   EXP_ANNOT  - experiment_annotation.tsv. Default: experiment_annotation.tsv
+#   EXP_ANNOT  - GeneLab experiment annotation for plex/channel mapping. Default: experiment_annot.tsv
 #   TMT_FORMAT - TMT6 | TMT10 | TMT11 | TMT16 | TMT18. Required.
 #
 # Output: ./{plex}_{biorep}/*.mzML, ./{plex}_{biorep}/annotation.txt
@@ -17,7 +17,7 @@ set -euo pipefail
 
 BASE="$(pwd)"
 MANIFEST="${1:-$BASE/manifest.tsv}"
-EXP_ANNOT="${2:-$BASE/experiment_annotation.tsv}"
+EXP_ANNOT="${2:-$BASE/experiment_annot.tsv}"
 TMT_FORMAT="${3:-}"
 
 [[ -f "$MANIFEST" ]] || { echo "ERROR: Manifest not found: $MANIFEST" >&2; exit 1; }

@@ -244,7 +244,6 @@ workflow PROTEOMICS {
         ///////////////////////////////////////////////////////////
 
         // Run pmultiqc with FragPipe plugin
-        ch_multiqc_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config ) : Channel.fromPath("NO_FILE")
         ch_fragpipe_output_dir = FRAGPIPE.out.fragpipe_manifest.map { fragpipe_manifest -> fragpipe_manifest.parent }
         PMULTIQC(output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
 

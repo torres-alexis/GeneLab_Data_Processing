@@ -59,7 +59,7 @@ def collect_first_match(base_dir, pattern):
 
 def collect_processed_files(outdir, assay_suffix):
     out = []
-    out.extend(collect_matches(os.path.join(outdir, "RawBeans"), [f"All{assay_suffix}_qc-report.zip"]))
+    out.extend(collect_matches(os.path.join(outdir, "RawBeans"), [f"rawbeans_report{assay_suffix}.zip"]))
     out.extend(collect_matches(os.path.join(outdir, "Metadata"), [
         "*runsheet*.csv",
     ]))
@@ -71,6 +71,8 @@ def collect_processed_files(outdir, assay_suffix):
     out.extend(collect_matches(os.path.join(outdir, "MSstats"), [
         "msstats_comparison*.csv",
         "msstats_contrasts*.csv",
+        "msstatstmt_comparison*.csv",
+        "msstatstmt_contrasts*.csv",
     ]))
     out.extend(collect_matches(os.path.join(outdir, "FragPipe"), [
         "combined_*.tsv",

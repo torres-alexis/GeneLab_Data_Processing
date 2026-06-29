@@ -18,7 +18,7 @@ process FRAGPIPE {
     path(manifest)
     path(proteome)
     path(mzml_files)
-    path(experiment_annotation)
+    path(experiment_annotation, name: 'experiment_annot.tsv')
 
     output:
     path("output/fragpipe-files.fp-manifest"), emit: fragpipe_manifest
@@ -54,10 +54,10 @@ process FRAGPIPE {
     export XDG_CONFIG_HOME=\${PWD}/fragpipe_home
     export JAVA_OPTS="-Djava.io.tmpdir=\${PWD}/fragpipe_temp"
     mkdir -p fragpipe_temp
-    
-    # TMT: reorganize mzML into plex-specific (manifest.tsv Experiment_Bioreplicate) folders + annotation.txt before FragPipe
-    if [[ "${params.fragpipe_workflow}" == TMT* ]] && [[ -s ${experiment_annotation} ]]; then
-        bash ${projectDir}/bin/tmt_stage_by_plex.sh ${manifest} ${experiment_annotation} ${tmt_label}
+
+    # TMT: plex folders + annotation.txt (GeneLab annot staged as experiment_annot.tsv)
+    if [[ "${params.fragpipe_workflow}" == TMT* ]] && [[ -s experiment_annot.tsv ]]; then
+        bash ${projectDir}/bin/tmt_stage_by_plex.sh ${manifest} experiment_annot.tsv ${tmt_label}
     fi
     
     FP_BASE=\$(ls -d /fragpipe_bin/fragpipe-*/fragpipe-*/ 2>/dev/null | head -1)
@@ -76,24 +76,21 @@ process FRAGPIPE {
     # Delete all staged mzML copies before staging outputs (TMT plex dirs + LFQ workdir).
     find . -name '*.mzML' -delete 2>/dev/null || true
 
-    # After FragPipe runs, move everything from work folder into output folder
-    # (except: mzML files, proteome, tools folder, input manifest, updated workflow config)
-    # Move entire folders/directories into output/, preserving structure
+    # After FragPipe runs, move run products into output/ (inputs and runtime dirs stay behind)
     mkdir output
     for item in *; do
-        # Skip if it's one of the excluded files/folders
         if [[ "\${item}" == "output" ]] || \\
            [[ "\${item}" == "versions.yml" ]] || \\
            [[ "\${item}" == *.mzML ]] || \\
            [[ "\${item}" == *.fas ]] || \\
            [[ "\${item}" == "tools" ]] || \\
            [[ "\${item}" == manifest*.tsv ]] || \\
+           [[ "\${item}" == "experiment_annot.tsv" ]] || \\
            [[ "\${item}" == "fragpipe_home" ]] || \\
            [[ "\${item}" == "fragpipe_temp" ]] || \\
            [[ "\${item}" == "${workflow_config_basename}" ]]; then
             continue
         fi
-        # Move everything else (folders and files) to output
         if [[ -e "\${item}" ]]; then
             mv "\${item}" output/
         fi

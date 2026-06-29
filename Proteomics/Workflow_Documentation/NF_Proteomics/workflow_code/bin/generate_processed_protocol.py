@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument("--fp_analyst_zip", default="", help="Whether FragPipeAnalystR plot zips are enabled")
     parser.add_argument("--fp_analyst_lfq_type", default="", help="LFQ quantification type passed to FragPipeAnalystR")
     parser.add_argument("--fp_analyst_tmt_quant_type", default="", help="TMT quantification type passed to FragPipeAnalystR")
+    parser.add_argument("--tmt_extraction_tool", default="", help="TMT reporter-ion extraction tool (Philosopher or IonQuant)")
     parser.add_argument("--normalization_method", default="", help="FragPipeAnalystR normalization method (stored in embedded config)")
     parser.add_argument("--imputation_type", default="", help="FragPipeAnalystR imputation method (stored in embedded config)")
     parser.add_argument("--de_alpha", default="", help="FragPipeAnalystR DE adjusted p-value threshold")
@@ -90,6 +91,12 @@ def _str_or_default(val, default):
     return s if s else default
 
 
+def tmt_extraction_tool_label(args):
+    """GeneLab TMT preset uses Philosopher; matches params.tmt_extraction_tool / fragpipe_config_setup."""
+    raw = _str_or_default(getattr(args, "tmt_extraction_tool", None), "Philosopher")
+    return "IonQuant" if raw.strip().lower() == "ionquant" else "Philosopher"
+
+
 def generate_protocol_content(args, software_versions):
     current_date = datetime.now().strftime("%Y-%m-%d")
     fragpipe_workflow = args.fragpipe_workflow or "configured workflow"
@@ -153,8 +160,8 @@ def generate_protocol_content(args, software_versions):
             level_list = "protein, peptide, and gene"
 
         quant_sentence = (
-            f"TMT reporter-ion intensities were extracted from tandem MS/MS spectra using IonQuant, "
-            f"PSM-level quantification outputs were further processed with TMTIntegrator to generate summary "
+            f"TMT reporter-ion intensities were extracted from tandem MS/MS spectra using {tmt_extraction_tool_label(args)}, "
+            f"PSM-level quantification outputs were further processed with TMT-Integrator to generate summary "
             f"quantitative reports ({quant_type} quantification mode) at the {level_list} levels; integrated channel "
             f"abundances were log2 transformed and median centered. "
         )

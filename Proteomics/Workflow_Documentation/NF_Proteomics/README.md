@@ -270,7 +270,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
-* `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (LFQ runsheet: Factor Value columns + Bioreplicate; TMT data sheet: plex + TechRepMixture + fraction). (type: boolean, default: true)
+* `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (`Has Tech Reps=TRUE` collapses; missing/blank/FALSE keeps each row). LFQ: `Source Name` + Factor Value columns; TMT data sheet: plex + TechRepMixture + fraction. (type: boolean, default: true)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)

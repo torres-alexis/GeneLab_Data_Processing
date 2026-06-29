@@ -118,9 +118,6 @@ def main(
                         continue
                     normalized_name = normalize_name(software, known_names)
                     ver_str = str(ver).strip("'\"")
-                    # RawBeans: container tag 1.6.4 ships protqc 1.6.3; report 1.6.4
-                    if normalized_name == "RawBeans" and ver_str == "1.6.3":
-                        ver_str = "1.6.4"
                     if normalized_name not in processed_versions:
                         processed_versions[normalized_name] = ver_str
                     else:

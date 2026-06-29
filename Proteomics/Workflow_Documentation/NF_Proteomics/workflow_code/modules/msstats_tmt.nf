@@ -1,10 +1,13 @@
 process MSSTATS_TMT {
-    publishDir path: { "${output_dir}/MSstats/" },
+    publishDir path: { "${output_dir}/MSstatsTMT/" },
         mode: params.publish_dir_mode,
-        pattern: "msstats_comparison*.csv"
-    publishDir path: { "${output_dir}/MSstats/" },
+        pattern: "msstatstmt_comparison*.csv"
+    publishDir path: { "${output_dir}/MSstatsTMT/" },
         mode: params.publish_dir_mode,
-        pattern: "msstats_contrasts*.csv"
+        pattern: "msstatstmt_contrasts*.csv"
+    publishDir path: { "${output_dir}/MSstatsTMT/" },
+        mode: params.publish_dir_mode,
+        pattern: "dropped-conditions-msstatstmt*.txt"
 
     input:
     val(output_dir)
@@ -13,12 +16,13 @@ process MSSTATS_TMT {
 
     output:
     path("versions.yml"), emit: versions
-    path("msstats_comparison*.csv"), emit: comparison, optional: true
-    path("msstats_contrasts*.csv"), emit: contrasts, optional: true
+    path("msstatstmt_comparison*.csv"), emit: comparison, optional: true
+    path("msstatstmt_contrasts*.csv"), emit: contrasts, optional: true
+    path("dropped-conditions-msstatstmt*.txt"), emit: conditions_notice, optional: true
 
     script:
     """
-    msstats_tmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
+    msstatstmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
 
     echo '"${task.process}":' > versions.yml
     echo "    MSstatsTMT: \$(Rscript -e 'cat(as.character(packageVersion(\"MSstatsTMT\")))' 2>/dev/null || echo 'unknown')" >> versions.yml

@@ -15,7 +15,6 @@ process MSSTATS {
 
     output:
     path("versions.yml"), emit: versions
-    path("msstats_input.csv"), emit: msstats_processed
     path("msstats_comparison*.csv"), emit: comparison, optional: true
     path("msstats_contrasts*.csv"), emit: contrasts, optional: true
 

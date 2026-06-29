@@ -9,8 +9,8 @@ FragPipe manifest, FragPipeAnalystR experiment_annotation, and (TMT) MSstatsTMT 
 
 Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (TMT) MSstatsTMT_annotation[.suffix].csv.
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
-LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from column or sequential per condition.
-  LFQ experiment_annotation: sample = `{Experiment}_{Bioreplicate}` (quant match); sample_name = runsheet 'Sample Name'
+LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from explicit column, else Source Name, else per-condition counter.
+  Has Tech Reps + Source Name: see bin/filter_tech_reps.py.
   TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
   MSstatsTMT annotation only: sample-sheet condition Pool is written as Norm (bridge channel); experiment_annotation keeps Pool for FragPipe/FPAR.
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
@@ -21,6 +21,10 @@ import csv
 import re
 import sys
 from collections import Counter
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tech_rep_utils import fragpipe_biorep_label, numeric_biorep_for_subject
 
 DATA_TYPE_CHOICES = ("DDA", "DIA")
 
@@ -86,13 +90,65 @@ def _require_tmt_cell(row: dict, column: str) -> str:
     return val
 
 
-def _require_sample_bioreplicate(row: dict) -> str:
-    """Require a non-empty sample sheet Bioreplicate value."""
+def _resolve_sample_bioreplicate(row: dict, fieldnames: list) -> str:
+    """BioReplicate from explicit column, Source Name, or Sample Name."""
+    explicit = (row.get("Bioreplicate") or "").strip()
+    if explicit:
+        return explicit
+    source = (row.get("Source Name") or "").strip()
+    if source:
+        return fragpipe_biorep_label(source)
     sample_name = (row.get("Sample Name") or "").strip()
-    val = (row.get("Bioreplicate") or "").strip()
-    if not val:
-        sys.exit(f"Error: sample_sheet row missing Bioreplicate for Sample Name {sample_name or row}")
-    return val
+    if sample_name:
+        return fragpipe_biorep_label(sample_name)
+    sys.exit(f"Error: sample_sheet row needs Source Name or Sample Name: {row}")
+
+
+def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
+    """Map sample id (run or Sample Name) → numeric manifest Bioreplicate."""
+    has_bio_col = "Bioreplicate" in (fieldnames or [])
+    has_tr_col = "Has Tech Reps" in (fieldnames or [])
+    sample_to_biorep = {}
+    cond_to_biorep = {}
+    subject_to_id = {}
+    next_bio_id = [1]
+
+    for row in rows:
+        sample_id = _get_sample_id(row)
+        if not sample_id:
+            continue
+        if has_bio_col and (row.get("Bioreplicate") or "").strip():
+            sample_to_biorep[sample_id] = str(row.get("Bioreplicate").strip())
+            continue
+
+        source = (row.get("Source Name") or "").strip()
+        if source:
+            sample_to_biorep[sample_id] = numeric_biorep_for_subject(source, subject_to_id, next_bio_id)
+            continue
+
+        if has_tr_col:
+            sample_name = (row.get("Sample Name") or "").strip() or sample_id
+            sample_to_biorep[sample_id] = numeric_biorep_for_subject(sample_name, subject_to_id, next_bio_id)
+            continue
+
+        condition = _condition_from_factors(row, factor_columns)
+        if condition:
+            if condition not in cond_to_biorep:
+                cond_to_biorep[condition] = 0
+            cond_to_biorep[condition] += 1
+            offset = sum(cond_to_biorep.get(c, 0) for c in cond_to_biorep if c != condition)
+            sample_to_biorep[sample_id] = str(offset + cond_to_biorep[condition])
+        else:
+            sample_to_biorep[sample_id] = "1"
+
+    return sample_to_biorep
+
+
+def _get_sample_id(row):
+    r = (row.get("run") or "").strip()
+    if r:
+        return r
+    return (row.get("Sample Name") or "").strip()
 
 
 def _write_msstats_tmt_annotation(
@@ -111,7 +167,7 @@ def _write_msstats_tmt_annotation(
         if not plex or not channel:
             continue
         sample_name = (row.get("Sample Name") or "").strip()
-        biorep = _require_sample_bioreplicate(row)
+        biorep = _resolve_sample_bioreplicate(row, sample_fieldnames)
         cond = _condition_from_factors(row, factor_cols)
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
@@ -158,7 +214,7 @@ def _write_msstats_tmt_annotation(
             )
 
     with open(output_path, "w", newline="\n") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         writer.writerows(out_rows)
 
@@ -205,19 +261,9 @@ def main():
     factor_columns = [
         col for col in reader.fieldnames if col.startswith("Factor Value[")
     ]
+    fieldnames = reader.fieldnames or []
 
-    # Bioreplicate
-    has_bioreplicate_col = "Bioreplicate" in (reader.fieldnames or [])
-    cond_to_biorep = {}
-    sample_to_biorep = {}
     sample_to_experiment = {}
-
-    def _get_sample_id(row):
-        r = (row.get("run") or "").strip()
-        if r:
-            return r
-        return (row.get("Sample Name") or "").strip()
-
     for row in rows:
         sample_name = _get_sample_id(row)
         if not sample_name:
@@ -228,29 +274,24 @@ def main():
                 sample_to_experiment[sample_name] = _sanitize_for_fragpipe(cond_name)
             else:
                 sample_to_experiment[sample_name] = "1"
-        if mode == "LFQ" and has_bioreplicate_col and row.get("Bioreplicate", "").strip():
-            sample_to_biorep[sample_name] = str(row.get("Bioreplicate", "").strip())
-        elif mode == "LFQ":
-            condition = _condition_from_factors(row, factor_columns)
-            if condition:
-                if condition not in cond_to_biorep:
-                    cond_to_biorep[condition] = 0
-                cond_to_biorep[condition] += 1
-                offset = sum(cond_to_biorep.get(c, 0) for c in cond_to_biorep if c != condition)
-                sample_to_biorep[sample_name] = str(offset + cond_to_biorep[condition])
-            else:
-                sample_to_biorep[sample_name] = "1"
-        elif mode == "TMT":
-            if not row.get("data_file", "").strip():
+
+    if mode == "LFQ":
+        sample_to_biorep = _assign_lfq_bioreplicates(rows, factor_columns, fieldnames)
+    else:
+        sample_to_biorep = {}
+        for row in rows:
+            sample_name = _get_sample_id(row)
+            if not sample_name or not row.get("data_file", "").strip():
                 continue
             plex = row.get("plex", "").strip()
             if not plex:
-                sys.exit(f"Error: TMT mode requires 'plex' column in data sheet. Missing for Sample Name: {sample_name}")
+                sys.exit(
+                    f"Error: TMT mode requires 'plex' column in data sheet. Missing for: {sample_name}"
+                )
             sample_to_biorep[sample_name] = _require_tmt_cell(row, "TechRepMixture")
 
     with open(manifest_path, "w", newline="\n") as f:
-        writer = csv.writer(f, delimiter="\t")
-
+        writer = csv.writer(f, delimiter="\t", lineterminator="\n")
         for row in rows:
             input_file_path = row.get("data_file", "").strip()
             if not input_file_path:
@@ -312,7 +353,7 @@ def main():
                 "replicate": bioreplicate,
             })
         with open(exp_anno_path, "w", newline="\n") as f:
-            writer = csv.DictWriter(f, fieldnames=exp_fieldnames, delimiter="\t")
+            writer = csv.DictWriter(f, fieldnames=exp_fieldnames, delimiter="\t", lineterminator="\n")
             writer.writeheader()
             writer.writerows(exp_rows)
         print(f"Experiment annotation written to {exp_anno_path}")
@@ -362,7 +403,7 @@ def main():
                 if not sample_name:
                     continue
                 channel = row.get("channel", "").strip()
-                replicate = _require_sample_bioreplicate(row)
+                replicate = _resolve_sample_bioreplicate(row, sample_fieldnames)
                 cond_name = _condition_name_from_factors(row, factor_cols)
                 cond_safe = _condition_from_factors(row, factor_cols) if cond_name else _sanitize_for_fragpipe(sample_name)
                 sample_base = _sanitize_for_fragpipe(sample_name) or sample_name
@@ -380,7 +421,7 @@ def main():
                     "replicate": replicate,
                 })
         with open(exp_anno_path, "w", newline="\n") as f:
-            writer = csv.DictWriter(f, fieldnames=exp_fieldnames, delimiter="\t")
+            writer = csv.DictWriter(f, fieldnames=exp_fieldnames, delimiter="\t", lineterminator="\n")
             writer.writeheader()
             writer.writerows(exp_rows)
         print(f"Experiment annotation written to {exp_anno_path}")

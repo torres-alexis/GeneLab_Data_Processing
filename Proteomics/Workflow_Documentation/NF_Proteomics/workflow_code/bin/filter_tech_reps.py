@@ -1,11 +1,21 @@
 #!/usr/bin/env python
-"""First row per dup key (order preserved). LFQ: Factor Value[*]+Bioreplicate; else Sample Name+run. TMT: plex+TechRepMixture+fraction."""
+"""Keep first row per technical-replicate group (order preserved).
+
+Has Tech Reps column optional:
+  Missing column, blank, or FALSE: row is kept (unique per Sample Name + run [LFQ] or run [TMT]).
+  TRUE: collapse with other TRUE rows sharing:
+    LFQ: Source Name + Factor Value[*]
+    TMT: plex + TechRepMixture + fraction
+"""
 
 import argparse
 import csv
 import shutil
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tech_rep_utils import parse_has_tech_reps
 
 
 def _factor_tuple(row, fieldnames):
@@ -16,20 +26,48 @@ def _factor_tuple(row, fieldnames):
     ))
 
 
+def _has_column(fieldnames, name: str) -> bool:
+    return name in (fieldnames or [])
+
+
+def _row_collapse_tech_reps(row, fieldnames) -> bool:
+    """TRUE only when column present and cell is TRUE; otherwise keep row."""
+    if not _has_column(fieldnames, "Has Tech Reps"):
+        return False
+    return parse_has_tech_reps(row.get("Has Tech Reps")) is True
+
+
+def _unique_key_lfq(row):
+    run = (row.get("run") or "").strip()
+    return ("unique", row.get("Sample Name", ""), run)
+
+
+def _unique_key_tmt(row):
+    run = (row.get("run") or "").strip()
+    return ("unique", run or row.get("Sample Name", ""))
+
+
 def _dedup_key_lfq(row, fieldnames):
-    ft = _factor_tuple(row, fieldnames)
-    bio = str(row.get("Bioreplicate", "")).strip()
-    if ft and bio:
-        return ("factor_bio", ft, bio)
-    return ("unique", row.get("Sample Name", ""), row.get("run", ""))
+    if not _row_collapse_tech_reps(row, fieldnames):
+        return _unique_key_lfq(row)
+
+    source = (row.get("Source Name") or "").strip()
+    if not source:
+        sys.exit(
+            f"Error: Has Tech Reps=TRUE requires Source Name (Sample Name={row.get('Sample Name', '')})"
+        )
+    return ("source_tech", source, _factor_tuple(row, fieldnames))
 
 
-def _dedup_key_tmt(row):
+def _dedup_key_tmt(row, fieldnames):
+    if not _row_collapse_tech_reps(row, fieldnames):
+        return _unique_key_tmt(row)
+
     plex = (row.get("plex") or "").strip()
     tr = str(row.get("TechRepMixture", "") or "").strip() or "1"
     fr = row.get("fraction")
     frac = ("" if fr is None else str(fr)).strip()
-    return ("tmt", plex, tr, frac)
+    return ("tmt_tech", plex, tr, frac)
 
 
 def main():
@@ -49,7 +87,11 @@ def main():
         cols = rd.fieldnames or []
         rows = list(rd)
 
-    key_fn = _dedup_key_tmt if args.mode == "tmt" else lambda r: _dedup_key_lfq(r, cols)
+    key_fn = (
+        (lambda r: _dedup_key_tmt(r, cols))
+        if args.mode == "tmt"
+        else (lambda r: _dedup_key_lfq(r, cols))
+    )
     seen = set()
     out = []
     for row in rows:
@@ -60,7 +102,7 @@ def main():
         out.append(row)
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore", lineterminator="\n")
         w.writeheader()
         w.writerows(out)
 

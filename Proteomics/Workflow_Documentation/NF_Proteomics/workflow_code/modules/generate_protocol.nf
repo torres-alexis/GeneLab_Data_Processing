@@ -26,6 +26,7 @@ process GENERATE_PROCESSED_PROTOCOL {
             --fp_analyst_zip "${params.fp_analyst_zip ?: ''}" \\
             --fp_analyst_lfq_type "${params.fp_analyst_lfq_type ?: ''}" \\
             --fp_analyst_tmt_quant_type "${params.fp_analyst_tmt_quant_type ?: ''}" \\
+            --tmt_extraction_tool "${params.tmt_extraction_tool ?: 'Philosopher'}" \\
             --normalization_method "${params.fp_analyst_normalization_method ?: ''}" \\
             --imputation_type "${params.fp_analyst_imputation_type ?: ''}" \\
             --de_alpha "${params.fp_analyst_de_alpha != null ? params.fp_analyst_de_alpha : ''}" \\

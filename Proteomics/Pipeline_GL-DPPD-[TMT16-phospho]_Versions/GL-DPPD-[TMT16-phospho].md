@@ -42,7 +42,6 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4h. Database Annotation](#4h-database-annotation)
     - [4i. Filter Results by FDR](#4i-filter-results-by-fdr)
     - [4j. Generate Reports](#4j-generate-reports)
-    - [4k. IonQuant TMT Reporter Ion Extraction](#4k-ionquant-tmt-reporter-ion-extraction)
     - [4l. TMT-Integrator TMT Quantification](#4l-tmt-integrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
   - [**6. MSstatsTMT Differential Abundance Analysis**](#6-msstatstmt-differential-abundance-analysis)
@@ -83,16 +82,16 @@ Alexis Torres (GeneLab Data Processing Team)
 create-qc-report.py \
   --input *.mzML \
   --output-dir . \
-  --cores 1
+  --cores 8
 
-zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
+zip -r rawbeans_report_GLProteomics.zip qc-report.html resources/
 ```
 
 **Parameter Definitions:**
 
 - `--input` – all input mzML files provided as individual paths separated by spaces
 - `--output-dir` – the output directory to store results
-- `--cores` – number of CPU cores to use for processing
+- `--cores` – maximum number of mzML files processed in parallel
 
 **Input Data:**
 
@@ -102,7 +101,7 @@ zip -r All_GLProteomics_qc-report.zip qc-report.html resources/
 
 - qc-report.html (RawBeans QC report HTML file for all samples)
 - resources/ (directory containing supporting files for the QC report HTML)
-- **All_GLProteomics_qc-report.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
+- **rawbeans_report_GLProteomics.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
 
 <br>
 
@@ -222,17 +221,17 @@ runsheet_to_metadata.py \
 - **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename from data sheet `run` (`*.mzML`))
   - Experiment (plex identifier from data sheet `plex`)
-  - Bioreplicate (mixture/experiment technical replicate identifier from data sheet `TechRepMixture`)
+  - Bioreplicate (from data sheet `TechRepMixture`)
   - Data type (`DDA` from data sheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
-  - plex (`{Experiment}_{Bioreplicate}` (from manifest `Experiment` and `Bioreplicate`))
+  - plex (`{Experiment}_{Bioreplicate}`)
   - channel (TMT reporter channel from sample sheet `channel`)
   - sample (R-safe sample identifier from sample sheet `Sample Name`)
   - sample_name (same as `sample`)
   - condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values)
   - condition_name (human-readable condition)
-  - replicate (biological replicate identifier from sample sheet `Bioreplicate`))
+  - replicate (from sample sheet `Bioreplicate` if set; else by `Source Name` if present; else from `Sample Name`))
 
 - **MSstatsTMT_annotation_GLProteomics.csv** (MSstatsTMT input table; columns in order:
   - Run (run identifier from data sheet `run`)
@@ -240,7 +239,7 @@ runsheet_to_metadata.py \
   - TechRepMixture (mixture/experiment technical replicate identifier from data sheet `TechRepMixture`)
   - Mixture (plex identifier from data sheet `plex`)
   - Channel (TMT reporter channel from sample sheet `channel`)
-  - BioReplicate (biological replicate identifier from sample sheet `Bioreplicate`)
+  - BioReplicate (from sample sheet `Bioreplicate` if set; else by `Source Name` if present; else from `Sample Name`)
   - Condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values))
 
 <br>
@@ -328,6 +327,12 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 - `--threads` – number of CPU threads allocated to FragPipe
 - `--config-tools-folder` – path to folder containing FragPipe tools not included in the Docker image (MSFragger JAR, IonQuant JAR, diaTracer JAR, ext/bruker/, ext/thermo/)
 
+> Note: NF_Proteomics updates the workflow configuration file to use Philosopher for TMT reporter-ion extraction to generate MSstatsTMT-compatible output. This is accomplished by setting the following configuration parameters:
+
+  - `tmtintegrator.extraction_tool=Philosopher`
+  - `tmtintegrator.philosopher-msstats=true`
+  - `ionquant.run-ionquant=false`
+
 **Input Data:**
 
 - TMT16-phospho.workflow (FragPipe workflow configuration file for TMT16-phospho workflow)
@@ -341,8 +346,6 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 - fragger.params (MSFragger parameter configuration file)
 - tmt-integrator-conf.yml (TMT-Integrator configuration file)
 - filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
-- filelist_ionquant.txt (file list for IonQuant)
-- modmasses_ionquant.txt (modification masses file for IonQuant)
 - experiment_annotation.tsv (experiment annotation file mapping TMT channels to samples)
 - fragpipe.workflow (FragPipe output workflow configuration file)
 - fragpipe-files.fp-manifest (FragPipe output manifest)
@@ -659,146 +662,10 @@ PTMProphetParser-7.3.0 \
 **Output Data:**
 
 - protein.fas (FASTA file containing FDR-filtered protein sequences identified)
-- protein.tsv (plex-specific protein report)
-- peptide.tsv (plex-specific peptide report)
-- psm.tsv (plex-specific PSM report)
-- ion.tsv (plex-specific ion report)
-
-<br>
-
-### 4k. IonQuant TMT Reporter Ion Extraction
-
-```bash
-# MS1
-java -Djava.awt.headless=true -Xmx64G \
-  -Dlibs.bruker.dir=tools/ext/bruker \
-  -Dlibs.thermo.dir=tools/ext/thermo \
-  -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar:tools/IonQuant-1.11.20.jar \
-  ionquant.IonQuant \
-  --threads 16 \
-  --perform-ms1quant 1 \
-  --perform-isoquant 0 \
-  --isotol 20.0 \
-  --isolevel 2 \
-  --isotype tmt10 \
-  --ionmobility 0 \
-  --site-reports 0 \
-  --msstats 0 \
-  --minexps 1 \
-  --mbr 0 \
-  --maxlfq 0 \
-  --requantify 0 \
-  --mztol 10 \
-  --imtol 0.05 \
-  --rttol 1 \
-  --normalization 0 \
-  --minisotopes 1 \
-  --minscans 1 \
-  --writeindex 0 \
-  --tp 0 \
-  --minfreq 0 \
-  --minions 1 \
-  --locprob 0 \
-  --uniqueness 0 \
-  --multidir . \
-  --filelist filelist_ionquant.txt \
-  --modlist modmasses_ionquant.txt
-
-# TMT-16 reporters
-java -Djava.awt.headless=true -Xmx64G \
-  -Dlibs.bruker.dir=tools/ext/bruker \
-  -Dlibs.thermo.dir=tools/ext/thermo \
-  -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/jfreechart-1.5.3.jar:tools/IonQuant-1.11.20.jar \
-  ionquant.IonQuant \
-  --threads 16 \
-  --perform-ms1quant 0 \
-  --perform-isoquant 1 \
-  --isotol 20.0 \
-  --isolevel 2 \
-  --isotype TMT-16 \
-  --ionmobility 0 \
-  --site-reports 0 \
-  --msstats 0 \
-  --annotation plexA_1/psm.tsv=plexA_1/annotation.txt \
-  --annotation plexB_1/psm.tsv=plexB_1/annotation.txt \
-  --minexps 1 \
-  --mbr 0 \
-  --maxlfq 0 \
-  --requantify 0 \
-  --mztol 10 \
-  --imtol 0.05 \
-  --rttol 1 \
-  --normalization 0 \
-  --minisotopes 1 \
-  --minscans 1 \
-  --writeindex 0 \
-  --tp 0 \
-  --minfreq 0 \
-  --minions 1 \
-  --locprob 0 \
-  --uniqueness 0 \
-  --multidir . \
-  --filelist filelist_ionquant.txt \
-  --modlist modmasses_ionquant.txt
-```
-
-**Parameter Definitions:**
-
-- `-Djava.awt.headless=true` – run in headless mode (no GUI)
-- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
-- `-Dlibs.bruker.dir` – directory for Bruker libraries
-- `-Dlibs.thermo.dir` – directory for Thermo libraries
-- `-cp` – Java classpath to jfreechart and IonQuant JAR files
-- `ionquant.IonQuant` – IonQuant main class
-- `--threads` – number of CPU threads to use
-- `--perform-ms1quant 1` – perform MS1 quantification (first IonQuant step; 0 = no, 1 = yes)
-- `--perform-isoquant 1` – perform isobaric labeling quantification (second IonQuant step; 0 = no, 1 = yes)
-- `--isotol 20.0` – MS2 tolerance in ppm for isobaric quantification
-- `--isolevel 2` – isobaric quantification level (2 = MS2, 3 = MS3, 4 = ZOOM-HR)
-- `--isotype tmt10` / `--isotype TMT-16` – isobaric quantification type (MS1 step: `tmt10`; reporter step: `TMT-16`)
-- `--ionmobility 0` – data has ion mobility information (0 = no, 1 = yes)
-- `--site-reports 0` – generate site reports (0 = no, 1 = yes)
-- `--msstats 0` – generate MSstats input files (0 = no, 1 = yes)
-- `--annotation` – annotation file for isobaric quantification (format: `{plex}_{TechRepMixture}/psm.tsv={plex}_{TechRepMixture}/annotation.txt`; can specify multiple)
-- `--minexps 1` – minimum experiments in picking an ion for quantifying proteins (only for intensity, not MaxLFQ)
-- `--mbr 0` – perform match-between-runs (0 = no, 1 = yes)
-- `--maxlfq 0` – calculate MaxLFQ intensity (0 = no, 1 = yes)
-- `--requantify 0` – re-quantify unidentified features based on identified features (0 = no, 1 = yes)
-- `--mztol 10` – MS1 tolerance in ppm
-- `--imtol 0.05` – 1/K0 tolerance
-- `--rttol 1` – retention time tolerance in minutes
-- `--normalization 0` – normalize intensities across all runs (0 = no, 1 = yes)
-- `--minisotopes 1` – minimum isotopes required in feature extraction
-- `--minscans 1` – minimum MS1 scans required in feature extraction
-- `--writeindex 0` – write indexed file on disk for further usage (0 = no, 1 = yes)
-- `--tp 0` – number of ions used in quantifying each protein (0 = use all ions; only for intensity, not MaxLFQ)
-- `--minfreq 0` – minimum required frequency of an ion being selected for protein quantification (only for intensity, not MaxLFQ)
-- `--minions 1` – minimum ions required for quantifying proteins (only for MaxLFQ intensity)
-- `--locprob 0` – localization probability threshold
-- `--uniqueness 0` – peptide-protein uniqueness (0 = unique+razor, 1 = unique only, 2 = all)
-- `--multidir .` – output directory for multi-experimental results
-- `--filelist` – file list for IonQuant listing, for each plex, a `--psm` entry pointing to the `psm.tsv` file and a `--specdir` entry pointing to the directory containing mzML files
-- `--modlist` – file listing modification masses (used to remove mass discrepancy due to rounding errors)
-
-**Input Data:**
-
-- filelist_ionquant.txt (file list for IonQuant from [Step 4a](#4a-launch-fragpipe); listing for each plex, a `--psm` entry pointing to the `psm.tsv` file and a `--specdir` entry pointing to the directory containing mzML files)
-- modmasses_ionquant.txt (modification masses file for IonQuant, output from [Step 4a](#4a-launch-fragpipe))
-- \*_annotation.txt (plex-specific annotation files mapping TMT channels to sample names, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
-- \*.mzML (input mass spectrometry raw data in mzML format; per plex, specified with `--specdir` in filelist_ionquant.txt)
-
-**Output Data:**
-
-- protein.tsv (plex-specific protein report with TMT reporter ion intensities and additional data added from IonQuant)
-- peptide.tsv (plex-specific peptide report with TMT reporter ion intensities and additional data added from IonQuant)
-- ion.tsv (plex-specific ion report with TMT reporter ion intensities and additional data added from IonQuant)
-- psm.tsv (plex-specific PSM report with TMT reporter ion intensities and additional data added from IonQuant)
-- combined_protein.tsv (combined protein report with TMT reporter ion intensities across all plexes)
-- combined_peptide.tsv (combined peptide report with TMT reporter ion intensities and additional data across all plexes)
-- combined_ion.tsv (combined ion report with TMT reporter ion intensities and additional data across all plexes)
-- combined_modified_peptide.tsv (combined modified peptide report with TMT reporter ion intensities and additional data across all plexes)
-- reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
-- reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
+- protein.tsv (plex-specific FDR-filtered protein results; one row per protein group)
+- peptide.tsv (plex-specific FDR-filtered search results; one row per identified peptide sequence; ions collapsed)
+- psm.tsv (plex-specific FDR-filtered search results; one row per peptide-spectrum match (PSM))
+- ion.tsv (plex-specific FDR-filtered search results; one row per peptide sequence, charge, and modification state; PSMs collapsed)
 
 <br>
 
@@ -816,12 +683,14 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 - `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
 - `-jar` – executes JAR file
 - `tmt-integrator-conf.yml` – TMT-Integrator configuration file
-- `*/psm.tsv` – PSM files with TMT reporter ion intensities
+- `*/psm.tsv` – PSM reports
 
 **Input Data:**
 
 - tmt-integrator-conf.yml (TMT-Integrator configuration file, output from [Step 4a](#4a-launch-fragpipe))
-- psm.tsv (PSM reports with TMT reporter ion intensities, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
+- psm.tsv (PSM reports from [Step 4j](#4j-generate-reports))
+- \*_annotation.txt (plex-specific channel-sample annotation, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
+- \*.mzML (input mass spectrometry raw data in mzML format; per plex)
 
 **Output Data:**
 
@@ -847,9 +716,8 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 multiqc --fragpipe-plugin \
   -o /path/to/pmultiqc/output/directory \
   -n multiqc_GLProteomics \
+  -z \
   /path/to/FragPipe/output/directory
-
-clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/directory
 ```
 
 **Parameter Definitions:**
@@ -857,25 +725,23 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 - `--fragpipe-plugin` – enable FragPipe plugin for MultiQC to process FragPipe output files
 - `-o` – the output directory to store results
 - `-n` – prefix name for output files
+- `-z` – compress the MultiQC data directory
 - `/path/to/FragPipe/output/directory` – the directory containing FragPipe output files, provided as a positional argument
-- `clean_multiqc_paths.py` – Python script to clean absolute paths (if present) from MultiQC data files and create a zip archive
-- `multiqc_GLProteomics_data` – name of the MultiQC data directory to process
-- `/path/to/pmultiqc/output/directory` – output directory where the zip file will be created
 
 **Input Data:**
 
-- psm.tsv (plex-specific PSM reports, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
-- ion.tsv (plex-specific ion reports, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
-- combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
-- combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
-- combined_ion.tsv (combined ion report, output from [Step 4k](#4k-ionquant-tmt-reporter-ion-extraction))
+- psm.tsv (plex-specific PSM reports, output from [Step 4j](#4j-generate-reports))
+- ion.tsv (plex-specific ion reports, output from [Step 4j](#4j-generate-reports))
+- peptide.tsv (plex-specific peptide reports, output from [Step 4j](#4j-generate-reports))
+- protein.tsv (plex-specific protein reports, output from [Step 4j](#4j-generate-reports))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
 - fragpipe.workflow (FragPipe workflow configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - fragger.params (MSFragger parameters file, output from [Step 4a](#4a-launch-fragpipe))
 
 **Output Data:**
 
 - **multiqc_GLProteomics.html** (MultiQC output html summary)
-- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data with cleaned paths)
+- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data)
 
 <br>
 
@@ -884,12 +750,12 @@ clean_multiqc_paths.py multiqc_GLProteomics_data /path/to/pmultiqc/output/direct
 ## 6. MSstatsTMT Differential Abundance Analysis
 
 ```bash
-msstats_tmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLProteomics
+msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLProteomics
 ```
 
 **Parameter Definitions:**
 
-- `msstats_tmt_analysis.R` – R script for MSstatsTMT differential abundance analysis
+- `msstatstmt_analysis.R` – R script for MSstatsTMT differential abundance analysis
 - `.` – root directory for output
 - `MSstatsTMT_annotation_GLProteomics.csv` – MSstatsTMT annotation (Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition; output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
 - `msstats.csv` – Philosopher MSstats input file from FragPipe
@@ -902,8 +768,8 @@ msstats_tmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLP
 
 **Output Data:**
 
-- **msstats_comparison_GLProteomics.csv** (all MSstatsTMT pairwise comparisons)
-- **msstats_contrasts_GLProteomics.csv** (contrast definitions)
+- **msstatstmt_comparison_GLProteomics.csv** (all MSstatsTMT pairwise comparisons)
+- **msstatstmt_contrasts_GLProteomics.csv** (contrast definitions)
 
 <br>
 
@@ -1088,8 +954,8 @@ Rscript FragPipeAnalystR_main.R \
 - **pathway_analysis_plots_{level}_GLProteomics.zip** (pathway analysis plots folder)
   - or/ (over-representation analysis plots: or_database_direction.pdf, .png per database and direction)
   - gsea/ (GSEA plots: gsea_database_contrast.pdf, .png per database and contrast)
-- **or_{database}_{direction}.csv** (over-representation analysis results table for each enrichment database and direction)
-- **gsea_{database}_{contrast}.csv** (GSEA results table for each GSEA database and contrast)
+- **or_{database}_{direction}_{level}_GLProteomics.csv** (over-representation analysis results table for each enrichment database and direction)
+- **gsea_{database}_{contrast}_{level}_GLProteomics.csv** (GSEA results table for each GSEA database and contrast)
 - **DE_plots_{level}_GLProteomics.zip** (DE plots folder)
   - DE_heatmap.pdf, .png (DE heatmap)
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)

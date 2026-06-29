@@ -14,12 +14,17 @@
             },
             "Bioreplicate": {
                 "type": ["string", "integer"],
-                "description": "Biological replicate.",
+                "description": "Numeric biological replicate ID. FragPipe groups files with the same Experiment and Bioreplicate. From runsheet value if set; else by Source Name if present; else sequential within each condition.",
                 "meta": ["bioreplicate"]
+            },
+            "Has Tech Reps": {
+                "type": ["boolean", "string"],
+                "description": "Indicates whether this sample is a technical replicate that should be collapsed with other samples sharing the same Source Name and Factor Value columns. Set to True for technical replicates that should be collapsed, False for distinct samples that should remain separate even if they share a Source Name. When not provided, treated as False.",
+                "meta": ["has_tech_reps"]
             },
             "Source Name": {
                 "type": "string",
-                "description": "Biological replicate label.",
+                "description": "Biological subject identifier. Used for Bioreplicate assignment when Bioreplicate is omitted. Required when Has Tech Reps=TRUE.",
                 "meta": ["source_name"]
             },
             "data_file": {
