@@ -73,10 +73,18 @@ annotation_conditions <- function(annot) {
 }
 
 summarized_conditions <- function(quant_obj) {
-  if (is.null(quant_obj$ProteinLevelData) || !"Group" %in% names(quant_obj$ProteinLevelData)) {
-    stop("MSstatsTMT proteinSummarization output missing ProteinLevelData$Group")
+  pld <- quant_obj$ProteinLevelData
+  if (is.null(pld)) {
+    stop("MSstatsTMT proteinSummarization output missing ProteinLevelData")
   }
-  conds <- sort(unique(quant_obj$ProteinLevelData$Group))
+  col <- if ("Condition" %in% names(pld)) {
+    "Condition"
+  } else if ("Group" %in% names(pld)) {
+    "Group"
+  } else {
+    stop("MSstatsTMT ProteinLevelData missing Condition/Group column")
+  }
+  conds <- sort(unique(pld[[col]]))
   conds[!is.na(conds) & conds != "" & !conds %in% c("Empty", "Norm")]
 }
 

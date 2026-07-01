@@ -24,7 +24,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tech_rep_utils import fragpipe_biorep_label, numeric_biorep_for_subject
+from tech_rep_utils import numeric_biorep_for_subject
 
 DATA_TYPE_CHOICES = ("DDA", "DIA")
 
@@ -90,18 +90,40 @@ def _require_tmt_cell(row: dict, column: str) -> str:
     return val
 
 
-def _resolve_sample_bioreplicate(row: dict, fieldnames: list) -> str:
-    """BioReplicate from explicit column, Source Name, or Sample Name."""
-    explicit = (row.get("Bioreplicate") or "").strip()
-    if explicit:
-        return explicit
-    source = (row.get("Source Name") or "").strip()
-    if source:
-        return fragpipe_biorep_label(source)
-    sample_name = (row.get("Sample Name") or "").strip()
-    if sample_name:
-        return fragpipe_biorep_label(sample_name)
-    sys.exit(f"Error: sample_sheet row needs Source Name or Sample Name: {row}")
+def _assign_tmt_sample_bioreplicates(
+    sample_rows: list, factor_columns: list, fieldnames: list
+) -> dict:
+    """Map Sample Name -> numeric BioReplicate (MSstatsTMT/FPAR replicate).
+
+    Explicit Bioreplicate column wins. Else assign 1, 2, 3... within each
+    condition for each unique Source Name (or Sample Name fallback). Same
+    Source Name + condition -> same ID across plexes (e.g. TMT1/TMT2).
+    """
+    has_bio_col = "Bioreplicate" in (fieldnames or [])
+    sample_to_biorep = {}
+    per_cond_next = {}
+    subject_key_to_bio = {}
+
+    for row in sample_rows:
+        sample_name = (row.get("Sample Name") or "").strip()
+        if not sample_name:
+            continue
+        if has_bio_col and (row.get("Bioreplicate") or "").strip():
+            sample_to_biorep[sample_name] = str(row.get("Bioreplicate").strip())
+            continue
+
+        condition = _condition_from_factors(row, factor_columns) or "__default__"
+        source = (row.get("Source Name") or "").strip()
+        subject_key = source or sample_name
+        pair = (condition, subject_key)
+        if pair not in subject_key_to_bio:
+            per_cond_next[condition] = per_cond_next.get(condition, 0) + 1
+            subject_key_to_bio[pair] = str(per_cond_next[condition])
+        sample_to_biorep[sample_name] = subject_key_to_bio[pair]
+
+    if not sample_to_biorep:
+        sys.exit("Error: sample_sheet has no Sample Name rows for BioReplicate assignment")
+    return sample_to_biorep
 
 
 def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
@@ -155,6 +177,7 @@ def _write_msstats_tmt_annotation(
     data_rows: list,
     sample_rows: list,
     sample_fieldnames: list,
+    sample_to_biorep: dict,
     output_path: str,
 ) -> None:
     """MSstatsTMT annotation: Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition."""
@@ -167,7 +190,9 @@ def _write_msstats_tmt_annotation(
         if not plex or not channel:
             continue
         sample_name = (row.get("Sample Name") or "").strip()
-        biorep = _resolve_sample_bioreplicate(row, sample_fieldnames)
+        biorep = sample_to_biorep.get(sample_name)
+        if not biorep:
+            sys.exit(f"Error: no BioReplicate for sample {sample_name}")
         cond = _condition_from_factors(row, factor_cols)
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
@@ -369,6 +394,9 @@ def main():
         if not sample_rows:
             sys.exit("Error: Sample sheet is empty")
         factor_cols = [c for c in sample_fieldnames if c.startswith("Factor Value[")]
+        tmt_sample_to_biorep = _assign_tmt_sample_bioreplicates(
+            sample_rows, factor_cols, sample_fieldnames
+        )
 
         folders_seen = set()
         folder_to_plex_base = {}  # folder -> plex base for sample_sheet lookup
@@ -403,7 +431,7 @@ def main():
                 if not sample_name:
                     continue
                 channel = row.get("channel", "").strip()
-                replicate = _resolve_sample_bioreplicate(row, sample_fieldnames)
+                replicate = tmt_sample_to_biorep.get(sample_name, "1")
                 cond_name = _condition_name_from_factors(row, factor_cols)
                 cond_safe = _condition_from_factors(row, factor_cols) if cond_name else _sanitize_for_fragpipe(sample_name)
                 sample_base = _sanitize_for_fragpipe(sample_name) or sample_name
@@ -427,7 +455,9 @@ def main():
         print(f"Experiment annotation written to {exp_anno_path}")
 
         data_rows = [r for r in rows if (r.get("data_file") or "").strip()]
-        _write_msstats_tmt_annotation(data_rows, sample_rows, sample_fieldnames, msstats_tmt_anno_path)
+        _write_msstats_tmt_annotation(
+            data_rows, sample_rows, sample_fieldnames, tmt_sample_to_biorep, msstats_tmt_anno_path
+        )
 
 
 if __name__ == "__main__":

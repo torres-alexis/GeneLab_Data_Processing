@@ -20,7 +20,7 @@ def parse_has_tech_reps(val) -> bool | None:
 
 
 def fragpipe_biorep_label(label: str) -> str:
-    """Sanitize Source Name or Sample Name for TMT BioReplicate (MSstatsTMT/FPAR). LFQ manifest uses numeric_biorep_for_subject instead."""
+    """Sanitize a label for FragPipe / FragPipeAnalystR analysis script sample strings. TMT BioReplicate uses numeric IDs via runsheet_to_metadata."""
     if not label or not str(label).strip():
         return "1"
     return re.sub(r"[^A-Za-z0-9_]", "_", str(label).strip()) or "1"
