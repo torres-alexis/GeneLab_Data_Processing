@@ -332,17 +332,17 @@ nextflow run NF_PPP_1.0.0/main.nf \
 **Processing Metadata**
 
 - **LFQ-MBR**
-   - Metadata/sheets/\*\_proteomics\_v1_runsheet.csv (table containing metadata required for processing, including the raw data files location)
+   - **Metadata/sheets/\*\_proteomics\_v1_runsheet.csv** (table containing metadata required for processing, including the raw data files location)
    - Metadata/\*-ISA.zip (the ISA archive of the OSD datasets to be processed, downloaded from the OSDR)
 
 - **TMT** (TMT10, TMT16, TMT16-phospho)
-   - Metadata/sheets/\*\_proteomics\_v1_data_sheet.csv (table containing metadata required for processing, including the raw data files location)
-   - Metadata/sheets/\*\_proteomics\_v1_sample_sheet.csv (table containing metadata required for processing, including the TMT channel and plex metadata)
+   - **Metadata/sheets/\*\_proteomics\_v1_data_sheet.csv** (table containing metadata required for processing, including the raw data files location)
+   - **Metadata/sheets/\*\_proteomics\_v1_sample_sheet.csv** (table containing metadata required for processing, including the TMT channel and plex metadata)
 
 **Version Capturing and Processed-Data Protocol Generation**
 
    - Output:
-     - GeneLab/software_versions_GLProteomics.md (markdown table of software versions used in the workflow)
+     - **GeneLab/software_versions_GLProteomics.md** (markdown table of software versions used in the workflow)
      - GeneLab/processed_data_protocol_GLProteomics.txt (processed-data protocol text)
 
 <br>
@@ -379,7 +379,7 @@ The outputs of the post-processing workflow are described below:
 
  **Processing Information Archive**
 
-   - GeneLab/processing_info_GLProteomics.zip (Archive containing workflow execution metadata and FragPipeAnalystR R data objects)
+   - **GeneLab/processing_info_GLProteomics.zip** (Archive containing workflow execution metadata and FragPipeAnalystR R data objects)
      - processing_info/samples.txt (single column list of all sample or run names in the dataset)
      - processing_info/nextflow_log_GLProteomics.txt (Nextflow execution logs captured via `nextflow log`)
      - processing_info/nextflow_run_command_GLProteomics.txt (Exact command line used to initiate the workflow)
@@ -389,7 +389,7 @@ The outputs of the post-processing workflow are described below:
 
  - GeneLab/updated_curation_tables/a*.txt (OSDR assay table with updated processed proteomics data columns)
  - GeneLab/<GLDS_accession>-validation_GLProteomics.log (Workflow output verification and validation log)
- - GeneLab/processed_md5sum_GLProteomics.tsv (md5sums for the processed data published on OSDR)
+ - **GeneLab/processed_md5sum_GLProteomics.tsv** (md5sums for the processed data published on OSDR)
 
 
 <br>
