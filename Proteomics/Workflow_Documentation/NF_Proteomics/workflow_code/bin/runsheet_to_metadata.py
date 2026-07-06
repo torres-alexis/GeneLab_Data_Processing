@@ -180,7 +180,7 @@ def _write_msstats_tmt_annotation(
     sample_to_biorep: dict,
     output_path: str,
 ) -> None:
-    """MSstatsTMT annotation: Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition."""
+    """MSstatsTMT annotation: Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition, condition_name."""
     factor_cols = [c for c in sample_fieldnames if c.startswith("Factor Value[")]
 
     plex_to_channels = {}
@@ -196,8 +196,14 @@ def _write_msstats_tmt_annotation(
         cond = _condition_from_factors(row, factor_cols)
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
+        cond_name = _condition_name_from_factors(row, factor_cols) or cond.replace("_", " ")
         plex_to_channels.setdefault(plex, []).append(
-            {"channel": channel, "bioreplicate": biorep, "condition": _msstats_condition(cond)}
+            {
+                "channel": channel,
+                "bioreplicate": biorep,
+                "condition": _msstats_condition(cond),
+                "condition_name": cond_name,
+            }
         )
 
     if not plex_to_channels:
@@ -211,6 +217,7 @@ def _write_msstats_tmt_annotation(
         "Channel",
         "BioReplicate",
         "Condition",
+        "condition_name",
     ]
     out_rows = []
     for row in data_rows:
@@ -235,6 +242,7 @@ def _write_msstats_tmt_annotation(
                     "Channel": ch["channel"],
                     "BioReplicate": ch["bioreplicate"],
                     "Condition": ch["condition"],
+                    "condition_name": ch["condition_name"],
                 }
             )
 

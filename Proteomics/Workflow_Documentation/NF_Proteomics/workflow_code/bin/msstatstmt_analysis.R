@@ -9,18 +9,35 @@ if (length(args) < 3) {
   stop("Usage: msstatstmt_analysis.R <rootDir> <MSstatsTMT_annotation.csv> <msstats_dir_or_file> [assay_suffix]")
 }
 rootDir <- args[1]
-annotation_path <- args[2]
-msstats_path <- args[3]
+msstats_tmt_annotation_path <- args[2]
+msstats_csv_path <- args[3]
 assay_suffix <- if (length(args) > 3) args[4] else ""
 
 if (!grepl("/$", rootDir)) rootDir <- paste0(rootDir, "/")
 
-annotation <- read.csv(annotation_path, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
+annotation <- read.csv(msstats_tmt_annotation_path, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 required <- c("Run", "Fraction", "TechRepMixture", "Mixture", "Channel", "BioReplicate", "Condition")
 missing <- setdiff(required, colnames(annotation))
 if (length(missing) > 0) {
   stop("MSstatsTMT annotation missing columns: ", paste(missing, collapse = ", "))
 }
+
+anno <- annotation
+colnames(anno) <- tolower(colnames(anno))
+if (!"condition" %in% colnames(anno)) {
+  stop("MSstatsTMT annotation must have condition column")
+}
+safe_to_label <- if ("condition_name" %in% colnames(anno) && all(nzchar(trimws(anno$condition_name)))) {
+  u <- unique(anno[, c("condition", "condition_name")])
+  setNames(u$condition_name, u$condition)
+} else {
+  setNames(anno$condition, anno$condition)
+}
+
+print("Condition mapping from MSstatsTMT annotation:")
+print(anno[, intersect(c("condition", "condition_name"), colnames(anno)), drop = FALSE])
+
+annotation_msstats <- annotation[, required, drop = FALSE]
 
 collect_msstats_files <- function(path) {
   if (dir.exists(path)) {
@@ -41,22 +58,22 @@ read_msstats_table <- function(files) {
   do.call(rbind, tables)
 }
 
-msstats_files <- collect_msstats_files(msstats_path)
+msstats_files <- collect_msstats_files(msstats_csv_path)
 if (length(msstats_files) == 0) {
-  stop("No msstats.csv found at ", msstats_path)
+  stop("No msstats.csv found at ", msstats_csv_path)
 }
 
 msstats_data <- read_msstats_table(msstats_files)
 
 input_tmt <- PhilosophertoMSstatsTMTFormat(
   input = msstats_data,
-  annotation = annotation
+  annotation = annotation_msstats
 )
 
 setwd(rootDir)
 
-has_norm <- any(annotation$Condition == "Norm", na.rm = TRUE)
-use_reference_norm <- has_norm && length(unique(annotation$Run)) > 1
+has_norm <- any(annotation_msstats$Condition == "Norm", na.rm = TRUE)
+use_reference_norm <- has_norm && length(unique(annotation_msstats$Run)) > 1
 
 quant <- proteinSummarization(
   input_tmt,
@@ -114,7 +131,7 @@ write_dropped_conditions_notice <- function(annotated, retained, dropped, notice
   writeLines(lines, notice_path)
 }
 
-annotated_conditions <- annotation_conditions(annotation)
+annotated_conditions <- annotation_conditions(annotation_msstats)
 conditions <- summarized_conditions(quant)
 dropped_conditions <- setdiff(annotated_conditions, conditions)
 
@@ -127,11 +144,11 @@ if (length(dropped_conditions)) {
 
 if (length(conditions) > 1) {
   contrast.names <- combn(conditions, 2)
-  n_comp <- ncol(contrast.names)
-  comparison <- matrix(0, nrow = n_comp, ncol = length(conditions))
+  n_comparisons <- ncol(contrast.names)
+  comparison <- matrix(0, nrow = n_comparisons, ncol = length(conditions))
   colnames(comparison) <- conditions
   rownames(comparison) <- paste(contrast.names[2, ], contrast.names[1, ], sep = "_v_")
-  for (i in seq_len(n_comp)) {
+  for (i in 1:n_comparisons) {
     comparison[i, contrast.names[2, i]] <- 1
     comparison[i, contrast.names[1, i]] <- -1
   }
@@ -139,21 +156,27 @@ if (length(conditions) > 1) {
   comparisonResults <- groupComparisonTMT(contrast.matrix = comparison, data = quant)
   comparison_df <- comparisonResults$ComparisonResult
 
-  format_label <- function(num, den) paste0("(", num, ")v(", den, ")")
-  for (i in seq_len(n_comp)) {
+  format_label <- function(cond1, cond2) paste0("(", cond1, ")v(", cond2, ")")
+  for (i in 1:n_comparisons) {
     c1 <- contrast.names[1, i]
     c2 <- contrast.names[2, i]
-    lbl_new <- format_label(c2, c1)
+    r1 <- safe_to_label[c1]
+    r2 <- safe_to_label[c2]
+    if (is.na(r1)) r1 <- c1
+    if (is.na(r2)) r2 <- c2
+    lbl_new <- format_label(r2, r1)  # (numerator)v(denominator) = (c2)v(c1)
     comparison_df$Label[comparison_df$Label == rownames(comparison)[i]] <- lbl_new
   }
 
   write.csv(comparison_df, paste0("msstatstmt_comparison", assay_suffix, ".csv"), row.names = FALSE)
 
   contrasts_df <- data.frame(row.names = c("1", "2"))
-  for (i in seq_len(n_comp)) {
+  for (i in 1:n_comparisons) {
     c1 <- contrast.names[1, i]
     c2 <- contrast.names[2, i]
-    col_name <- format_label(c2, c1)
+    r1 <- if (is.na(safe_to_label[c1])) c1 else safe_to_label[c1]
+    r2 <- if (is.na(safe_to_label[c2])) c2 else safe_to_label[c2]
+    col_name <- format_label(r2, r1)
     contrasts_df[[col_name]] <- c(c2, c1)
   }
   write.csv(contrasts_df, paste0("msstatstmt_contrasts", assay_suffix, ".csv"), row.names = TRUE)
