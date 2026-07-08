@@ -24,8 +24,12 @@
             },
             "Source Name": {
                 "type": "string",
-                "description": "Biological subject identifier from ISA. Required when Has Tech Reps is TRUE. Used with Has Tech Reps to collapse technical replicate mzML rows before processing.",
+                "description": "Identifier linking samples. Required when Has Tech Reps is TRUE. Used with Has Tech Reps to collapse technical replicate mzML rows before processing.",
                 "meta": ["source_name"]
+            },
+            "Original Sample Name": {
+                "type": "string",
+                "description": "Used to map the sample name that will be used for processing to the original sample name. This is often identical except in cases where the original name includes spaces or weird characters."
             },
             "data_file": {
                 "type": "string",

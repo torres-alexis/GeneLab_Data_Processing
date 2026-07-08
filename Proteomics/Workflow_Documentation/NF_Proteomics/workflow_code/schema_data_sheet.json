@@ -19,23 +19,18 @@
             },
             "fraction": {
                 "type": ["string", "integer"],
-                "description": "LC fraction identifier within a plex (MSstatsTMT Fraction). Use 1 when samples were not fractionated.",
+                "description": "LC fraction identifier within a plex (MSstatsTMT Fraction).",
                 "meta": ["fraction"]
             },
             "TechRepMixture": {
                 "type": ["string", "integer"],
-                "description": "Mixture technical replicate identifier for a plex. Use 1 when the mixture was run once. Sets manifest Bioreplicate and MSstatsTMT TechRepMixture.",
+                "description": "Mixture technical replicate identifier for a plex. Sets manifest Bioreplicate and MSstatsTMT TechRepMixture.",
                 "meta": ["tech_rep_mixture"]
             },
             "Has Tech Reps": {
                 "type": ["boolean", "string"],
-                "description": "Indicates whether this mzML row is a technical replicate that should be collapsed with other rows sharing the same plex, TechRepMixture, and fraction. Set to True for technical replicates that should be collapsed, False for distinct runs. When not provided, treated as False.",
+                "description": "Indicates whether this run is a technical replicate that should be collapsed with other runs sharing the same plex, TechRepMixture, and fraction. Set to True for technical replicates that should be collapsed, False for distinct runs that should remain separate.",
                 "meta": ["has_tech_reps"]
-            },
-            "Source Name": {
-                "type": "string",
-                "description": "Optional biological subject identifier for metadata.",
-                "meta": ["source_name"]
             },
             "data_file": {
                 "type": "string",
