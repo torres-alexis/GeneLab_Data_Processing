@@ -39,6 +39,86 @@ print(anno[, intersect(c("condition", "condition_name"), colnames(anno)), drop =
 
 annotation_msstats <- annotation[, required, drop = FALSE]
 
+normalize_run_id <- function(x, assay_suffix = "") {
+  x <- trimws(as.character(x))
+  x <- gsub("\\.mzML$", "", x, ignore.case = TRUE)
+  x <- gsub("\\.raw$", "", x, ignore.case = TRUE)
+  if (nzchar(assay_suffix)) {
+    x <- gsub(assay_suffix, "", x, fixed = TRUE)
+  }
+  x
+}
+
+msstats_run_ids <- function(data) {
+  if ("Spectrum.File" %in% names(data)) {
+    ids <- data[["Spectrum.File"]]
+  } else if ("Run" %in% names(data)) {
+    ids <- data[["Run"]]
+  } else {
+    stop("msstats.csv missing Spectrum.File and Run columns; cannot match MSstatsTMT annotation")
+  }
+  sort(unique(normalize_run_id(ids)))
+}
+
+filter_annotation_to_msstats <- function(annotation_msstats, msstats_runs, assay_suffix = "") {
+  annotated_runs <- sort(unique(normalize_run_id(annotation_msstats$Run, assay_suffix)))
+  retained_runs <- intersect(annotated_runs, msstats_runs)
+  dropped_runs <- setdiff(annotated_runs, msstats_runs)
+  extra_msstats_runs <- setdiff(msstats_runs, annotated_runs)
+  keep <- normalize_run_id(annotation_msstats$Run, assay_suffix) %in% msstats_runs
+  filtered <- annotation_msstats[keep, , drop = FALSE]
+  list(
+    annotation = filtered,
+    annotated_runs = annotated_runs,
+    retained_runs = sort(unique(normalize_run_id(filtered$Run, assay_suffix))),
+    dropped_runs = dropped_runs,
+    extra_msstats_runs = extra_msstats_runs
+  )
+}
+
+format_msstatstmt_notice_section <- function(label, items) {
+  c(
+    paste0("  ", label),
+    if (length(items)) paste0("    - ", items) else "    - (none)"
+  )
+}
+
+write_msstatstmt_notice <- function(intro_lines, sections, notice_path) {
+  cmd <- paste(commandArgs(trailingOnly = TRUE), collapse = " ")
+  lines <- c(
+    intro_lines,
+    "",
+    paste0("MSstatsTMT analysis executed as:\n    msstatstmt_analysis.R ", cmd),
+    ""
+  )
+  for (i in seq_along(sections)) {
+    lines <- c(lines, format_msstatstmt_notice_section(sections[[i]]$label, sections[[i]]$items), "")
+  }
+  writeLines(lines, notice_path)
+}
+
+write_dropped_runs_notice <- function(annotated, retained, dropped, extra_msstats, notice_path) {
+  intro <- c(
+    "MSstatsTMT annotation included runs that were absent from msstats.csv.",
+    "Those annotation rows were removed before PhilosophertoMSstatsTMTFormat."
+  )
+  sections <- list(
+    list(label = paste0("Annotation runs (n=", length(annotated), "):"), items = annotated),
+    list(label = paste0("Retained for MSstatsTMT (n=", length(retained), "):"), items = retained)
+  )
+  if (length(dropped)) {
+    sections <- c(sections, list(
+      list(label = paste0("Dropped annotation runs (n=", length(dropped), "):"), items = dropped)
+    ))
+  }
+  if (length(extra_msstats)) {
+    sections <- c(sections, list(
+      list(label = paste0("msstats.csv runs not in annotation (n=", length(extra_msstats), "):"), items = extra_msstats)
+    ))
+  }
+  write_msstatstmt_notice(intro, sections, notice_path)
+}
+
 collect_msstats_files <- function(path) {
   if (dir.exists(path)) {
     files <- list.files(path, pattern = "^msstats\\.csv$", recursive = TRUE, full.names = TRUE)
@@ -64,6 +144,35 @@ if (length(msstats_files) == 0) {
 }
 
 msstats_data <- read_msstats_table(msstats_files)
+
+msstats_runs <- msstats_run_ids(msstats_data)
+run_filter <- filter_annotation_to_msstats(annotation_msstats, msstats_runs, assay_suffix)
+annotation_msstats <- run_filter$annotation
+
+notice_suffix <- if (nzchar(assay_suffix)) assay_suffix else "_GLProteomics"
+dropped_runs_path <- paste0("dropped-runs-msstatstmt", notice_suffix, ".txt")
+if (length(run_filter$dropped_runs) || length(run_filter$extra_msstats_runs)) {
+  write_dropped_runs_notice(
+    run_filter$annotated_runs,
+    run_filter$retained_runs,
+    run_filter$dropped_runs,
+    run_filter$extra_msstats_runs,
+    dropped_runs_path
+  )
+  message(
+    "MSstatsTMT: annotation/msstats run mismatch; removed ",
+    length(run_filter$dropped_runs),
+    " orphan run(s). See ",
+    dropped_runs_path
+  )
+}
+
+if (nrow(annotation_msstats) == 0) {
+  stop(
+    "MSstatsTMT annotation has no runs present in msstats.csv after filtering. ",
+    "See ", dropped_runs_path
+  )
+}
 
 input_tmt <- PhilosophertoMSstatsTMTFormat(
   input = msstats_data,
@@ -106,36 +215,27 @@ summarized_conditions <- function(quant_obj) {
 }
 
 write_dropped_conditions_notice <- function(annotated, retained, dropped, notice_path) {
-  lines <- c(
-    "GeneLab MSstatsTMT dropped conditions notice",
-    paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")),
-    "",
+  intro <- c(
     "Some Condition labels from MSstatsTMT_annotation were removed during",
     "proteinSummarization (empty channel / insufficient data after filtering).",
-    "MSstatsTMT group comparisons use only retained conditions below.",
-    "",
-    paste0("Annotation conditions (n=", length(annotated), "):"),
-    if (length(annotated)) paste0("  - ", annotated) else "  (none)",
-    "",
-    paste0("Retained for groupComparisonTMT (n=", length(retained), "):"),
-    if (length(retained)) paste0("  - ", retained) else "  (none)"
+    "MSstatsTMT group comparisons use only retained conditions below."
+  )
+  sections <- list(
+    list(label = paste0("Annotation conditions (n=", length(annotated), "):"), items = annotated),
+    list(label = paste0("Retained for groupComparisonTMT (n=", length(retained), "):"), items = retained)
   )
   if (length(dropped)) {
-    lines <- c(
-      lines,
-      "",
-      paste0("Dropped conditions (n=", length(dropped), "):"),
-      paste0("  - ", dropped)
-    )
+    sections <- c(sections, list(
+      list(label = paste0("Dropped conditions (n=", length(dropped), "):"), items = dropped)
+    ))
   }
-  writeLines(lines, notice_path)
+  write_msstatstmt_notice(intro, sections, notice_path)
 }
 
 annotated_conditions <- annotation_conditions(annotation_msstats)
 conditions <- summarized_conditions(quant)
 dropped_conditions <- setdiff(annotated_conditions, conditions)
 
-notice_suffix <- if (nzchar(assay_suffix)) assay_suffix else "_GLProteomics"
 notice_path <- paste0("dropped-conditions-msstatstmt", notice_suffix, ".txt")
 if (length(dropped_conditions)) {
   write_dropped_conditions_notice(annotated_conditions, conditions, dropped_conditions, notice_path)
