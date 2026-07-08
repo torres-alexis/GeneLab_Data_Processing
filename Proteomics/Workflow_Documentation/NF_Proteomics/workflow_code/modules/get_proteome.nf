@@ -2,13 +2,13 @@ process GET_PROTEOME {
     tag "${params.uniprot_id}"
     publishDir path: { "${output_dir}/Proteome/" },
         mode: params.publish_dir_mode,
-        pattern: "*.fas"
+        pattern: "*.fa*"
 
     input:
     val(output_dir)
 
     output:
-    path("*.fas"), emit: proteome_fasta
+    path("*.fa*"), emit: proteome_fasta
 
     script:
     // Build flags based on params (accessing directly from params since they're globals)

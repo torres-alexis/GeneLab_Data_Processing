@@ -63,7 +63,7 @@ def collect_processed_files(outdir, assay_suffix):
     out.extend(collect_matches(os.path.join(outdir, "Metadata"), [
         "*runsheet*.csv",
     ]))
-    out.extend(collect_matches(os.path.join(outdir, "Proteome"), ["*.fas"]))
+    out.extend(collect_matches(os.path.join(outdir, "Proteome"), ["*.fa*"]))
     out.extend(collect_matches(os.path.join(outdir, "pmultiqc"), [
         "multiqc*.html",
         "multiqc*_data.zip",

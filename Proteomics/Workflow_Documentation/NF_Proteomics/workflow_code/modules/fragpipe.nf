@@ -82,7 +82,7 @@ process FRAGPIPE {
         if [[ "\${item}" == "output" ]] || \\
            [[ "\${item}" == "versions.yml" ]] || \\
            [[ "\${item}" == *.mzML ]] || \\
-           [[ "\${item}" == *.fas ]] || \\
+           [[ "\${item}" == *.fa* ]] || \\
            [[ "\${item}" == "tools" ]] || \\
            [[ "\${item}" == manifest*.tsv ]] || \\
            [[ "\${item}" == "experiment_annot.tsv" ]] || \\
