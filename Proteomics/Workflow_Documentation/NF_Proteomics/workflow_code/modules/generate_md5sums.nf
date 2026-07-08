@@ -4,7 +4,7 @@ process GENERATE_MD5SUMS {
         pattern: "*.tsv"
 
     input:
-        path(ch_outdir)
+        val(ch_outdir)
         path(processing_info)
 
     output:

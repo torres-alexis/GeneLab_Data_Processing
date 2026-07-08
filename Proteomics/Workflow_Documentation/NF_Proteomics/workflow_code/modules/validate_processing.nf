@@ -4,7 +4,7 @@ process VALIDATE_PROCESSING {
         pattern: "*.log"
 
     input:
-        path(ch_outdir)
+        val(ch_outdir)
         path(raw_md5sum)
         path(processed_md5sum)
 

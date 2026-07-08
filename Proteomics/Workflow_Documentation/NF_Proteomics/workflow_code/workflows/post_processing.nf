@@ -9,27 +9,23 @@ include { VALIDATE_PROCESSING } from '../modules/validate_processing.nf'
 workflow POST_PROCESSING {
     main:
         processed_dir = "${params.output_dir}/${params.results_dir ?: (params.accession ?: 'results')}"
-        ch_processed_directory = Channel.fromPath(processed_dir, type: 'dir', checkIfExists: true)
         ch_processing_info = Channel.fromPath("${processed_dir}/processing_info", type: 'dir', checkIfExists: true)
 
         if( params.clean_paths ) {
             CLEAN_PATHS( channel.value(processed_dir) )
             ch_processed_dir = CLEAN_PATHS.out.processed_dir
         } else {
-            ch_processed_dir = channel.value(processed_dir)
+            ch_processed_dir = Channel.fromPath(processed_dir, type: 'dir', checkIfExists: true).map { processed_dir }
         }
 
         ch_processing_info = ch_processing_info
             .combine( ch_processed_dir )
             .map { info, _dir -> info }
-        ch_processed_directory = ch_processed_directory
-            .combine( ch_processed_dir )
-            .map { outdir, _dir -> outdir }
 
         PACKAGE_PROCESSING_INFO(ch_processing_info, processed_dir)
-        GENERATE_MD5SUMS(ch_processed_directory, PACKAGE_PROCESSING_INFO.out.zip)
+        GENERATE_MD5SUMS(ch_processed_dir, PACKAGE_PROCESSING_INFO.out.zip)
         VALIDATE_PROCESSING(
-            ch_processed_directory,
+            ch_processed_dir,
             GENERATE_MD5SUMS.out.raw_md5sum,
             GENERATE_MD5SUMS.out.processed_md5sum
         )
