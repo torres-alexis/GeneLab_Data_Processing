@@ -131,7 +131,7 @@ Staging:
           Runsheet Column Name: Source Name
           Optional: true
           Processing Usage: >-
-            Biological subject identifier. Used for Bioreplicate assignment when Bioreplicate is omitted.
+            Biological subject identifier. Used with Has Tech Reps to group technical replicate mzML rows before processing.
           Example: SLS-2_TMS_GC_G10
 
         - ISA Field Name: Has Tech Reps
@@ -147,8 +147,7 @@ Staging:
           Runsheet Column Name: Bioreplicate
           Optional: true
           Processing Usage: >-
-            Biological subject ID (auto-assigns Bioreplicate when that column is omitted). Same ID across conditions supports paired designs.
-            TMT sample sheet: MSstats/FPAR replicate derived from Source Name when Bioreplicate omitted.
+            Numeric biological replicate ID. From runsheet value if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition.
           Example: 2
 
       From User:

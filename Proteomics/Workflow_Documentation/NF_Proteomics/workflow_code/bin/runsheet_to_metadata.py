@@ -9,8 +9,7 @@ FragPipe manifest, FragPipeAnalystR experiment_annotation, and (TMT) MSstatsTMT 
 
 Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (TMT) MSstatsTMT_annotation[.suffix].csv.
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
-LFQ: Experiment from Factor Value columns or "1"; Bioreplicate from explicit column, else Source Name, else per-condition counter.
-  Has Tech Reps + Source Name: see bin/filter_tech_reps.py.
+LFQ: Experiment from Factor Value columns or "1". Bioreplicate from explicit column, else sequential within each condition. When the runsheet has Has Tech Reps, assign from Source Name within each condition instead of row order. Has Tech Reps and Source Name: tech-rep collapse in filter_tech_reps.py.
   TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
   MSstatsTMT annotation only: sample-sheet condition Pool is written as Norm (bridge channel); experiment_annotation keeps Pool for FragPipe/FPAR.
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
@@ -22,9 +21,6 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tech_rep_utils import numeric_biorep_for_subject
 
 DATA_TYPE_CHOICES = ("DDA", "DIA")
 
@@ -132,8 +128,7 @@ def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
     has_tr_col = "Has Tech Reps" in (fieldnames or [])
     sample_to_biorep = {}
     cond_to_biorep = {}
-    subject_to_id = {}
-    next_bio_id = [1]
+    subject_key_to_bio = {}
 
     for row in rows:
         sample_id = _get_sample_id(row)
@@ -143,25 +138,21 @@ def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
             sample_to_biorep[sample_id] = str(row.get("Bioreplicate").strip())
             continue
 
-        source = (row.get("Source Name") or "").strip()
-        if source:
-            sample_to_biorep[sample_id] = numeric_biorep_for_subject(source, subject_to_id, next_bio_id)
-            continue
+        condition = _condition_from_factors(row, factor_columns) or ""
+        cond_key = condition or "__default__"
 
         if has_tr_col:
-            sample_name = (row.get("Sample Name") or "").strip() or sample_id
-            sample_to_biorep[sample_id] = numeric_biorep_for_subject(sample_name, subject_to_id, next_bio_id)
-            continue
+            source = (row.get("Source Name") or "").strip()
+            if source:
+                pair = (cond_key, source)
+                if pair not in subject_key_to_bio:
+                    cond_to_biorep[cond_key] = cond_to_biorep.get(cond_key, 0) + 1
+                    subject_key_to_bio[pair] = str(cond_to_biorep[cond_key])
+                sample_to_biorep[sample_id] = subject_key_to_bio[pair]
+                continue
 
-        condition = _condition_from_factors(row, factor_columns)
-        if condition:
-            if condition not in cond_to_biorep:
-                cond_to_biorep[condition] = 0
-            cond_to_biorep[condition] += 1
-            offset = sum(cond_to_biorep.get(c, 0) for c in cond_to_biorep if c != condition)
-            sample_to_biorep[sample_id] = str(offset + cond_to_biorep[condition])
-        else:
-            sample_to_biorep[sample_id] = "1"
+        cond_to_biorep[cond_key] = cond_to_biorep.get(cond_key, 0) + 1
+        sample_to_biorep[sample_id] = str(cond_to_biorep[cond_key])
 
     return sample_to_biorep
 

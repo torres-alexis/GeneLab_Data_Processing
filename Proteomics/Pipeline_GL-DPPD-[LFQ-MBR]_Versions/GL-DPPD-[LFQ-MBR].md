@@ -215,7 +215,7 @@ runsheet_to_metadata.py \
 - **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
   - Path (mzML basename, from runsheet `Sample Name` (`*.mzML`))
   - Experiment (FragPipe experiment string from joined `Factor Value[...]` columns)
-  - Bioreplicate (from runsheet `Bioreplicate` if set; else by `Source Name` if present; else sequential within each condition)
+  - Bioreplicate (from runsheet if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition)
   - Data type (`DDA` from runsheet `data_type` column))
 
 - **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:

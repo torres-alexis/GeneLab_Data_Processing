@@ -14,7 +14,7 @@
             },
             "Bioreplicate": {
                 "type": ["string", "integer"],
-                "description": "Numeric biological replicate ID. FragPipe groups files with the same Experiment and Bioreplicate. From runsheet value if set; else by Source Name if present; else sequential within each condition.",
+                "description": "Numeric biological replicate ID for the FragPipe manifest. From runsheet value if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition.",
                 "meta": ["bioreplicate"]
             },
             "Has Tech Reps": {
@@ -24,7 +24,7 @@
             },
             "Source Name": {
                 "type": "string",
-                "description": "Biological subject identifier. Used for Bioreplicate assignment when Bioreplicate is omitted. Required when Has Tech Reps=TRUE.",
+                "description": "Biological subject identifier from ISA. Required when Has Tech Reps is TRUE. Used with Has Tech Reps to collapse technical replicate mzML rows before processing.",
                 "meta": ["source_name"]
             },
             "data_file": {

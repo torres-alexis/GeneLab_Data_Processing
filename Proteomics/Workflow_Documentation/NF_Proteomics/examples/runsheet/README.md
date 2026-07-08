@@ -34,7 +34,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 |:------------|:-----|:------------|:--------|
 | Source Name | string | Identifier linking samples from the same biological subject. Used for handling technical replicates during processing. Multiple samples with the same Source Name may be collapsed during analysis depending on the Has Tech Reps setting. | RR3_BSL_B7 |
 | Has Tech Reps | bool | True: collapse with other True rows sharing the same Source Name and Factor Value columns (first row in the sheet wins). False or blank: keep this row. Omit the column to keep every row. | True |
-| Bioreplicate | string | Numeric biological replicate ID. FragPipe groups mzML files with the same `Experiment` and `Bioreplicate` for combined quant reports. Use the same ID across conditions for paired or subject-matched samples ([FragPipe tutorial](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html)). From runsheet value if set; else by `Source Name` if present; else sequential within each condition. | 1 |
+| Bioreplicate | string | Numeric biological replicate ID for the FragPipe manifest. From runsheet value if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition. See [FragPipe tutorial](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html). | 1 |
 
 ---
 
