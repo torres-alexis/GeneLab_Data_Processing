@@ -12,6 +12,7 @@ Manifest data_type column: from runsheet/data_sheet `data_type` per row.
 LFQ: Experiment from Factor Value columns or "1". Bioreplicate from explicit column, else sequential within each condition. When the runsheet has Has Tech Reps, assign from Source Name within each condition instead of row order. Has Tech Reps and Source Name: tech-rep collapse in filter_tech_reps.py.
   TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
   MSstatsTMT annotation only: sample-sheet condition Pool is written as Norm (bridge channel); experiment_annotation keeps Pool for FragPipe/FPAR.
+  MSstatsTMT annotation with --fragpipe_workflow TMT10/TMT16: emit every plex channel per run; sample-sheet channels keep condition/biorep, others Condition=Empty (partial plex on TMT10/TMT16).
   If one logical plex spans multiple folders (TechRepMixture / fraction batches), sample/sample_name become <folder>_<Sample Name> (batch prefix). Single folder per plex → no prefix.
 """
 
@@ -23,6 +24,28 @@ from collections import Counter
 from pathlib import Path
 
 DATA_TYPE_CHOICES = ("DDA", "DIA")
+
+# MSstatsTMT / Philosopher msstats.csv channel tags per FragPipe TMT preset
+TMT_PLEX_CHANNELS = {
+    "TMT10": [
+        "126", "127N", "127C", "128N", "128C", "129N", "129C", "130N", "130C", "131N",
+    ],
+    # TMTpro-16 ends at 134N; 134C/135N are TMTpro-18 only
+    "TMT16": [
+        "126", "127N", "127C", "128N", "128C", "129N", "129C", "130N", "130C", "131N",
+        "131C", "132N", "132C", "133N", "133C", "134N",
+    ],
+}
+
+
+def _tmt_channel_order(fragpipe_workflow: str) -> list[str] | None:
+    """Full plex channel list for MSstatsTMT annotation (unused tags -> Empty)."""
+    wf = (fragpipe_workflow or "").strip().upper()
+    if wf.startswith("TMT16"):
+        return TMT_PLEX_CHANNELS["TMT16"]
+    if wf.startswith("TMT10"):
+        return TMT_PLEX_CHANNELS["TMT10"]
+    return None
 
 
 def _row_data_type(row: dict) -> str:
@@ -170,11 +193,12 @@ def _write_msstats_tmt_annotation(
     sample_fieldnames: list,
     sample_to_biorep: dict,
     output_path: str,
+    fragpipe_workflow: str = "",
 ) -> None:
     """MSstatsTMT annotation: Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition, condition_name."""
     factor_cols = [c for c in sample_fieldnames if c.startswith("Factor Value[")]
 
-    plex_to_channels = {}
+    plex_to_channels: dict[str, dict[str, dict]] = {}
     for row in sample_rows:
         plex = (row.get("plex") or "").strip()
         channel = (row.get("channel") or "").strip()
@@ -188,17 +212,16 @@ def _write_msstats_tmt_annotation(
         if not cond:
             cond = "Empty" if not sample_name else _make_names_safe(_sanitize_for_fragpipe(sample_name))
         cond_name = _condition_name_from_factors(row, factor_cols) or cond.replace("_", " ")
-        plex_to_channels.setdefault(plex, []).append(
-            {
-                "channel": channel,
-                "bioreplicate": biorep,
-                "condition": _msstats_condition(cond),
-                "condition_name": cond_name,
-            }
-        )
+        plex_to_channels.setdefault(plex, {})[channel] = {
+            "bioreplicate": biorep,
+            "condition": _msstats_condition(cond),
+            "condition_name": cond_name,
+        }
 
     if not plex_to_channels:
         sys.exit("Error: sample_sheet has no plex/channel rows")
+
+    channel_order = _tmt_channel_order(fragpipe_workflow)
 
     fieldnames = [
         "Run",
@@ -220,22 +243,38 @@ def _write_msstats_tmt_annotation(
             sys.exit(f"Error: data_sheet row missing plex for run {run}")
         fraction = _require_tmt_cell(row, "fraction")
         tech_rep = _require_tmt_cell(row, "TechRepMixture")
-        channels = plex_to_channels.get(plex)
-        if not channels:
+        channel_map = plex_to_channels.get(plex)
+        if not channel_map:
             sys.exit(f"Error: no sample_sheet channels for plex {plex} (run {run})")
-        for ch in channels:
-            out_rows.append(
-                {
-                    "Run": run,
-                    "Fraction": fraction,
-                    "TechRepMixture": tech_rep,
-                    "Mixture": plex,
-                    "Channel": ch["channel"],
-                    "BioReplicate": ch["bioreplicate"],
-                    "Condition": ch["condition"],
-                    "condition_name": ch["condition_name"],
-                }
-            )
+        emit_order = channel_order if channel_order else list(channel_map.keys())
+        for ch_name in emit_order:
+            assigned = channel_map.get(ch_name)
+            if assigned:
+                out_rows.append(
+                    {
+                        "Run": run,
+                        "Fraction": fraction,
+                        "TechRepMixture": tech_rep,
+                        "Mixture": plex,
+                        "Channel": ch_name,
+                        "BioReplicate": assigned["bioreplicate"],
+                        "Condition": assigned["condition"],
+                        "condition_name": assigned["condition_name"],
+                    }
+                )
+            elif channel_order:
+                out_rows.append(
+                    {
+                        "Run": run,
+                        "Fraction": fraction,
+                        "TechRepMixture": tech_rep,
+                        "Mixture": plex,
+                        "Channel": ch_name,
+                        "BioReplicate": 1,
+                        "Condition": "Empty",
+                        "condition_name": "Empty",
+                    }
+                )
 
     with open(output_path, "w", newline="\n") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t", lineterminator="\n")
@@ -260,6 +299,11 @@ def main():
         "--assay_suffix",
         default="",
         help="Optional stem suffix for outputs (e.g. _GLProteomics → manifest_GLProteomics.tsv, MSstatsTMT_annotation_GLProteomics.csv). Default: manifest.tsv, experiment_annotation.tsv.",
+    )
+    parser.add_argument(
+        "--fragpipe_workflow",
+        default="",
+        help="FragPipe workflow preset (e.g. TMT10, TMT16). Fills unused TMT channels with Empty in MSstatsTMT annotation.",
     )
     args = parser.parse_args()
 
@@ -455,7 +499,12 @@ def main():
 
         data_rows = [r for r in rows if (r.get("data_file") or "").strip()]
         _write_msstats_tmt_annotation(
-            data_rows, sample_rows, sample_fieldnames, tmt_sample_to_biorep, msstats_tmt_anno_path
+            data_rows,
+            sample_rows,
+            sample_fieldnames,
+            tmt_sample_to_biorep,
+            msstats_tmt_anno_path,
+            fragpipe_workflow=args.fragpipe_workflow,
         )
 
 

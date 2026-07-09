@@ -8,6 +8,9 @@ process MSSTATS_TMT {
     publishDir path: { "${output_dir}/MSstatsTMT/" },
         mode: params.publish_dir_mode,
         pattern: "dropped-conditions-msstatstmt*.txt"
+    publishDir path: { "${output_dir}/MSstatsTMT/" },
+        mode: params.publish_dir_mode,
+        pattern: "dropped-runs-msstatstmt*.txt"
 
     input:
     val(output_dir)
@@ -19,6 +22,7 @@ process MSSTATS_TMT {
     path("msstatstmt_comparison*.csv"), emit: comparison, optional: true
     path("msstatstmt_contrasts*.csv"), emit: contrasts, optional: true
     path("dropped-conditions-msstatstmt*.txt"), emit: conditions_notice, optional: true
+    path("dropped-runs-msstatstmt*.txt"), emit: runs_notice, optional: true
 
     script:
     """
