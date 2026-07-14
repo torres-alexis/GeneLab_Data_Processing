@@ -21,9 +21,6 @@ process FRAGPIPEANALYSTR {
             }
             null
         }
-    publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
-        mode: params.publish_dir_mode,
-        pattern: "versions.yml"
 
     input:
     val(output_dir)
