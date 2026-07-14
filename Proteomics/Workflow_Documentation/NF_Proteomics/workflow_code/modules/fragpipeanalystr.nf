@@ -66,6 +66,9 @@ process FRAGPIPEANALYSTR {
     def lfq_type_arg = (mode == 'TMT') ? '' : "--lfq_type \"${lfq_type}\""
     def gene_annotations_arg = (gene_annotations_url == null || gene_annotations_url?.toString()?.trim() == '') ? '' : "--gene_annotations \"${gene_annotations_url}\""
     """
+    # writable HOME for msigdbr
+    export HOME="\${PWD}"
+
     # Create output directory
     mkdir -p output/
 
