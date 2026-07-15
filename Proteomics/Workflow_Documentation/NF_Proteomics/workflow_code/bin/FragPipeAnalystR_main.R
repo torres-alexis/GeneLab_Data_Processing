@@ -924,6 +924,16 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   cat("GSEA complete\n")
 }
 
+# Remove pathway_analysis, pathway_analysis/or, pathway_analysis/gsea if empty
+for (.d in c(pathway_dir_or, pathway_dir_gsea)) {
+  if (dir.exists(.d) && length(list.files(.d, all.files = TRUE, no.. = TRUE)) == 0L) {
+    unlink(.d, recursive = FALSE)
+  }
+}
+if (dir.exists(pathway_dir) && length(list.files(pathway_dir, all.files = TRUE, no.. = TRUE)) == 0L) {
+  unlink(pathway_dir, recursive = FALSE)
+}
+
 # Published SummarizedExperiment for downstream replotting (GL-DPPD output).
 rdata_path <- file.path(output_dir, paste0("FragPipeAnalystR", level_suffix, ".RData"))
 save(de_se, file = rdata_path)
