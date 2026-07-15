@@ -16,7 +16,7 @@ include { CLEAN_FRAGPIPE_TABLES } from '../modules/clean_fragpipe_tables.nf'
 include { ZIP_FRAGPIPE_OUTPUTS } from '../modules/zip_fragpipe_outputs.nf'
 include { PMULTIQC } from '../modules/pmultiqc.nf'
 include { MSSTATS } from '../modules/msstats.nf'
-include { MSSTATS_TMT } from '../modules/msstats_tmt.nf'
+include { MSSTATSTMT } from '../modules/msstatstmt.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
@@ -274,12 +274,12 @@ workflow PROTEOMICS {
             ch_lfq_versions = MSSTATS.out.versions
         }
         if (params.fragpipe_workflow?.startsWith('TMT')) {
-            MSSTATS_TMT(
+            MSSTATSTMT(
                 output_dir,
                 FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
                 FRAGPIPE.out.msstats_csv
             )
-            ch_tmt_versions = MSSTATS_TMT.out.versions
+            ch_tmt_versions = MSSTATSTMT.out.versions
         }
 
         // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.

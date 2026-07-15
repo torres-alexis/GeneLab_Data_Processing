@@ -1,4 +1,4 @@
-process MSSTATS_TMT {
+process MSSTATSTMT {
     publishDir path: { "${output_dir}/MSstatsTMT/" },
         mode: params.publish_dir_mode,
         pattern: "msstatstmt_comparison*.csv"
