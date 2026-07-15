@@ -71,6 +71,8 @@ def collect_processed_files(outdir, assay_suffix):
     out.extend(collect_matches(os.path.join(outdir, "MSstats"), [
         "msstats_comparison*.csv",
         "msstats_contrasts*.csv",
+    ]))
+    out.extend(collect_matches(os.path.join(outdir, "MSstatsTMT"), [
         "msstatstmt_comparison*.csv",
         "msstatstmt_contrasts*.csv",
     ]))
