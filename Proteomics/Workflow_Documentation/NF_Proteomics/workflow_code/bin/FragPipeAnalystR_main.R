@@ -860,9 +860,22 @@ if (level != "peptide" && length(gsea_dbs_valid) > 0) {
       warning("org.Hs.eg.db not installed; skipping GO/KEGG GSEA (Hallmark may still run)")
       gsea_dbs_valid <- setdiff(gsea_dbs_valid, c("GO_Biological_Process_2021", "GO_Cellular_Component_2021", "GO_Molecular_Function_2021", "KEGG", "KEGG_2021_Human"))
     } else if (need_org) {
-      suppressPackageStartupMessages(library(org.Hs.eg.db, character.only = TRUE))
+      suppressPackageStartupMessages(library("org.Hs.eg.db", character.only = TRUE))
     }
   }
+}
+# FragPipeAnalystR::GSEA_test calls gseGO without keyType (defaults ENTREZID).
+#  Set rowData$ID from the FragPipe Gene column (SYMBOL); enrichGO already uses SYMBOL.
+if (level != "peptide" && length(gsea_dbs_valid) > 0 && requireNamespace("FragPipeAnalystR", quietly = TRUE)) {
+  .f <- getFromNamespace("GSEA_test", "FragPipeAnalystR")
+  .b <- paste(deparse(body(.f)), collapse = "\n")
+  if (!grepl("gseGO\\([^)]*keyType\\s*=\\s*\"SYMBOL\"", .b)) {
+    .b <- sub("OrgDb = org.Hs.eg.db,", "OrgDb = org.Hs.eg.db, keyType = \"SYMBOL\",", .b, fixed = TRUE)
+    body(.f) <- parse(text = .b)[[1]] 
+    assignInNamespace("GSEA_test", .f, "FragPipeAnalystR")
+  }
+  GSEA_test <- getFromNamespace("GSEA_test", "FragPipeAnalystR")
+  rm(.f, .b)
 }
 if (level != "peptide" && length(gsea_dbs_valid) > 0) {
   if (is.null(de_gene_col)) {
