@@ -1,0 +1,55 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_data_sheet.json",
+    "title": "GeneLab Proteomics TMT Data Sheet Schema",
+    "description": "Schema for TMT data sheet CSV files (one row per mzML file, fraction-centric).",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "run": {
+                "type": "string",
+                "description": "Unique identifier for each raw file (MS run). Used for manifest file paths.",
+                "meta": ["id"]
+            },
+            "plex": {
+                "type": "string",
+                "description": "Plex identifier. Required for TMT.",
+                "meta": ["TMT"]
+            },
+            "fraction": {
+                "type": ["string", "integer"],
+                "description": "LC fraction identifier within a plex (MSstatsTMT Fraction).",
+                "meta": ["fraction"]
+            },
+            "TechRepMixture": {
+                "type": ["string", "integer"],
+                "description": "Mixture technical replicate identifier for a plex. Sets manifest Bioreplicate and MSstatsTMT TechRepMixture.",
+                "meta": ["tech_rep_mixture"]
+            },
+            "Has Tech Reps": {
+                "type": ["boolean", "string"],
+                "description": "Indicates whether this run is a technical replicate that should be collapsed with other runs sharing the same plex, TechRepMixture, and fraction. Set to True for technical replicates that should be collapsed, False for distinct runs that should remain separate.",
+                "meta": ["has_tech_reps"]
+            },
+            "data_file": {
+                "type": "string",
+                "description": "URL or path to the mass spectrometry data file in mzML format",
+                "meta": ["data_file"]
+            },
+            "data_type": {
+                "type": "string",
+                "description": "Mass spectrometry data type",
+                "enum": ["DDA", "DIA"],
+                "meta": ["data_type"]
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species for gene annotations lookup.",
+                "meta": ["organism"]
+            }
+        },
+        "required": ["run", "plex", "data_file"],
+        "additionalProperties": true
+    }
+}

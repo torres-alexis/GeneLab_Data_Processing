@@ -1,0 +1,65 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_runsheet.json",
+    "title": "GeneLab Proteomics LFQ Runsheet Schema",
+    "description": "Schema for validating LFQ runsheet.",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "type": "string",
+                "description": "Sample identifier (biological sample). Should not include spaces or weird characters. If the same Sample Name appears on multiple rows with different data_file values (fractions), staging and FragPipe file names use each data_file basename instead.",
+                "meta": ["id"]
+            },
+            "Bioreplicate": {
+                "type": ["string", "integer"],
+                "description": "Numeric biological replicate ID for the FragPipe manifest. From runsheet value if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition.",
+                "meta": ["bioreplicate"]
+            },
+            "Has Tech Reps": {
+                "type": ["boolean", "string"],
+                "description": "Indicates whether this sample is a technical replicate that should be collapsed with other samples sharing the same Source Name and Factor Value columns. Set to True for technical replicates that should be collapsed, False for distinct samples that should remain separate even if they share a Source Name. When not provided, treated as False.",
+                "meta": ["has_tech_reps"]
+            },
+            "Source Name": {
+                "type": "string",
+                "description": "Identifier linking samples. Required when Has Tech Reps is TRUE. Used with Has Tech Reps to collapse technical replicate mzML rows before processing.",
+                "meta": ["source_name"]
+            },
+            "fraction": {
+                "type": "string",
+                "description": "Optional LC fraction ID. Only needed when the dataset has both fractionated runs and technical replicates.",
+                "meta": ["fraction"]
+            },
+            "Original Sample Name": {
+                "type": "string",
+                "description": "Used to map the sample name that will be used for processing to the original sample name. This is often identical except in cases where the original name includes spaces or weird characters."
+            },
+            "data_file": {
+                "type": "string",
+                "description": "URL or path to the mass spectrometry data file in mzML format",
+                "meta": ["data_file"]
+            },
+            "data_type": {
+                "type": "string",
+                "description": "Mass spectrometry data type",
+                "enum": ["DDA", "DIA"],
+                "meta": ["data_type"]
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species name used to extend output tables with annotations corresponding to the species.",
+                "meta": ["organism"]
+            }
+        },
+        "required": ["Sample Name", "data_file", "organism"],
+        "patternProperties": {
+            "^Factor Value\\[.*\\]$": {
+                "type": "string",
+                "description": "Experimental group the sample belongs to. Used to create the Experiment field in the FragPipe manifest."
+            }
+        },
+        "additionalProperties": true
+    }
+}

@@ -1,0 +1,29 @@
+Sample Name,Original Sample Name,Source Name,Factor Value[Spaceflight],Factor Value[Dissection Timeline],Has Tech Reps,organism,data_type,data_file
+150615ZV_k01,150615ZV_k01,150615ZV_k01,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k01.mzML
+150615ZV_k01_150615191453,150615ZV_k01,150615ZV_k01,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k01_150615191453.mzML
+150615ZV_k01_150617081805,150615ZV_k01,150615ZV_k01,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k01_150617081805.mzML
+150615ZV_k01_150618212055,150615ZV_k01,150615ZV_k01,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k01_150618212055.mzML
+150615ZV_k02,150615ZV_k02,150615ZV_k02,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k02.mzML
+150615ZV_k02_150617105518,150615ZV_k02,150615ZV_k02,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k02_150617105518.mzML
+150615ZV_k02_150618235809,150615ZV_k02,150615ZV_k02,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k02_150618235809.mzML
+150615ZV_k03,150615ZV_k03,150615ZV_k03,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k03.mzML
+150615ZV_k03_150617133229,150615ZV_k03,150615ZV_k03,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k03_150617133229.mzML
+150615ZV_k03_150619023521,150615ZV_k03,150615ZV_k03,Ground Control,13 - 25 h after completion,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_k03_150619023521.mzML
+150615ZV_f01,150615ZV_f01,150615ZV_f01,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f01.mzML
+150615ZV_f01_150619085659,150615ZV_f01,150615ZV_f01,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f01_150619085659.mzML
+150615ZV_f02,150615ZV_f02,150615ZV_f02,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f02.mzML
+150615ZV_f02_150619113419,150615ZV_f02,150615ZV_f02,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f02_150619113419.mzML
+150615ZV_f03,150615ZV_f03,150615ZV_f03,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f03.mzML
+150615ZV_f03_150618010829,150615ZV_f03,150615ZV_f03,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f03_150618010829.mzML
+150615ZV_f03_150619141132,150615ZV_f03,150615ZV_f03,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f03_150619141132.mzML
+150615ZV_f04,150615ZV_f04,150615ZV_f04,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f04.mzML
+150615ZV_f04_150618045258,150615ZV_f04,150615ZV_f04,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f04_150618045258.mzML
+150615ZV_f04_150619175557,150615ZV_f04,150615ZV_f04,Space Flight,13 - 25 h after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_f04_150619175557.mzML
+150615ZV_P01,150615ZV_P01,150615ZV_P01,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P01.mzML
+150615ZV_P01_150618073010,150615ZV_P01,150615ZV_P01,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P01_150618073010.mzML
+150615ZV_P01_150619203311,150615ZV_P01,150615ZV_P01,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P01_150619203311.mzML
+150615ZV_P02,150615ZV_P02,150615ZV_P02,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P02.mzML
+150615ZV_P02_150619231026,150615ZV_P02,150615ZV_P02,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P02_150619231026.mzML
+150615ZV_P03,150615ZV_P03,150615ZV_P03,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P03.mzML
+150615ZV_P03_150618124437,150615ZV_P03,150615ZV_P03,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P03_150618124437.mzML
+150615ZV_P03_150620014739,150615ZV_P03,150615ZV_P03,Space Flight,seven days after landing,TRUE,Mus musculus,DDA,/path/to/GLDS-209_proteomics_150615ZV_P03_150620014739.mzML

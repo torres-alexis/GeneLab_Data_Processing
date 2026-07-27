@@ -1,0 +1,1018 @@
+# GeneLab bioinformatics processing pipeline for Mass Spectrometry-based Proteomics Data (TMT16-phospho Workflow)
+
+> **This page holds an overview and instructions for how GeneLab processes mass spectrometry-based phosphoproteomics data using the TMT16 (Tandem Mass Tag 16-plex) workflow. Exact processing commands, GL-DPPD-[STUB] version used, and processed data output files for specific datasets are provided in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).**  
+
+---
+
+**Date:** March [STUB], 2026  
+**Revision:** A  
+**Document Number:** GL-DPPD-[STUB]-A  
+
+**Submitted by:**  
+Alexis Torres (GeneLab Data Processing Team)  
+
+**Approved by:**  
+[STUB]
+
+---
+
+# Table of contents  
+
+- [**Software used**](#software-used)
+- [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
+  - [**1. Raw Data QC**](#1-raw-data-qc)
+  - [**2. Create Proteome FASTA Database**](#2-create-proteome-fasta-database)
+    - [2a. Download Proteome from UniProt](#2a-download-proteome-from-uniprot)
+    - [2b. Add Decoys and Contaminants to FASTA](#2b-add-decoys-and-contaminants-to-fasta)
+  - [**3. Configure Metadata**](#3-configure-metadata)
+    - [3a. Create data sheet and sample sheet](#3a-create-data-sheet-and-sample-sheet)
+    - [3b. Create manifest and experiment annotation](#3b-create-manifest-and-experiment-annotation)
+    - [3c. Get organism-specific gene annotations table](#3c-get-organism-specific-gene-annotations-table)
+    - [3d. Stage mzML by plex and create channel-sample annotation](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation)
+  - [**4. FragPipe Processing Pipeline**](#4-fragpipe-processing-pipeline)
+    - [4a. Launch FragPipe](#4a-launch-fragpipe)
+    - [4b. Check Spectral Files Centroid Status](#4b-check-spectral-files-centroid-status)
+    - [4c. Initialize Workspace](#4c-initialize-workspace)
+    - [4d. MSFragger Database Search](#4d-msfragger-database-search)
+    - [4e. Percolator PSM Rescoring and Statistical Validation](#4e-percolator-psm-rescoring-and-statistical-validation)
+        - [4e1. Perform Percolator PSM Rescoring and Statistical Validation](#4e1-perform-percolator-psm-rescoring-and-statistical-validation)
+        - [4e2. Add Percolator Validation Information to pepXML](#4e2-add-percolator-validation-information-to-pepxml)
+    - [4f. PTMProphet PTM Localization](#4f-ptmprophet-ptm-localization)
+    - [4g. ProteinProphet Protein Inference and Statistical Validation](#4g-proteinprophet-protein-inference-and-statistical-validation)
+    - [4h. Database Annotation](#4h-database-annotation)
+    - [4i. Filter Results by FDR](#4i-filter-results-by-fdr)
+    - [4j. Generate Reports](#4j-generate-reports)
+    - [4l. TMT-Integrator TMT Quantification](#4l-tmt-integrator-tmt-quantification)
+  - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
+  - [**6. MSstatsTMT Differential Abundance Analysis**](#6-msstatstmt-differential-abundance-analysis)
+  - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
+
+---
+
+# Software used  
+
+|Program|Version|Relevant Links|
+|:------|:------:|:-------------|
+|dp_tools|1.3.8|[https://github.com/J-81/dp_tools](https://github.com/J-81/dp_tools)|
+|RawBeans|1.6.4|[https://bitbucket.org/incpm/prot-qc/src/master/protqc/](https://bitbucket.org/incpm/prot-qc/src/master/protqc/)|
+|Philosopher|5.1.3|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
+|FragPipe|24.0|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
+|MultiQC|1.32|[https://multiqc.info/](https://multiqc.info/)|
+|pmultiqc|0.0.40|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
+|R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
+|MSstatsTMT|2.18.0|[https://msstats.org/](https://msstats.org/)|
+|FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
+
+
+---
+
+# General processing overview with example commands  
+
+<img src="../Workflow_Documentation/NF_Proteomics/images/GL-proteomics-subwayplot.png" align="center" alt="GL proteomics subway plot"/>
+
+> Exact processing commands and output files listed in **bold** below are included with each relevant mass spectrometry-based proteomics processed dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/). 
+
+---
+
+## 1. Raw Data QC  
+
+<br>
+
+```bash
+create-qc-report.py \
+  --input *.mzML \
+  --output-dir . \
+  --cores 8
+
+zip -r rawbeans_report_GLProteomics.zip qc-report.html resources/
+```
+
+**Parameter Definitions:**
+
+- `--input` – all input mzML files provided as individual paths separated by spaces
+- `--output-dir` – the output directory to store results
+- `--cores` – maximum number of mzML files processed in parallel
+
+**Input Data:**
+
+- \*.mzML (all input mass spectrometry raw data files in mzML format)
+
+**Output Data:**
+
+- qc-report.html (RawBeans QC report HTML file for all samples)
+- resources/ (directory containing supporting files for the QC report HTML)
+- **rawbeans_report_GLProteomics.zip** (zip archive containing qc-report.html and resources/ folder for all samples)
+
+<br>
+
+---
+## 2. Create Proteome FASTA Database
+
+### 2a. Download Proteome from UniProt
+
+```bash
+philosopher workspace --init
+philosopher database \
+  --id UPXXXXXXXXX \
+  --reviewed \
+  --nodecoys
+```
+
+**Parameter Definitions:**
+
+- `--id` – UniProt proteome ID (e.g., UP000059680)
+- `--reviewed` – restrict to reviewed (Swiss-Prot) proteome entries
+- `--nodecoys` – do not append decoys (added in [Step 2b](#2b-add-decoys-and-contaminants-to-fasta))
+
+**Output Data:**
+
+- \*-reviewed-*.fas (reference proteome FASTA)
+
+<br>
+
+### 2b. Add Decoys and Contaminants to FASTA
+
+```bash
+philosopher workspace --init
+philosopher database \
+  --custom /path/to/proteome.fasta \
+  --prefix rev_ \
+  --contam
+philosopher workspace --clean
+```
+
+**Parameter Definitions:**
+
+- `--custom` – path to reference FASTA from [Step 2a](#2a-download-proteome-from-uniprot)
+- `--prefix rev_` – prefix for reversed decoy sequences
+- `--contam` – add 116 common contaminant proteins to the FASTA database (see [Philosopher Database Wiki](https://github.com/Nesvilab/philosopher/wiki/Database))
+
+**Output Data:**
+
+- \*-decoys-reviewed-contam-\*.fas (FASTA database containing the proteome with reversed decoy sequences and common contaminants added)
+
+<br>
+
+---
+
+## 3. Configure Metadata
+
+<br>
+
+### 3a. Create data sheet and sample sheet
+
+> Note: The data sheet and sample sheet may be created manually by following the [data sheet](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md#data-sheet) and [sample sheet](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md#sample-sheet) specifications.
+
+```bash
+### Download the *ISA.zip file from the Open Science Data Repository ###
+
+dpt-get-isa-archive \
+ --accession OSD-###
+
+### Parse the metadata from the *ISA.zip file to create data sheet and sample sheet ###
+
+dpt-isa-to-runsheet --accession OSD-# \
+  --isa-archive *ISA.zip \
+  --plugin-dir dp_tools__NF_Proteomics_TMT/
+```
+
+**Parameter Definitions:**
+
+- `--accession` – OSD accession ID or GLDS accession ID (`GLDS-#`), used to retrieve the URLs for the ISA archive and raw data hosted in OSDR
+- `--isa-archive` – Specifies the *ISA.zip file for the respective OSD dataset, downloaded in the `dpt-get-isa-archive` command
+- `--plugin-dir` – Directory containing the `dp_tools` plugin used to extract sample sheet and data sheet fields from ISA metadata
+
+**Input Data:**
+
+- No input data required other than the OSD (or GLDS) accession ID, which is used to download the respective ISA archive
+
+**Output Data:**
+
+- \*ISA.zip (compressed ISA directory containing Investigation, Study, and Assay (ISA) metadata files for the respective OSD dataset, used to define sample groups — the *ISA.zip file is located in the [OSDR repository](https://osdr.nasa.gov/bio/repo/) under 'Files' → 'Study Metadata Files')
+
+- **{OSD-Accession-ID}_Proteomics_TMT_v{version}_data_sheet.csv** (table containing mass spectrometry data file information required for processing; version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
+
+- **{OSD-Accession-ID}_Proteomics_TMT_v{version}_sample_sheet.csv** (table containing sample metadata required for processing; version denotes the dp_tools schema used to specify the metadata to extract from the ISA archive)
+
+<br>
+
+### 3b. Create manifest and experiment annotation
+
+```bash
+runsheet_to_metadata.py \
+  --data_sheet {OSD-Accession-ID}_Proteomics_TMT_v{version}_data_sheet.csv \
+  --sample_sheet {OSD-Accession-ID}_Proteomics_TMT_v{version}_sample_sheet.csv \
+  --assay_suffix _GLProteomics
+```
+
+**Parameter Definitions:**
+
+- `--data_sheet` – path to data sheet CSV (see [data sheet specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md#data-sheet))
+- `--sample_sheet` – path to sample sheet CSV (see [sample sheet specification](../Workflow_Documentation/NF_Proteomics/examples/runsheet/README.md#sample-sheet))
+- `--assay_suffix` – assay suffix for output filenames
+
+**Input Data:**
+
+- {OSD-Accession-ID}_Proteomics_TMT_v{version}_data_sheet.csv (table containing mass spectrometry data file information required for processing, output from [Step 3a](#3a-create-data-sheet-and-sample-sheet), or created manually)
+- {OSD-Accession-ID}_Proteomics_TMT_v{version}_sample_sheet.csv (table containing sample metadata required for processing, output from [Step 3a](#3a-create-data-sheet-and-sample-sheet), or created manually)
+
+**Output Data:**
+
+- **manifest_GLProteomics.tsv** (FragPipe input table; headerless columns in order:
+  - Path (mzML basename from data sheet `run` (`*.mzML`))
+  - Experiment (plex identifier from data sheet `plex`)
+  - Bioreplicate (from data sheet `TechRepMixture`)
+  - Data type (`DDA` from data sheet `data_type` column))
+
+- **experiment_annotation_GLProteomics.tsv** (FragPipeAnalystR input table with additional `condition_name` column; columns in order:
+  - plex (`{Experiment}_{Bioreplicate}`)
+  - channel (TMT reporter channel from sample sheet `channel`)
+  - sample (R-safe sample identifier from sample sheet `Sample Name`)
+  - sample_name (same as `sample`)
+  - condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values)
+  - condition_name (human-readable condition)
+  - replicate (from sample sheet `Bioreplicate` if set; else by `Source Name` if present; else from `Sample Name`))
+
+- **MSstatsTMT_annotation_GLProteomics.csv** (MSstatsTMT input table; columns in order:
+  - Run (run identifier from data sheet `run`)
+  - Fraction (LC fraction identifier from data sheet `fraction`)
+  - TechRepMixture (mixture/experiment technical replicate identifier from data sheet `TechRepMixture`)
+  - Mixture (plex identifier from data sheet `plex`)
+  - Channel (TMT reporter channel from sample sheet `channel`)
+  - BioReplicate (from sample sheet `Bioreplicate` if set; else by `Source Name` if present; else from `Sample Name`)
+  - Condition (R-safe condition symbol from joined sample sheet `Factor Value[...]` values))
+
+<br>
+
+### 3c. Get organism-specific gene annotations table
+
+```r
+### Sample sheet from Step 3a; organism must match the value in the species column of GL-DPPD-7110-A_annotations.csv ###
+sample_sheet_path <- "{OSD-Accession-ID}_Proteomics_TMT_v{version}_sample_sheet.csv"
+sample_sheet <- read.csv(sample_sheet_path, stringsAsFactors = FALSE, check.names = FALSE)
+organism <- trimws(as.character(sample_sheet[["organism"]][1]))
+
+### Pull in the GeneLab annotation table (GL-DPPD-7110-A_annotations.csv) ###
+org_table_link <- "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv"
+
+org_table <- read.table(org_table_link, sep = ",", header = TRUE)
+
+### URL of the organism-specific GeneLab gene annotation table ###
+annotations_link <- org_table[org_table$species == organism, "genelab_annots_link"]
+```
+
+**Input Data:**
+
+- {OSD-Accession-ID}_Proteomics_TMT_v{version}_sample_sheet.csv (output from [Step 3a](#3a-create-data-sheet-and-sample-sheet); `organism` column value must match a value in the `species` column of [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv))
+
+**Output Data:**
+
+- annotations_link (variable containing URL of organism-specific GeneLab gene annotation table)
+
+<br>
+
+### 3d. Stage mzML by plex and create channel-sample annotation
+
+```bash
+# TMT: reorganize mzML into plex-specific (manifest.tsv Experiment_Bioreplicate) folders + create annotation.txt before FragPipe
+bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProteomics.tsv TMT16
+```
+
+**Parameter Definitions:**
+
+- `manifest_GLProteomics.tsv` – path to FragPipe manifest table
+- `experiment_annotation_GLProteomics.tsv` – path to FragPipe experiment_annotation table 
+- `TMT16` – isobaric multiplex type; sets reporter channel order and row count for each annotation table created
+
+**Input Data:**
+
+- manifest_GLProteomics.tsv (FragPipe input table, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- experiment_annotation_GLProteomics.tsv (FragPipeAnalystR input table with additional `condition_name` column, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- \*.mzML (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- {Experiment}_{Bioreplicate}/\*.mzML (input mass spectrometry raw data in mzML format organized into subdirectories by plex)
+- {Experiment}_{Bioreplicate}/annotation.txt (channel-sample annotation table for each plex)
+- manifest_GLProteomics.tsv (FragPipe input table with mzML file paths updated with plex directories)
+
+<br>
+
+---
+
+## 4. FragPipe Processing Pipeline
+
+<br>
+
+### 4a. Launch FragPipe
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/bin/fragpipe \
+  --headless \
+  --workflow TMT16-phospho.workflow \
+  --manifest manifest_GLProteomics.tsv \
+  --workdir . \
+  --ram 64 \
+  --threads 16 \
+  --config-tools-folder tools
+```
+
+**Parameter Definitions:**
+
+- `--headless` – run FragPipe in headless mode (no GUI)
+- `--workflow` – path to FragPipe workflow configuration file
+- `--manifest` – path to manifest TSV file containing plex information and file paths
+- `--workdir` – working directory for FragPipe execution
+- `--ram` – Memory (GB) allocated to FragPipe
+- `--threads` – number of CPU threads allocated to FragPipe
+- `--config-tools-folder` – path to folder containing FragPipe tools not included in the Docker image (MSFragger JAR, IonQuant JAR, diaTracer JAR, ext/bruker/, ext/thermo/)
+
+> Note: NF_Proteomics updates the workflow configuration file to use Philosopher for TMT reporter-ion extraction to generate MSstatsTMT-compatible output. This is accomplished by setting the following configuration parameters:
+
+  - `tmtintegrator.extraction_tool=Philosopher`
+  - `tmtintegrator.philosopher-msstats=true`
+  - `ionquant.run-ionquant=false`
+
+**Input Data:**
+
+- TMT16-phospho.workflow (FragPipe workflow configuration file for TMT16-phospho workflow)
+- manifest_GLProteomics.tsv (FragPipe input table, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
+- \*.mzML (input mass spectrometry raw data in mzML format)
+- \*_annotation.txt (channel-sample annotation table for each plex, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
+
+**Output Data:**
+
+- fragger.params (MSFragger parameter configuration file)
+- tmt-integrator-conf.yml (TMT-Integrator configuration file)
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
+- experiment_annotation.tsv (experiment annotation file mapping TMT channels to samples)
+- fragpipe.workflow (FragPipe output workflow configuration file)
+- fragpipe-files.fp-manifest (FragPipe output manifest)
+- fragpipe.job (FragPipe job configuration file)
+- log_\*.txt (FragPipe execution log file with timestamp)
+- sdrf.tsv (Sample and Data Relationship Format file)
+
+<br>
+
+### 4b. Check Spectral Files Centroid Status
+
+```bash
+java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 16
+```
+
+**Parameter Definitions:**
+
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
+- `-cp` – Java classpath to FragPipe and BatMass libraries
+- `org.nesvilab.fragpipe.util.CheckCentroid` – CheckCentroid main class
+- `*.mzML` – input mzML file(s) to check
+- `16` – number of CPU threads to use
+
+**Input Data:**
+
+- \*.mzML (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- (No output files; checks if mzML files are centroided or profile mode; FragPipe exits if files are not centroided)
+
+<br>
+
+### 4c. Initialize Workspace
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 workspace --clean --nocheck
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 workspace --init --nocheck --temp /tmp/temp_directory
+```
+
+**Parameter Definitions:**
+
+- `workspace` – Philosopher subcommand for managing workspace
+- `--clean` – removes any existing workspace files
+- `--init` – initializes a new Philosopher workspace
+- `--nocheck` – skips workspace validation checks
+- `--temp` – specifies temporary directory for workspace initialization
+
+**Output Data:**
+
+- .meta/ (Philosopher workspace metadata directory containing binary database files)
+
+<br>
+
+### 4d. MSFragger Database Search
+
+```bash
+java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.3.jar fragger.params plexA_1/sample1.mzML plexA_1/sample2.mzML
+```
+
+**Parameter Definitions:**
+
+- `-jar` – executes JAR file
+- `-Dfile.encoding=UTF-8` – sets file encoding to UTF-8
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
+- `fragger.params` – MSFragger parameter configuration file
+- `*.mzML` – multiple mzML files provided as individual paths separated by spaces
+
+**Input Data:**
+
+- fragger.params (MSFragger parameter configuration file, output from [Step 4a](#4a-launch-fragpipe))
+- \*.mzML (input mass spectrometry raw data in mzML format)
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
+
+**Output Data:**
+
+- **\*.pepindex** (peptide index files for the FASTA database)
+- **\*.pepXML** (peptide-spectrum matches from the MSFragger database search)
+- **\*.pin** (peptide-spectrum matches from the MSFragger database search in Percolator input format (PIN) for statistical validation)
+
+<br>
+
+### 4e. Percolator PSM Rescoring and Statistical Validation
+
+<br>
+
+#### 4e1. Perform Percolator PSM Rescoring and Statistical Validation
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/percolator_3_7_1/linux/percolator \
+  --only-psms \
+  --no-terminate \
+  --post-processing-tdc \
+  --num-threads 16 \
+  --results-psms *_percolator_target_psms.tsv \
+  --decoy-results-psms *_percolator_decoy_psms.tsv \
+  --protein-decoy-pattern rev_ \
+  *.pin
+```
+
+**Parameter Definitions:**
+
+- `--only-psms` – do not remove redundant peptides, keep PSMs, exclude peptide level probabilities
+- `--no-terminate` – do not terminate execution when encountering issues with SVM inputs or results
+- `--post-processing-tdc` – replace mix-max method with target-decoy competition for assigning q-values and PEPs. For input PSMs from separate target/decoy searches, Percolator SVM scores eliminate lower-scoring target or decoy PSMs for each scan+expMass combination. Automatically enabled for concatenated searches
+- `--num-threads` – number of CPU threads to use
+- `--results-psms` – output file path for target PSM results
+- `--decoy-results-psms` – output file path for decoy PSM results
+- `--protein-decoy-pattern` – text pattern used to identify decoy proteins in the database
+- `*.pin` – input Percolator input files from MSFragger
+
+**Input Data:**
+
+- \*.pin (Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
+
+**Output Data:**
+
+- \*_percolator_target_psms.tsv (Percolator target PSM results in TSV format)
+- \*_percolator_decoy_psms.tsv (Percolator decoy PSM results in TSV format)
+
+<br>
+
+#### 4e2. Add Percolator Validation Information to pepXML
+
+```bash
+java -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/* \
+  org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML \
+  *.pin \
+  * \
+  *_percolator_target_psms.tsv \
+  *_percolator_decoy_psms.tsv \
+  interact-* \
+  DDA \
+  0.5 \
+  *.mzML
+```
+
+**Parameter Definitions:**
+
+- `-cp` – Java classpath to FragPipe libraries
+- `org.nesvilab.fragpipe.tools.percolator.PercolatorOutputToPepXML` – FragPipe utility class for adding Percolator validation information to pepXML files
+- `*.pin` – original Percolator input PIN file
+- `*` – sample name
+- `*_percolator_target_psms.tsv` – Percolator target PSM results
+- `*_percolator_decoy_psms.tsv` – Percolator decoy PSM results
+- `interact-*` – output pepXML file prefix
+- `DDA` – data acquisition type (DDA|DIA|GPF-DIA|DIA-Quant|DIA-Lib)
+- `0.5` – minimum probability threshold (1 - PEP); filters out PSMs with PEP > 0.5
+- `*.mzML` – input mzML file path
+
+**Input Data:**
+
+- \*.pin (original Percolator input files from MSFragger, output from [Step 4d](#4d-msfragger-database-search))
+- \*_percolator_target_psms.tsv (Percolator target PSM results, output from [Step 4e1](#4e1-perform-percolator-psm-rescoring-and-statistical-validation))
+- \*_percolator_decoy_psms.tsv (Percolator decoy PSM results, output from [Step 4e1](#4e1-perform-percolator-psm-rescoring-and-statistical-validation))
+- \*.mzML (input mass spectrometry raw data in mzML format)
+
+**Output Data:**
+
+- interact-\*.pep.xml (peptide-spectrum matches with validation information generated by Percolator)
+
+<br>
+
+### 4f. PTMProphet PTM Localization
+
+```bash
+PTMProphetParser-7.3.0 \
+  NOSTACK \
+  KEEPOLD \
+  STATIC \
+  FRAGPPMTOL=10 \
+  EM=1 \
+  NIONS=b \
+  M:15.9949,STY:79.96633 \
+  MINPROB=0.5 \
+  MAXTHREADS=1 \
+  interact-*.pep.xml \
+  interact-*.mod.pep.xml
+```
+
+**Parameter Definitions:**
+
+- `NOSTACK` – do not stack modifications at the same site
+- `KEEPOLD` – keep old PTMProphet results in the pepXML file
+- `STATIC` – use static fragment tolerance
+- `FRAGPPMTOL=10` – +/- MS2 mz tolerance on fragment ions in PPM
+- `EM=1` – EM models: 1 = Intensity EM Model Applied
+- `NIONS=b` – use specified N-term ions
+- `M:15.9949,STY:79.96633` – modification specification format: `<amino acids>:<mass_shift>`. M:15.9949 = oxidation on methionine, STY:79.96633 = phosphorylation on serine/threonine/tyrosine
+- `MINPROB=0.5` – minimum probability to evaluate peptides
+- `MAXTHREADS=1` – number of threads for processing (0 uses all available processors)
+- `interact-*.pep.xml` – input pepXML files
+- `interact-*.mod.pep.xml` – output pepXML files with localization information
+
+**Input Data:**
+
+- interact-\*.pep.xml (pepXML files with Percolator validation information, output from [Step 4e2](#4e2-add-percolator-validation-information-to-pepxml))
+
+**Output Data:**
+
+- interact-\*.mod.pep.xml (pepXML files containing PTM site probabilities and other localization statistics)
+
+<br>
+
+### 4g. ProteinProphet Protein Inference and Statistical Validation
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 proteinprophet --maxppmdiff 2000000 --minprob 0.5 --output combined filelist_proteinprophet.txt
+```
+
+**Parameter Definitions:**
+
+- `proteinprophet` – run ProteinProphet to generate probabilities for protein identifications based on MS/MS data
+- `--maxppmdiff 2000000` – maximum peptide mass difference in ppm 
+- `--minprob 0.5` – PeptideProphet minimum probability threshold 
+- `--output combined` – output file name; results in `combined.prot.xml`
+- `filelist_proteinprophet.txt` – list of interact.pep.xml files to be passed to ProteinProphet
+
+**Input Data:**
+
+- filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet, output from [Step 4a](#4a-launch-fragpipe))
+- interact-\*.mod.pep.xml (pepXML files with PTM localization information, output from [Step 4f](#4f-ptmprophet-ptm-localization))
+
+**Output Data:**
+
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher)
+
+<br>
+
+### 4h. Database Annotation
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 database --annotate *.fas --prefix rev_
+```
+
+**Parameter Definitions:**
+
+- `database --annotate` – annotate FASTA database file (creates binary database files for Philosopher tools)
+- `*.fas` – path to FASTA database file
+- `--prefix rev_` – decoy prefix used in the database
+
+**Input Data:**
+
+- \*-decoys-reviewed-contam-\*.fas (proteome FASTA database with decoys and contaminants, output from [Step 2](#2b-add-decoys-and-contaminants-to-fasta))
+
+**Output Data:**
+
+- .meta/ (Philosopher workspace metadata directory containing binary database files)
+
+<br>
+
+### 4i. Filter Results by FDR
+
+```bash
+# First plex (initializes database annotation)
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml plex_directory \
+  --protxml combined.prot.xml \
+  --razor
+
+# Subsequent plexes (reuse database annotation from first plex)
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 filter \
+  --sequential \
+  --prot 0.01 \
+  --picked \
+  --tag rev_ \
+  --pepxml plex_directory \
+  --dbbin first_plex_directory \
+  --protxml combined.prot.xml \
+  --probin first_plex_directory \
+  --razor
+```
+
+**Parameter Definitions:**
+
+- `filter` – filter PSMs, peptides, and proteins by FDR threshold
+- `--sequential` – apply sequential FDR filtering at PSM, peptide, and ion levels in addition to protein level FDR
+- `--prot 0.01` – protein-level FDR threshold
+- `--picked` – apply picked FDR algorithm prior to protein scoring
+- `--tag rev_` – decoy sequence prefix
+- `--pepxml` – path to plex directory containing run-specific pepXML files
+- `--protxml combined.prot.xml` – path to protXML file
+- `--dbbin` – (for subsequent plexes) path to first plex directory containing database annotation
+- `--probin` – (for subsequent plexes) path to first plex directory containing protein annotation
+- `--razor` – use razor peptides for protein-level FDR scoring
+
+**Input Data:**
+
+- interact-\*.mod.pep.xml (peptide-spectrum matches with PTM localization information, output from [Step 4f](#4f-ptmprophet-ptm-localization))
+- combined.prot.xml (protein identifications with validation information generated by ProteinProphet via Philosopher, output from [Step 4g](#4g-proteinprophet-protein-inference-and-statistical-validation))
+- .meta/ (Philosopher workspace metadata, output from [Step 4h](#4h-database-annotation))
+
+**Output Data:**
+
+- filter.log (Philosopher filter execution log file)
+- Filtered data stored in Philosopher workspace as binary files (db.bin, ion.bin, pep.bin, pro.bin, protxml.bin, psm.bin, razor.bin, etc.; filtered PSM, peptide, and protein data ready for report generation)
+
+<br>
+
+### 4j. Generate Reports
+
+```bash
+/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/Philosopher/philosopher-v5.1.3-RC9 report
+```
+
+**Input Data:**
+
+- Philosopher workspace containing filtered data (output from [Step 4i](#4i-filter-results-by-fdr))
+
+**Output Data:**
+
+- protein.fas (FASTA file containing FDR-filtered protein sequences identified)
+- protein.tsv (plex-specific FDR-filtered protein results; one row per protein group)
+- peptide.tsv (plex-specific FDR-filtered search results; one row per identified peptide sequence; ions collapsed)
+- psm.tsv (plex-specific FDR-filtered search results; one row per peptide-spectrum match (PSM))
+- ion.tsv (plex-specific FDR-filtered search results; one row per peptide sequence, charge, and modification state; PSMs collapsed)
+
+<br>
+
+### 4l. TMT-Integrator TMT Quantification
+
+```bash
+java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
+  tmt-integrator-conf.yml \
+  sample1/psm.tsv \
+  sample2/psm.tsv
+```
+
+**Parameter Definitions:**
+
+- `-Xmx64G` – Java memory limit (e.g., `-Xmx64G` for 64 GB RAM)
+- `-jar` – executes JAR file
+- `tmt-integrator-conf.yml` – TMT-Integrator configuration file
+- `*/psm.tsv` – PSM reports
+
+**Input Data:**
+
+- tmt-integrator-conf.yml (TMT-Integrator configuration file, output from [Step 4a](#4a-launch-fragpipe))
+- psm.tsv (PSM reports from [Step 4j](#4j-generate-reports))
+- \*_annotation.txt (plex-specific channel-sample annotation, output from [Step 3d](#3d-stage-mzml-by-plex-and-create-channel-sample-annotation))
+- \*.mzML (input mass spectrometry raw data in mzML format; per plex)
+
+**Output Data:**
+
+- **abundance_protein_MD.tsv** (protein-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities; `_MD` suffix = median centering normalization per sample)
+- **abundance_peptide_MD.tsv** (peptide-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **abundance_gene_MD.tsv** (gene-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **abundance_single-site_MD.tsv** (single PTM site–level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **abundance_multi-site_MD.tsv** (multi-site PTM–level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
+- **ratio_protein_MD.tsv** (protein-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_peptide_MD.tsv** (peptide-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_gene_MD.tsv** (gene-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_single-site_MD.tsv** (single PTM site–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **ratio_multi-site_MD.tsv** (multi-site PTM–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
+- **msstats.csv** (input file for MSstatsTMT differential abundance analysis and MSstatsPTM PTM differential analysis)
+
+<br>
+
+---
+
+## 5. Compile FragPipe QC Reports
+
+```bash
+multiqc --fragpipe-plugin \
+  -o /path/to/pmultiqc/output/directory \
+  -n multiqc_GLProteomics \
+  -z \
+  /path/to/FragPipe/output/directory
+```
+
+**Parameter Definitions:**
+
+- `--fragpipe-plugin` – enable FragPipe plugin for MultiQC to process FragPipe output files
+- `-o` – the output directory to store results
+- `-n` – prefix name for output files
+- `-z` – compress the MultiQC data directory
+- `/path/to/FragPipe/output/directory` – the directory containing FragPipe output files, provided as a positional argument
+
+**Input Data:**
+
+- psm.tsv (plex-specific PSM reports, output from [Step 4j](#4j-generate-reports))
+- ion.tsv (plex-specific ion reports, output from [Step 4j](#4j-generate-reports))
+- peptide.tsv (plex-specific peptide reports, output from [Step 4j](#4j-generate-reports))
+- protein.tsv (plex-specific protein reports, output from [Step 4j](#4j-generate-reports))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- fragpipe.workflow (FragPipe workflow configuration file, output from [Step 4a](#4a-launch-fragpipe))
+- fragger.params (MSFragger parameters file, output from [Step 4a](#4a-launch-fragpipe))
+
+**Output Data:**
+
+- **multiqc_GLProteomics.html** (MultiQC output html summary)
+- **multiqc_GLProteomics_data.zip** (zipped directory containing MultiQC output data)
+
+<br>
+
+---
+
+## 6. MSstatsTMT Differential Abundance Analysis
+
+```bash
+msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLProteomics
+```
+
+**Parameter Definitions:**
+
+- `msstatstmt_analysis.R` – R script for MSstatsTMT differential abundance analysis
+- `.` – root directory for output
+- `MSstatsTMT_annotation_GLProteomics.csv` – MSstatsTMT annotation (Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition; output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- `msstats.csv` – Philosopher MSstats input file from FragPipe
+- `_GLProteomics` – assay suffix appended to output filenames
+
+**Input Data:**
+
+- msstats.csv (MSstats input file, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- MSstatsTMT_annotation_GLProteomics.csv (MSstatsTMT annotation table, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+
+**Output Data:**
+
+- **msstatstmt_comparison_GLProteomics.csv** (all MSstatsTMT pairwise comparisons)
+- **msstatstmt_contrasts_GLProteomics.csv** (contrast definitions)
+
+<br>
+
+---
+
+## 7. FragPipeAnalystR Downstream Analysis
+
+The FragPipeAnalystR downstream analysis script is executed four times: once using the **protein**-level quantification file (abundance_protein_MD.tsv), once using the **gene**-level quantification file (abundance_gene_MD.tsv), once using the **peptide**-level quantification file (abundance_peptide_MD.tsv), and once using the **site**-level quantification file (abundance_single-site_MD.tsv).
+
+**Protein run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_protein_MD.tsv" \
+  --mode "TMT" \
+  --level "protein" \
+  --feature_list_protein "" \
+  --feature_list_gene "" \
+  --top_n_protein 10 \
+  --top_n_gene 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Gene run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_gene_MD.tsv" \
+  --mode "TMT" \
+  --level "gene" \
+  --feature_list_gene "" \
+  --top_n_gene 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Peptide run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_peptide_MD.tsv" \
+  --mode "TMT" \
+  --level "peptide" \
+  --feature_list_peptide "" \
+  --top_n_peptide 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Site run:**
+
+```bash
+Rscript FragPipeAnalystR_main.R \
+  --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
+  --quantification_file "abundance_single-site_MD.tsv" \
+  --mode "TMT" \
+  --level "site" \
+  --feature_list_site "" \
+  --top_n_site 10 \
+  --enrichment_database "Hallmark,GO_Biological_Process_2021" \
+  --enrichment_direction "Up,Down" \
+  --gsea_database "Hallmark,GO_Biological_Process_2021" \
+  --normalization_method "none" \
+  --de_alpha 0.05 \
+  --de_lfc 1.0 \
+  --de_fdr "Benjamini Hochberg" \
+  --imputation_type "Perseus-type" \
+  --imputation_shift 1.8 \
+  --imputation_scale 0.3 \
+  --qc_plot_data "nonimputed" \
+  --sample_cvs_full_range "false" \
+  --volcano_display_names "true" \
+  --volcano_show_gene "true" \
+  --gene_annotations $annotations_link \
+  --output_dir "output/"
+```
+
+**Parameter Definitions:**
+
+- `--experiment_annotation` – path to experiment annotation TSV file (table mapping TMT channels to samples)
+- `--quantification_file` – path to TMT-Integrator abundance file (abundance_protein_MD.tsv, abundance_gene_MD.tsv, abundance_peptide_MD.tsv, or abundance_single-site_MD.tsv)
+- `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
+- `--level` – analysis level: `protein`, `gene`, `peptide`, or `site`
+- `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling)
+- `--de_alpha` – adjusted p-value threshold for DE significance
+- `--de_lfc` – log2 fold change threshold for DE significance
+- `--de_fdr` – FDR correction: `Benjamini Hochberg` or `Local and tail area-based` 
+- `--imputation_type` – imputation method: `none`, `Perseus-type`, `knn`, `MLE`, `min`, `zero`, `bpca`, `QRILC`, `MinDet`, `MinProb`, `nbavg`, `mixed` 
+- `--imputation_shift` – Perseus-type: manual_impute shift in SD units 
+- `--imputation_scale` – Perseus-type: manual_impute scale factor 
+- `--feature_list_protein` – comma-separated protein IDs for feature plots (protein level). Empty = use `--top_n_protein` 
+- `--feature_list_gene` – comma-separated gene names for feature plots. Empty = use `--top_n_gene`. Protein level only
+- `--feature_list_peptide` – comma-separated peptide IDs for feature plots (peptide level). Empty = use `--top_n_peptide` 
+- `--feature_list_site` – comma-separated site IDs for feature plots (site level). Empty = use `--top_n_site` 
+- `--top_n_protein` – when feature_list_protein empty, plot top N most variable by protein ID 
+- `--top_n_gene` – when feature_list_gene empty, plot top N most variable by gene 
+- `--top_n_peptide` – when feature_list_peptide empty, plot top N most variable by peptide ID 
+- `--top_n_site` – when feature_list_site empty, plot top N most variable by site ID 
+- `--qc_plot_data` – data for PCA, correlation, feature plots, sample CVs: `imputed` or `nonimputed`. If nonimputed has <2 complete features, PCA falls back to imputed with a warning
+- `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 
+- `--volcano_display_names` – display names on significant volcano points 
+- `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano. Peptide level uses Index; set `false` for peptide
+- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip 
+- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) 
+- `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
+- `--gene_annotations` – path or URL of gene annotations TSV/CSV; merges into DE_results on Gene. Empty = skip
+- `--assay_suffix` – assay suffix for output filenames; empty = no suffix
+- `--output_dir` – output directory for results
+
+**Input Data:**
+
+- experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- abundance_single-site_MD.tsv (TMT-Integrator site-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
+
+**Output Data:**
+
+- **FragPipeAnalystR_parameters_{level}_GLProteomics.txt** (run parameters)
+- **FragPipeAnalystR_{level}_GLProteomics.RData** (R data file containing SummarizedExperiment object)
+- **nonimputed_matrix_{level}_GLProteomics.csv** (from abundance_protein_MD.tsv / abundance_gene_MD.tsv / abundance_peptide_MD.tsv / abundance_single-site_MD.tsv: contaminants removed. NAs where feature not detected.)
+- **imputed_matrix_{level}_GLProteomics.csv** (same structure as nonimputed_matrix_{level}_GLProteomics.csv; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
+- **QC_plots_{level}_GLProteomics.zip** (QC plots folder)
+  - pca.pdf, .png (PCA plot)
+  - missing_value_heatmap.pdf, .png (missing value pattern heatmap)
+  - feature_numbers.pdf, .png (feature count per sample)
+  - sample_cvs.pdf, .png (sample coefficient of variation)
+  - density.pdf, .png (intensity distribution)
+- **comparison_plots_{level}_GLProteomics.zip** (comparison plots folder)
+  - correlation_heatmap.pdf, .png (sample correlation heatmap)
+  - feature/protein/boxplot/, feature/protein/violinplot/, feature/gene/boxplot/, feature/gene/violinplot/ (protein run: top 10 by protein ID and gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/gene/boxplot/, feature/gene/violinplot/ (gene run: top 10 by gene; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/peptide/boxplot/, feature/peptide/violinplot/ (peptide run: top 10 by peptide ID; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+  - feature/site/boxplot/, feature/site/violinplot/ (site run: top 10 by site ID; boxplot_\*.pdf, .png and violinplot_\*.pdf, .png)
+- **pathway_analysis_plots_{level}_GLProteomics.zip** (pathway analysis plots folder)
+  - or/ (over-representation analysis plots: or_database_direction.pdf, .png per database and direction)
+  - gsea/ (GSEA plots: gsea_database_contrast.pdf, .png per database and contrast)
+- **or_{database}_{direction}_{level}_GLProteomics.csv** (over-representation analysis results table for each enrichment database and direction)
+- **gsea_{database}_{contrast}_{level}_GLProteomics.csv** (GSEA results table for each GSEA database and contrast)
+- **DE_plots_{level}_GLProteomics.zip** (DE plots folder)
+  - DE_heatmap.pdf, .png (DE heatmap)
+  - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
+- **SampleTable_GLProteomics.csv** (table specifying the group or set of factor levels for each sample)
+- **contrasts_GLProteomics.csv** (table listing all pairwise group comparisons )
+- **DE_results_{level}_GLProteomics.csv** (differential expression results table; columns in order:
+    - Organism-specific gene annotations
+    - Protein level:
+      - Index (protein-group key from the quantification table; same string as `ProteinID` at protein level)
+      - NumberPSM (PSM count for the protein group)
+      - MaxPepProb (maximum peptide probability among PSMs used in quantification)
+      - ReferenceIntensity (log2 reference / bridge-channel intensity)
+      - ProteinID (protein group identifier; duplicate of `Index` at protein level)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID` / `Index`)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - Gene level:
+      - Index (gene name)
+      - NumberPSM (PSMs mapping to the gene that are used in quantification)
+      - ProteinID (protein identifier mapped to the gene)
+      - MaxPepProb (highest PeptideProphet probability among PSMs mapping to the gene that are used in quantification)
+      - ReferenceIntensity (log2 reference-channel abundance; real reference if provided, otherwise virtual reference from mean abundance across channels in the plex; global minimum reference for imputation; multi-plex: averaged across plexes)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID` — protein identifier mapped to the gene)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - Peptide level:
+      - Index (FASTA protein sequence header with start and end positions of the peptide within the protein)
+      - Gene (originating gene name)
+      - Peptide (stripped peptide sequence)
+      - NumberPSM (PSMs mapping to the peptide that are used in quantification)
+      - ProteinID (protein identifier)
+      - SequenceWindow (sequence window in the peptide report)
+      - MaxPepProb (highest PeptideProphet probability among PSMs for this peptide sequence used in quantification)
+      - ReferenceIntensity (log2 reference-channel abundance; real reference if provided, otherwise virtual reference from mean abundance across channels in the plex; global minimum reference for imputation; multi-plex: averaged across plexes)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID`)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - Site level:
+      - Index (FASTA protein sequence header with modified site location within the protein)
+      - Gene (originating gene name)
+      - Peptide (stripped peptide sequence with modification sites; residues with localized modifications are lower case)
+      - NumberPSM (PSMs mapping to the site that are used in quantification)
+      - ProteinID (protein identifier)
+      - SequenceWindow (peptide sequence around the localized modified site)
+      - MaxPepProb (highest PeptideProphet probability among PSMs for this sequence used in quantification)
+      - ReferenceIntensity (log2 reference-channel abundance; real reference if provided, otherwise virtual reference from mean abundance across channels in the plex; global minimum reference for imputation; multi-plex: averaged across plexes)
+      - name (FragPipeAnalystR: plot/table label from `ProteinID`)
+      - ID (FragPipeAnalystR: copy of `Index`)
+    - \* (sample or channel columns; log2 reporter abundance or ratio from the quantification matrix. Site-level outputs use single-site–summarized reporter channels: quantify from PSMs that contain only that site when possible; otherwise use the median across localized alternatives when the site is observed only together with additional sites.)
+    - For each pairwise group comparison (B)v(A):
+      - CI.L_(B)v(A) (lower bound of log2 fold-change confidence interval)
+      - CI.R_(B)v(A) (upper bound of log2 fold-change confidence interval)
+      - Log2fc_(B)v(A) (log2 fold change)
+      - P.value_(B)v(A) (unadjusted p-value)
+      - Adj.p.value_(B)v(A) (Benjamini-Hochberg adjusted p-value)
+      - Significant_(B)v(A) (boolean at chosen FDR and fold-change thresholds)
+    - significant (global; TRUE if significant in any contrast)
+    - All.mean (mean across all samples)
+    - All.stdev (standard deviation across all samples)
+    - For each group:
+      - Group.Mean_(group) (mean within group)
+      - Group.Stdev_(group) (standard deviation within group))
+      

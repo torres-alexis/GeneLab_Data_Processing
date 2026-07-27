@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/master/Proteomics/schema_sample_sheet.json",
+    "title": "GeneLab Proteomics TMT Sample Sheet Schema",
+    "description": "Schema for validating TMT sample sheet.",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "type": "string",
+                "description": "Sample name for the channel.",
+                "meta": ["id"]
+            },
+            "plex": {
+                "type": "string",
+                "description": "Plex identifier. Must match data_sheet."
+            },
+            "channel": {
+                "type": "string",
+                "description": "TMT channel (126, 127N, 127C, etc.)."
+            },
+            "Bioreplicate": {
+                "type": ["string", "integer"],
+                "description": "Biological replicate ID for MSstatsTMT BioReplicate and FragPipeAnalystR replicate. From sample sheet value if set; else by Source Name if present; else from Sample Name."
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species for gene annotations lookup.",
+                "meta": ["organism"]
+            },
+            "Source Name": {
+                "type": "string",
+                "description": "Identifier linking samples. Used to assign BioReplicate across channels and plexes when Bioreplicate is not set."
+            },
+            "Original Sample Name": {
+                "type": "string",
+                "description": "Used to map the sample name that will be used for processing to the original sample name. This is often identical except in cases where the original name includes spaces or weird characters."
+            }
+        },
+        "required": ["Sample Name", "plex", "channel"],
+        "patternProperties": {
+            "^Factor Value\\[.*\\]$": {
+                "type": "string",
+                "description": "Experimental condition."
+            }
+        },
+        "additionalProperties": true
+    }
+}
