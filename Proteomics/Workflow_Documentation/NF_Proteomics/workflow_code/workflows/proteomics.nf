@@ -109,12 +109,30 @@ workflow PROTEOMICS {
 
         // Convert sheet to list of samples (file metadata + path)
         def sheet_schema = is_tmt ? "$projectDir/schema_data_sheet.json" : "$projectDir/schema_runsheet.json"
+        // LFQ fractions: repeated Sample Name → stage as data_file basename stem; tech reps: same Source Name (Has Tech Reps), Sample Names should differ
+        def remapLfqFractionIds = { metas ->
+            if (is_tmt) {
+                return metas
+            }
+            def counts = metas.countBy { it.id?.toString() }
+            metas.collect { meta ->
+                def sid = meta.id?.toString()
+                if (!sid || (counts[sid] ?: 0) <= 1) {
+                    return meta
+                }
+                def base = file(meta.data_file.toString()).getName()
+                def stem = base.replaceAll(/(?i)\.mzML$/, '')
+                return meta + [id: stem]
+            }
+        }
         // Stage + RawBeans QC on full runsheet (all technical replicates)
         samples_full = sheet_in
             .flatMap { sheet_path ->
                 samplesheetToList(sheet_path, sheet_schema)
             }
             .map { row -> row[0] }
+            .toList()
+            .flatMap { metas -> remapLfqFractionIds(metas) }
         // FragPipe manifest + search use first tech rep only when params.first_technical_replicate_only
         def samples_fp
         if (params.first_technical_replicate_only) {
@@ -123,6 +141,8 @@ workflow PROTEOMICS {
                     samplesheetToList(sheet_path, sheet_schema)
                 }
                 .map { row -> row[0] }
+                .toList()
+                .flatMap { metas -> remapLfqFractionIds(metas) }
         } else {
             samples_fp = samples_full
         }

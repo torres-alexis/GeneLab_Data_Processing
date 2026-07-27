@@ -9,7 +9,7 @@
         "properties": {
             "Sample Name": {
                 "type": "string",
-                "description": "Unique identifier for the sample, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters.",
+                "description": "Sample identifier (biological sample). Should not include spaces or weird characters. If the same Sample Name appears on multiple rows with different data_file values (fractions), staging and FragPipe file names use each data_file basename instead.",
                 "meta": ["id"]
             },
             "Bioreplicate": {
@@ -26,6 +26,11 @@
                 "type": "string",
                 "description": "Identifier linking samples. Required when Has Tech Reps is TRUE. Used with Has Tech Reps to collapse technical replicate mzML rows before processing.",
                 "meta": ["source_name"]
+            },
+            "fraction": {
+                "type": "string",
+                "description": "Optional LC fraction ID. Only needed when the dataset has both fractionated runs and technical replicates.",
+                "meta": ["fraction"]
             },
             "Original Sample Name": {
                 "type": "string",

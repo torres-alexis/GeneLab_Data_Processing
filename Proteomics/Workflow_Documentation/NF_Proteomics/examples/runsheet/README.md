@@ -35,6 +35,9 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Source Name | string | Identifier linking samples. Used for handling technical replicates during processing. Multiple samples with the same Source Name may be collapsed during analysis depending on the Has Tech Reps setting. | RR3_BSL_B7 |
 | Has Tech Reps | bool | Indicates whether this sample is a technical replicate that should be collapsed with other samples sharing the same Source Name and Factor Value columns. Set to True for technical replicates that should be collapsed, False for distinct samples that should remain separate even if they share a Source Name. When not provided, treated as False. | True |
 | Bioreplicate | string | Numeric biological replicate ID for the FragPipe manifest. From runsheet value if set; else one ID per Source Name within each condition when Has Tech Reps column is present; else assigned in sheet order within each condition. See [FragPipe tutorial](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html). | 1 |
+| fraction | string | Optional LC fraction ID. Only needed when the dataset has both fractionated runs and technical replicates. | 1 |
+
+Note: If the same Sample Name appears on more than one row, staging/manifest file names use each `data_file` basename instead of `Sample Name`.
 
 ---
 

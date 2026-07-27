@@ -9,7 +9,8 @@ FragPipe manifest, FragPipeAnalystR experiment_annotation, and (TMT) MSstatsTMT 
 
 Outputs (cwd): manifest[.suffix].tsv, experiment_annotation[.suffix].tsv, and (TMT) MSstatsTMT_annotation[.suffix].csv.
 Manifest data_type column: from runsheet/data_sheet `data_type` per row.
-LFQ: Experiment from Factor Value columns or "1". Bioreplicate from explicit column, else sequential within each condition. When the runsheet has Has Tech Reps, assign from Source Name within each condition instead of row order. Has Tech Reps and Source Name: tech-rep collapse in filter_tech_reps.py.
+LFQ: Experiment from Factor Value columns or "1". Bioreplicate from explicit column, else sequential within each condition (once per Sample Name / run). When the runsheet has Has Tech Reps, assign from Source Name within each condition instead of row order. Has Tech Reps and Source Name: tech-rep collapse in filter_tech_reps.py.
+  LFQ fractions: per Sample Name / run that appears on >1 data_file row, that row's manifest/experiment_annotation file name uses the data_file basename (matches staging); other rows stay SampleName.mzML. Bioreplicate stays one ID per Sample Name. Colliding final file names error.
   TMT: Experiment=plex; manifest Bioreplicate=TechRepMixture from data sheet (required). fraction and TechRepMixture must be set on every data sheet row. plex column must match FragPipe folder (plex_Bioreplicate).
   MSstatsTMT annotation only: sample-sheet condition Pool is written as Norm (bridge channel); experiment_annotation keeps Pool for FragPipe/FPAR.
   MSstatsTMT annotation with --fragpipe_workflow TMT10/TMT16: emit every plex channel per run; sample-sheet channels keep condition/biorep, others Condition=Empty (partial plex on TMT10/TMT16).
@@ -146,7 +147,7 @@ def _assign_tmt_sample_bioreplicates(
 
 
 def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
-    """Map sample id (run or Sample Name) → numeric manifest Bioreplicate."""
+    """Map sample id (run or Sample Name) → numeric Bioreplicate (once per id)."""
     has_bio_col = "Bioreplicate" in (fieldnames or [])
     has_tr_col = "Has Tech Reps" in (fieldnames or [])
     sample_to_biorep = {}
@@ -155,7 +156,7 @@ def _assign_lfq_bioreplicates(rows, factor_columns, fieldnames) -> dict:
 
     for row in rows:
         sample_id = _get_sample_id(row)
-        if not sample_id:
+        if not sample_id or sample_id in sample_to_biorep:
             continue
         if has_bio_col and (row.get("Bioreplicate") or "").strip():
             sample_to_biorep[sample_id] = str(row.get("Bioreplicate").strip())
@@ -185,6 +186,45 @@ def _get_sample_id(row):
     if r:
         return r
     return (row.get("Sample Name") or "").strip()
+
+
+def _data_file_basename(row) -> str:
+    return Path((row.get("data_file") or "").strip()).name
+
+
+def _lfq_rows_with_data(rows) -> list:
+    return [r for r in rows if (r.get("data_file") or "").strip() and _get_sample_id(r)]
+
+
+def _lfq_repeated_sample_ids(rows) -> set:
+    """Sample ids (run or Sample Name) that appear on more than one data_file row."""
+    counts = Counter(_get_sample_id(r) for r in _lfq_rows_with_data(rows))
+    return {sid for sid, n in counts.items() if n > 1}
+
+
+def _lfq_manifest_filename(row, repeated_ids: set) -> str:
+    """Basename for fraction rows (repeated sample id); else SampleName.mzML."""
+    sid = _get_sample_id(row)
+    if sid in repeated_ids:
+        base = _data_file_basename(row)
+        if not base:
+            sys.exit(f"Error: missing data_file basename for Sample Name={sid!r}")
+        return base
+    return f"{sid}.mzML"
+
+
+def _validate_lfq_manifest_filenames(rows, repeated_ids: set) -> None:
+    """Require unique final manifest file names (basename or SampleName.mzML)."""
+    names = []
+    for row in _lfq_rows_with_data(rows):
+        names.append(_lfq_manifest_filename(row, repeated_ids))
+    dup = [n for n, c in Counter(names).items() if c > 1]
+    if dup:
+        shown = ", ".join(sorted(dup)[:5])
+        more = "..." if len(dup) > 5 else ""
+        sys.exit(
+            f"Error: LFQ manifest file names must be unique; duplicates: {shown}{more}"
+        )
 
 
 def _write_msstats_tmt_annotation(
@@ -343,7 +383,17 @@ def main():
             else:
                 sample_to_experiment[sample_name] = "1"
 
+    lfq_repeated_ids = set()
     if mode == "LFQ":
+        lfq_repeated_ids = _lfq_repeated_sample_ids(rows)
+        if lfq_repeated_ids:
+            _validate_lfq_manifest_filenames(rows, lfq_repeated_ids)
+            print(
+                "LFQ: repeated Sample Name/run detected for "
+                f"{len(lfq_repeated_ids)} id(s); those rows use data_file basenames "
+                "for manifest/experiment_annotation file names",
+                file=sys.stderr,
+            )
         sample_to_biorep = _assign_lfq_bioreplicates(rows, factor_columns, fieldnames)
     else:
         sample_to_biorep = {}
@@ -369,7 +419,11 @@ def main():
             if not sample_name:
                 sys.exit(f"Error: Missing 'run' or 'Sample Name' column in input for row: {row}")
 
-            input_file = f"{sample_name}.mzML"
+            input_file = (
+                _lfq_manifest_filename(row, lfq_repeated_ids)
+                if mode == "LFQ"
+                else f"{sample_name}.mzML"
+            )
             experiment = sample_to_experiment.get(sample_name, "1") if mode == "LFQ" else row.get("plex", "").strip() or ""
             data_type = _row_data_type(row)
             if mode == "TMT":
@@ -413,7 +467,7 @@ def main():
             cond_name = _condition_name_from_factors(row, factor_columns) or "Experiment"
             cond_safe = _condition_from_factors(row, factor_columns) or "Experiment"
             exp_rows.append({
-                "file": f"{sample_id}.mzML",
+                "file": _lfq_manifest_filename(row, lfq_repeated_ids),
                 "sample": sample,
                 "sample_name": sample_name_out,
                 "condition": cond_safe,
