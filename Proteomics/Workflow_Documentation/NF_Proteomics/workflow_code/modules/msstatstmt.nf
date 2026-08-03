@@ -26,6 +26,9 @@ process MSSTATSTMT {
 
     script:
     """
+    # Rename workdir msstats.csv header "Probability" -> "PeptideProphetProbability"
+    sed -i '1s/,Probability,/,PeptideProphetProbability,/' ${msstats_csv}
+
     msstatstmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
 
     echo '"${task.process}":' > versions.yml
