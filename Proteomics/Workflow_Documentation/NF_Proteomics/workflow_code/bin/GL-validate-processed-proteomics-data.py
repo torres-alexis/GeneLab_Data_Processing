@@ -59,7 +59,7 @@ def main():
 
         processing_info_dir = os.path.join(outdir, "processing_info")
         check_nonempty_file(os.path.join(processing_info_dir, "samples.txt"), log)
-        check_nonempty_glob(os.path.join(processing_info_dir, f"nextflow_log*{args.assay_suffix}.txt"), log)
+        check_nonempty_glob(os.path.join(processing_info_dir, f"nextflow_processing_info*{args.assay_suffix}.txt"), log)
         check_nonempty_glob(os.path.join(processing_info_dir, f"nextflow_run_command*{args.assay_suffix}.txt"), log)
 
         check_nonempty_file(os.path.join(outdir, "GeneLab", f"raw_md5sum{args.assay_suffix}.tsv"), log)

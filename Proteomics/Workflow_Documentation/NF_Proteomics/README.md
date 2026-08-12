@@ -381,7 +381,7 @@ The outputs of the post-processing workflow are described below:
 
    - **GeneLab/processing_info_GLProteomics.zip** (Archive containing workflow execution metadata and FragPipeAnalystR R data objects)
      - processing_info/samples.txt (single column list of all sample or run names in the dataset)
-     - processing_info/nextflow_log_GLProteomics.txt (Nextflow execution logs captured via `nextflow log`)
+     - processing_info/nextflow_processing_info_GLProteomics.txt (Nextflow execution logs captured via `nextflow log`)
      - processing_info/nextflow_run_command_GLProteomics.txt (Exact command line used to initiate the workflow)
      - processing_info/FragPipeAnalystR_*_GLProteomics.RData (SummarizedExperiment object `de_se` per FragPipeAnalystR level run: protein, gene, peptide, and site when applicable)
 
