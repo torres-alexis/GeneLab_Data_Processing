@@ -15,6 +15,7 @@ process CHECK_DECOYS_CONTAMS {
     def decoy_tag = params.philosopher_decoy_prefix ?: 'rev_'
     def needs_decoys = params.philosopher_decoys ? 'true' : 'false'
     def needs_contaminants = params.philosopher_contaminants ? 'true' : 'false'
+    def contam_prefix = (params.philosopher_contaminants && params.philosopher_contaminants_prefix) ? 'true' : 'false'
     
     """
     input_fasta=${proteome_fasta}
@@ -28,9 +29,6 @@ process CHECK_DECOYS_CONTAMS {
         echo "Decoys found in the fasta file"
     fi
     
-    # Check if contaminants exist (look for common contaminant UniProt IDs from cRAP)
-    # Selected IDs: Laboratory (P02769, P00760, P00711), Dust/Contact (P13645, P04264, O43790), 
-    # MW markers (P00004, P00698, P01012), UPS (P02768, P99999), Viral (P32503)
     echo Checking contaminants in \$input_fasta
     contaminant_ids="P02769|P00760|P00711|P13645|P04264|O43790|P00004|P00698|P01012|P02768|P99999|P32503"
     contaminant_pattern="\\|(\${contaminant_ids})\\|"
@@ -53,7 +51,11 @@ process CHECK_DECOYS_CONTAMS {
     
     if [ "${needs_contaminants}" = "true" ] && [ "\$has_contaminants" = "false" ]; then
         needs_processing=true
-        contam_flag="--contam"
+        if [ "${contam_prefix}" = "true" ]; then
+            contam_flag="--contam --contamprefix"
+        else
+            contam_flag="--contam"
+        fi
         echo "Contaminants need to be added"
     fi
     

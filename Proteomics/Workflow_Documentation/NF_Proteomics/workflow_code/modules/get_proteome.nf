@@ -11,7 +11,6 @@ process GET_PROTEOME {
     path("*.fa*"), emit: proteome_fasta
 
     script:
-    // Build flags based on params (accessing directly from params since they're globals)
     def reviewed_flag = params.philosopher_reviewed ? '--reviewed' : ''
     def isoforms_flag = params.philosopher_isoforms ? '--isoform' : ''
     def contaminants_flag = params.philosopher_contaminants ? '--contam' : ''

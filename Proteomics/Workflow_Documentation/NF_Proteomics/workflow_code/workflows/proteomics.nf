@@ -4,10 +4,8 @@ include { FETCH_REFERENCE_PROTEOME } from '../modules/fetch_reference_proteome.n
 include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
-include { ISA_TO_TMT_SHEETS } from '../modules/isa_to_tmt_sheets.nf'
 include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
 include { STAGE_INPUT } from '../modules/stage_input.nf'
-// include { RAWBEANS_QC } from '../modules/rawbeans_qc.nf'
 include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
@@ -20,8 +18,8 @@ include { MSSTATSTMT } from '../modules/msstatstmt.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
-
 include { FILTER_TECH_REPS } from '../modules/filter_tech_reps.nf'
+include { VV_STEP } from '../modules/vv_step.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
@@ -67,15 +65,6 @@ workflow PROTEOMICS {
         if ( is_tmt ) {
             if ( params.data_sheet && params.sample_sheet ) {
                 sheet = Channel.fromPath(params.data_sheet, checkIfExists: true)
-            // } else if ( params.accession ) {
-            //     // STUB: ISA to TMT sheets. Implement dpt-isa-to-tmt-sheets in dp_tools later.
-            //     if ( params.isa_archive == null ) {
-            //         FETCH_ISA( output_dir, osd_accession, glds_accession )
-            //         ISA_TO_TMT_SHEETS( output_dir, osd_accession, glds_accession, FETCH_ISA.out.isa_archive, ch_dp_tools_plugin )
-            //     } else {
-            //         ISA_TO_TMT_SHEETS( output_dir, osd_accession, glds_accession, file(params.isa_archive), ch_dp_tools_plugin )
-            //     }
-            //     sheet = ISA_TO_TMT_SHEETS.out.data_sheet.map { it.toString() }
             } else {
                 error "TMT workflows require --data_sheet and --sample_sheet."
             }
@@ -98,9 +87,15 @@ workflow PROTEOMICS {
             }
         }
 
+        def tech_rep = (params.tech_rep ?: 'first').toString().trim().toLowerCase()
+        if (!(tech_rep in ['first', 'all'])) {
+            error "params.tech_rep must be first or all."
+        }
+        def keep_first_tr = (tech_rep == 'first')
+
         def sheet_in = sheet
         def sheet_fp
-        if (params.first_technical_replicate_only) {
+        if (keep_first_tr) {
             FILTER_TECH_REPS(ch_out_dir, sheet_in)
             sheet_fp = FILTER_TECH_REPS.out.filtered
         } else {
@@ -133,9 +128,9 @@ workflow PROTEOMICS {
             .map { row -> row[0] }
             .toList()
             .flatMap { metas -> remapLfqFractionIds(metas) }
-        // FragPipe manifest + search use first tech rep only when params.first_technical_replicate_only
+        // FragPipe manifest + search use collapsed sheet when tech_rep=first
         def samples_fp
-        if (params.first_technical_replicate_only) {
+        if (keep_first_tr) {
             samples_fp = sheet_fp
                 .flatMap { sheet_path ->
                     samplesheetToList(sheet_path, sheet_schema)
@@ -152,11 +147,8 @@ workflow PROTEOMICS {
             ? Channel.fromPath(params.sample_sheet).flatMap { samplesheetToList(it, "$projectDir/schema_sample_sheet.json") }
             : Channel.empty()
 
-        // Stage input mzML files for each sample / fraction
+        // mzML only. MSCONVERT exists but is not wired — convert Thermo .raw upstream.
         STAGE_INPUT(ch_out_dir, samples_full)
-        // Run RawBeans QC on each sample's raw data
-        // RAWBEANS_QC(ch_out_dir, STAGE_INPUT.out.mzml_files)
-        // Run RawBeans QC on all samples' raw data
         RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
 
         // Organism from runsheet / sample_sheet (one per dataset). Used for reference table lookups.
@@ -202,25 +194,6 @@ workflow PROTEOMICS {
         ch_sheets = sheet_fp.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
         FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)
         manifest = FRAGPIPE_METADATA_SETUP.out.manifest
-        // }
-        
-        ///////////////////////////////////////////////////////////
-        // HEADLESS FRAGPIPE PROCESSING:
-        ///////////////////////////////////////////////////////////
-        
-        // https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html
-        // https://msfragger-upgrader.nesvilab.org/ionquant/
-        // https://msfragger-upgrader.nesvilab.org/diatracer/
-        // https://msfragger.arsci.com/upgrader/ (includes ext files)
-
-        // Pass in folder containing external FragPipe tools
-        // |-- tools_folder/
-        // |      |-- diaTracer-[version].jar/
-        // |      |-- IonQuant-[version].jar/
-        // |      |-- MSFragger-[version].jar/
-        // |      |-- ext
-        // |            |-- bruker/
-        // |            |-- thermo/
 
         ch_fragpipe_tools = params.fragpipe_tools ? Channel.fromPath( params.fragpipe_tools ) : Channel.fromPath("NO_FILE")
 
@@ -246,10 +219,9 @@ workflow PROTEOMICS {
             error "ERROR: Provide fragpipe_workflow (preset: LFQ-MBR, TMT10, TMT16, TMT16-phospho) and optional fragpipe_workflow_config (path to .workflow file)."
         }
 
-        // Set database file in FragPipe Config file. For TMT workflows, also enable MSstats outputs [STUB]
         FRAGPIPE_CONFIG_SETUP(output_dir, fragpipe_config, proteome)
         // Join on id — do not combine(collect()) id lists: Groovy flattens List into tuple slots
-        ch_fragpipe_mzml = params.first_technical_replicate_only
+        ch_fragpipe_mzml = keep_first_tr
             ? STAGE_INPUT.out.mzml_files
                 .map { meta, mzml -> tuple(meta.id.toString(), mzml) }
                 .join(samples_fp.map { m -> tuple(m.id.toString(), 1) }, by: 0)
@@ -259,9 +231,9 @@ workflow PROTEOMICS {
 
         FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, ch_fragpipe_mzml, FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
 
-        ///////////////////////////////////////////////////////////
-        // END HEADLESS FRAGPIPE
-        ///////////////////////////////////////////////////////////
+        if (!params.skip_vv) {
+            VV_STEP(Channel.value('fragpipe'), FRAGPIPE.out.msstats_csv)
+        }
 
         // Run pmultiqc with FragPipe plugin
         ch_fragpipe_output_dir = FRAGPIPE.out.fragpipe_manifest.map { fragpipe_manifest -> fragpipe_manifest.parent }
@@ -292,6 +264,9 @@ workflow PROTEOMICS {
         if (params.fragpipe_workflow == 'LFQ-MBR') {
             MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.msstats_csv)
             ch_lfq_versions = MSSTATS.out.versions
+            if (!params.skip_vv) {
+                VV_STEP(Channel.value('msstats'), MSSTATS.out.comparison)
+            }
         }
         if (params.fragpipe_workflow?.startsWith('TMT')) {
             MSSTATSTMT(
@@ -300,6 +275,9 @@ workflow PROTEOMICS {
                 FRAGPIPE.out.msstats_csv
             )
             ch_tmt_versions = MSSTATSTMT.out.versions
+            if (!params.skip_vv) {
+                VV_STEP(Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
+            }
         }
 
         // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
@@ -336,6 +314,9 @@ workflow PROTEOMICS {
         }
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
+        if (!params.skip_vv) {
+            VV_STEP(Channel.value('fpar'), FRAGPIPEANALYSTR.out.output_files.flatten().collect())
+        }
 
         ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FRAGPIPEANALYSTR.out.versions)
 

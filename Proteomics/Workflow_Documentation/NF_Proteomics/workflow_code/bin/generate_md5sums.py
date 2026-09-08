@@ -62,6 +62,9 @@ def collect_processed_files(outdir, assay_suffix):
     out.extend(collect_matches(os.path.join(outdir, "RawBeans"), [f"rawbeans_report{assay_suffix}.zip"]))
     out.extend(collect_matches(os.path.join(outdir, "Metadata"), [
         "*runsheet*.csv",
+        "manifest*.tsv",
+        "experiment_annotation*.tsv",
+        "tech_reps_dropped.tsv",
     ]))
     out.extend(collect_matches(os.path.join(outdir, "Proteome"), ["*.fa*"]))
     out.extend(collect_matches(os.path.join(outdir, "pmultiqc"), [
@@ -101,6 +104,7 @@ def collect_processed_files(outdir, assay_suffix):
     out.extend(collect_matches(os.path.join(outdir, "GeneLab"), [
         f"software_versions{assay_suffix}.md",
         f"processing_info{assay_suffix}.zip",
+        f"processed_data_protocol{assay_suffix}.txt",
     ]))
 
     seen = set()

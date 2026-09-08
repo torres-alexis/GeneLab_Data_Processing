@@ -3,9 +3,8 @@ include { PACKAGE_PROCESSING_INFO } from '../modules/package_processing_info.nf'
 include { GENERATE_MD5SUMS } from '../modules/generate_md5sums.nf'
 include { VALIDATE_PROCESSING } from '../modules/validate_processing.nf'
 
-// Post-processing only: nextflow run main.nf --post_processing true ...
-// Expected to only run after main workflow run.
-// Expects processing_info/nextflow_processing_info_GLProteomics.txt, processing_info/nextflow_run_command_GLProteomics.txt, and processing_info/samples.txt in the processed output directory.
+// nextflow run main.nf --post_processing true ...
+// Needs processing_info/{nextflow_processing_info,nextflow_run_command,samples}* after the main run.
 workflow POST_PROCESSING {
     main:
         processed_dir = "${params.output_dir}/${params.results_dir ?: (params.accession ?: 'results')}"

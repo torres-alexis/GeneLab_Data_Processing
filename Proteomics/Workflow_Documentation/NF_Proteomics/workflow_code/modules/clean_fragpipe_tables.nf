@@ -24,7 +24,4 @@ process CLEAN_FRAGPIPE_TABLES {
         --type ${analysis_type} \\
         ${fragpipe_table_args}
     """
-    // echo '"${task.process}":' > versions.yml
-    // echo "    python: \$(python --version | sed 's/Python //')" >> versions.yml
-    
 }
