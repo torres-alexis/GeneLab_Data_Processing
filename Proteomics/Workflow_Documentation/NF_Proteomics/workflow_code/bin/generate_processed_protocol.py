@@ -29,6 +29,9 @@ def parse_args():
     parser.add_argument("--reference_proteome", default="", help="User-supplied reference proteome path param, if used")
     parser.add_argument("--reference_table", default="", help="GL-DPPD-7110-A reference table path/URL, if used for proteome")
     parser.add_argument("--used_proteome", default="", help="Proteome FASTA staged by the pipeline (decoys/contams applied)")
+    parser.add_argument("--min_appearance_one_condition", default="50", help="Min % observed in at least one condition before imputation")
+    parser.add_argument("--min_global_appearance", default="0", help="Min % observed globally before imputation")
+    parser.add_argument("--drop_decoys_contams", default="true", help="Whether decoys/contaminants were dropped before DE")
     parser.add_argument("--output", default=None, help="Protocol output filename")
     return parser.parse_args()
 
@@ -201,7 +204,37 @@ def generate_protocol_content(args, software_versions):
         f"together with feature, volcano, and heatmap visualization, and gene ontology and pathway enrichment analysis."
     )
 
-    return header + description + "\n"
+    extra = []
+    if _str_or_default(getattr(args, "drop_decoys_contams", None), "true").lower() in {"true", "1", "yes"}:
+        extra.append(
+            "Decoy sequences and contaminant-tagged proteins (Philosopher decoy / contam prefixes) were removed "
+            "from quantification tables before MSstats and FragPipeAnalystR; published comparison and DE tables "
+            "are checked for residual matches."
+        )
+    min_cond = _str_or_default(getattr(args, "min_appearance_one_condition", None), "50")
+    min_global = _str_or_default(getattr(args, "min_global_appearance", None), "0")
+    extra.append(
+        f"Before Perseus-type imputation, FragPipeAnalystR retained features observed in at least {min_cond}% of samples "
+        f"in one condition"
+        + (f" and at least {min_global}% of samples globally" if min_global not in {"", "0"} else "")
+        + ". Imputation used random seed 40."
+    )
+    extra.append(
+        "MSstats (peptide-level linear models, no Perseus imputation) and FragPipeAnalystR (limma on imputed "
+        "protein/peptide/gene/site intensities) are complementary and may disagree. "
+        "MSstats comparison rows with an Issue flag, non-finite fold change, missing p-value, or DF≤0 have p-values set to NA."
+    )
+    extra.append(
+        "FragPipeAnalystR over-representation and GSEA use human gene-set libraries (Enrichr / MSigDB / org.Hs.eg.db). "
+        "Non-human gene symbols are interpreted via shared-symbol homology, not species-native pathway annotation. "
+        "Containerized ggplot output may differ slightly from interactive sessions."
+    )
+    extra.append(
+        "Match-between-runs (LFQ-MBR) assumes technically compatible runs within one OSDR assay "
+        "(same instrument family / acquisition). Heterogeneous acquisitions should be split or run without MBR."
+    )
+
+    return header + description + " " + " ".join(extra) + "\n"
 
 
 def config_path_for_protocol(protocol_path):

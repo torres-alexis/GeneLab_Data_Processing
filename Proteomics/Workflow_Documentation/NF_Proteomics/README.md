@@ -270,7 +270,11 @@ nextflow run NF_PPP_1.0.0/main.nf \
 > *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
 
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
-* `--first_technical_replicate_only` - When true, use only the first runsheet row per technical-replicate group for FragPipe processing (`Has Tech Reps=TRUE` collapses; missing/blank/FALSE keeps each row). LFQ: `Source Name` + Factor Value columns; TMT data sheet: plex + TechRepMixture + fraction. (type: boolean, default: true)
+* `--tech_rep` - Technical replicate handling for FragPipe: `first` (default, keep the first technical replicate by runsheet order), `all` (search every technical replicate). LFQ: `Source Name` + Factor Value columns; TMT: plex + TechRepMixture + fraction. (type: string, default: "first")
+* `--require_bioreplicate` - Require `Bioreplicate` in the input runsheet (LFQ) or sample sheet (TMT). If false, missing values are inferred within each condition from runsheet order. (type: boolean, default: true)
+* `--drop_decoys_contams` - Drop Philosopher decoys (`rev_`) and contaminant-tagged IDs (`contam_`) before MSstats and FragPipeAnalystR. (type: boolean, default: true)
+* `--fp_analyst_keep_contaminants` - If true, FragPipeAnalystR keeps contaminants (manual dual-run). Does not change MSstats. (type: boolean, default: false)
+* `--skip_vv` - Skip between-step `VV_STEP` gates after FragPipe / MSstats / FPAR. End-of-run `VALIDATE_PROCESSING` still runs in post-processing. (type: boolean, default: false)
 * `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
@@ -281,12 +285,14 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--philosopher_enzyme` - Enzyme for digestion: trypsin, lys_c, lys_n, glu_c, chymotrypsin (type: string, default: "trypsin")
 * `--philosopher_spike_in` - Path to spike-in FASTA file to add to database (e.g., iRT peptides) (type: string, default: null)
 * `--philosopher_contaminants` - Add common contaminant proteins (type: boolean, default: true)
-* `--philosopher_contaminants_prefix` - Prefix for contaminant sequences when pulling from UniProt (type: string, default: null)
+* `--philosopher_contaminants_prefix` - Tag contaminant sequences with this prefix (`contam_`). Turns on Philosopher `--contamprefix` for UniProt pull and when contaminants are added to a custom FASTA. Empty/null = untagged. (type: string, default: "contam_")
 * `--philosopher_decoy_prefix` - Prefix for decoy sequences (type: string, default: "rev_")
 * `--philosopher_decoys` - Add decoy sequences to database (type: boolean, default: true)
 * `--fp_analyst_levels` - Comma-separated levels: protein, peptide, gene, site. Default: protein,peptide (LFQ) or protein,gene,peptide,site (TMT) when null (type: string, default: null)
 * `--fp_analyst_tmt_quant_type` - TMT only: abundance or ratio (type: string, default: "abundance")
-* `--fp_analyst_lfq_type` - LFQ column type: Intensity, MaxLFQ, or Spectral Count. raw_matrix/imputed_matrix assay: log2 for Intensity/MaxLFQ; raw for Spectral Count (type: string, default: "Intensity")
+* `--fp_analyst_lfq_type` - LFQ column type: Intensity, MaxLFQ, or Spectral Count. nonimputed_matrix/imputed_matrix assay: log2 for Intensity/MaxLFQ; raw for Spectral Count (type: string, default: "Intensity")
+* `--fp_analyst_min_global_appearance` - Min % of samples in which a feature must be observed (0 = off) (type: integer, default: 0)
+* `--fp_analyst_min_appearance_one_cond` - Min % observed in at least one condition before imputation (type: integer, default: 50)
 * `--fp_analyst_normalization_method` - Normalization applied before DE: none, MD (median), GN (global) (type: string, default: "none")
 <!-- vsn (Variance Stabilizing) is also available for LFQ/DIA only; not for TMT or Spectral Count -->
 * `--fp_analyst_imputation_type` - Imputation: none, Perseus-type, knn, MLE, min, zero, bpca, QRILC, MinDet, MinProb, nbavg, mixed (type: string, default: "Perseus-type")
@@ -295,8 +301,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--fp_analyst_de_alpha` - Adjusted p-value threshold for DE significance (type: float, default: 0.05)
 * `--fp_analyst_de_lfc` - Log2 fold change threshold for DE significance (type: float, default: 1.0)
 * `--fp_analyst_de_fdr` - FDR correction: 'Benjamini Hochberg' or 'Local and tail area-based' (type: string, default: "Benjamini Hochberg")
-* `--fp_analyst_enrichment_database` - Enrichment databases, e.g. Hallmark, GO_Biological_Process_2021, KEGG_2021_Human, Reactome_2022. '' = skip (type: string, default: "Hallmark,GO_Biological_Process_2021")
-* `--fp_analyst_enrichment_direction` - Enrichment direction(s): Up, Down, or comma-separated (e.g. Up,Down) (type: string, default: "Up,Down")
+* `--fp_analyst_enrichment_database` - Enrichr databases: `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `MSigDB_Hallmark_2020`, `KEGG_2021_Human`, `Reactome_2022`. Comma-separated. '' = skip. (type: string, default: "Hallmark,GO_Biological_Process_2021")
 * `--fp_analyst_gsea_database` - GSEA databases: Hallmark, GO_Biological_Process_2021, GO_Cellular_Component_2021, GO_Molecular_Function_2021, KEGG_2021_Human. Protein/gene/site only. '' = skip (type: string, default: "Hallmark,GO_Biological_Process_2021")
 * `--fp_analyst_protein_feature_list` - Comma-separated protein IDs for feature plots. Empty = use top_n_protein (type: string, default: null)
 * `--fp_analyst_gene_feature_list` - Comma-separated gene names for feature plots. Empty = use top_n_gene (type: string, default: null)
@@ -326,6 +331,8 @@ nextflow run NF_PPP_1.0.0/main.nf \
 ### 5. Additional Output Files
 
 > Note: The outputs from the Proteomics Processing Pipeline are documented in the [GL-DPPD-[LFQ-MBR]](../../Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md), [GL-DPPD-[TMT10]](../../Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md), [GL-DPPD-[TMT16]](../../Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md), and [GL-DPPD-[TMT16-phospho]](../../Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md) processing protocols.
+
+> **Interpretation:** MSstats (peptide-level models, no Perseus imputation) and FragPipeAnalystR (limma on imputed intensities) are complementary and will not give identical hit lists. FPAR pathway analysis uses **human** Enrichr / MSigDB / `org.Hs.eg.db` libraries; non-human symbols are shared-symbol homology, not species-native pathways. LFQ-MBR assumes one technically compatible cohort per OSDR assay.
 
 >Note: All outputs are written to a subdirectory within `--output_dir`. If `--results_dir` is specified, its value is used as the subdirectory name. Otherwise, the subdirectory defaults to `results/` when `--accession` is not provided, or to the GLDS accession (`GLDS-X`) when `--accession` is provided.
 

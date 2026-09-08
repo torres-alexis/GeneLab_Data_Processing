@@ -36,6 +36,9 @@ process GENERATE_PROCESSED_PROTOCOL {
             --reference_proteome "${reference_proteome}" \\
             --reference_table "${reference_table}" \\
             --used_proteome ${proteome_fasta} \\
+            --min_appearance_one_condition "${params.fp_analyst_min_appearance_one_cond ?: 50}" \\
+            --min_global_appearance "${params.fp_analyst_min_global_appearance ?: 0}" \\
+            --drop_decoys_contams "${params.drop_decoys_contams != false && params.drop_decoys_contams != 'false' ? 'true' : 'false'}" \\
             --output "processed_data_protocol${params.assay_suffix}.txt"
         """
 }

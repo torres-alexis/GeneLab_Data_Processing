@@ -792,7 +792,6 @@ Rscript FragPipeAnalystR_main.R \
   --top_n_protein 10 \
   --top_n_gene 10 \
   --enrichment_database "Hallmark,GO_Biological_Process_2021" \
-  --enrichment_direction "Up,Down" \
   --gsea_database "Hallmark,GO_Biological_Process_2021" \
   --normalization_method "none" \
   --de_alpha 0.05 \
@@ -820,7 +819,6 @@ Rscript FragPipeAnalystR_main.R \
   --feature_list_gene "" \
   --top_n_gene 10 \
   --enrichment_database "Hallmark,GO_Biological_Process_2021" \
-  --enrichment_direction "Up,Down" \
   --gsea_database "Hallmark,GO_Biological_Process_2021" \
   --normalization_method "none" \
   --de_alpha 0.05 \
@@ -848,7 +846,6 @@ Rscript FragPipeAnalystR_main.R \
   --feature_list_peptide "" \
   --top_n_peptide 10 \
   --enrichment_database "Hallmark,GO_Biological_Process_2021" \
-  --enrichment_direction "Up,Down" \
   --normalization_method "none" \
   --de_alpha 0.05 \
   --de_lfc 1.0 \
@@ -875,7 +872,6 @@ Rscript FragPipeAnalystR_main.R \
   --feature_list_site "" \
   --top_n_site 10 \
   --enrichment_database "Hallmark,GO_Biological_Process_2021" \
-  --enrichment_direction "Up,Down" \
   --gsea_database "Hallmark,GO_Biological_Process_2021" \
   --normalization_method "none" \
   --de_alpha 0.05 \
@@ -917,8 +913,7 @@ Rscript FragPipeAnalystR_main.R \
 - `--sample_cvs_full_range` – sample CVs: `true` = full range, `false` = 0–1 
 - `--volcano_display_names` – display names on significant volcano points 
 - `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano. Peptide level uses Index; set `false` for peptide
-- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `Hallmark`, `KEGG_2021_Human`, `Reactome_2022`, etc. Comma-separated for multiple. Empty = skip 
-- `--enrichment_direction` – enrichment direction(s): `Up`, `Down`, or comma-separated (e.g. `Up,Down`) 
+- `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `MSigDB_Hallmark_2020`, `KEGG_2021_Human`, `Reactome_2022`. Comma-separated for multiple. Empty = skip. 
 - `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
 - `--gene_annotations` – path or URL of gene annotations TSV/CSV; merges into DE_results on Gene. Empty = skip
 - `--assay_suffix` – assay suffix for output filenames; empty = no suffix
