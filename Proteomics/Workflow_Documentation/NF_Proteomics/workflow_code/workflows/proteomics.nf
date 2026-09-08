@@ -13,6 +13,7 @@ include { FRAGPIPE } from '../modules/fragpipe.nf'
 include { CLEAN_FRAGPIPE_TABLES } from '../modules/clean_fragpipe_tables.nf'
 include { ZIP_FRAGPIPE_OUTPUTS } from '../modules/zip_fragpipe_outputs.nf'
 include { PMULTIQC } from '../modules/pmultiqc.nf'
+include { DROP_DECOYS_CONTAMS } from '../modules/drop_decoys_contams.nf'
 include { MSSTATS } from '../modules/msstats.nf'
 include { MSSTATSTMT } from '../modules/msstatstmt.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
@@ -261,24 +262,8 @@ workflow PROTEOMICS {
         }
         ch_lfq_versions = Channel.empty()
         ch_tmt_versions = Channel.empty()
-        if (params.fragpipe_workflow == 'LFQ-MBR') {
-            MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, FRAGPIPE.out.msstats_csv)
-            ch_lfq_versions = MSSTATS.out.versions
-            if (!params.skip_vv) {
-                VV_STEP(Channel.value('msstats'), MSSTATS.out.comparison)
-            }
-        }
-        if (params.fragpipe_workflow?.startsWith('TMT')) {
-            MSSTATSTMT(
-                output_dir,
-                FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
-                FRAGPIPE.out.msstats_csv
-            )
-            ch_tmt_versions = MSSTATSTMT.out.versions
-            if (!params.skip_vv) {
-                VV_STEP(Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
-            }
-        }
+        def do_drop = (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false')
+        def keep_fpar_contams = (params.fp_analyst_keep_contaminants == true || params.fp_analyst_keep_contaminants == 'true')
 
         // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
         def fp_levels = params.fp_analyst_levels ?
@@ -312,6 +297,42 @@ workflow PROTEOMICS {
             ch_fp_analyst_inputs = ch_fp_analyst_inputs.mix(
                 ch_site.combine(FRAGPIPE_METADATA_SETUP.out.experiment_annotation).map { q, e -> tuple("site", q, e) })
         }
+
+        ch_msstats_in = FRAGPIPE.out.msstats_csv
+        if (do_drop) {
+            ch_drop_in = FRAGPIPE.out.msstats_csv.map { f -> tuple('msstats', f) }
+            if (!keep_fpar_contams) {
+                ch_drop_in = ch_drop_in.mix(ch_fp_analyst_inputs.map { kind, q, e -> tuple(kind, q) })
+            }
+            DROP_DECOYS_CONTAMS(ch_drop_in)
+            ch_msstats_in = DROP_DECOYS_CONTAMS.out.cleaned.filter { it[0] == 'msstats' }.map { it[1] }
+            if (!keep_fpar_contams) {
+                ch_fp_analyst_inputs = ch_fp_analyst_inputs
+                    .map { kind, q, e -> tuple(kind, e) }
+                    .join(DROP_DECOYS_CONTAMS.out.cleaned.filter { it[0] != 'msstats' })
+                    .map { kind, e, q -> tuple(kind, q, e) }
+            }
+        }
+
+        if (params.fragpipe_workflow == 'LFQ-MBR') {
+            MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, ch_msstats_in)
+            ch_lfq_versions = MSSTATS.out.versions
+            if (!params.skip_vv) {
+                VV_STEP(Channel.value('msstats'), MSSTATS.out.comparison)
+            }
+        }
+        if (params.fragpipe_workflow?.startsWith('TMT')) {
+            MSSTATSTMT(
+                output_dir,
+                FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
+                ch_msstats_in
+            )
+            ch_tmt_versions = MSSTATSTMT.out.versions
+            if (!params.skip_vv) {
+                VV_STEP(Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
+            }
+        }
+
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
         if (!params.skip_vv) {

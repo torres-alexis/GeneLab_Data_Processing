@@ -73,22 +73,11 @@ option_list <- list(
   make_option(c("--assay_suffix"), type = "character", default = "",
     help = "Assay suffix after level, e.g. _GLProteomics → filenames like nonimputed_matrix_<level>_GLProteomics.csv; SampleTable/contrasts use suffix only. Empty = no suffix.", metavar = "STRING"),
   make_option(c("--zip"), type = "character", default = "false",
-    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/pathway_analysis/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false"),
-  make_option(c("--drop_decoys_contams"), type = "character", default = "true",
-    help = "Drop decoy/contaminant rows from the quantification table before make_se (true/false)", metavar = "true|false"),
-  make_option(c("--decoy_prefix"), type = "character", default = "rev_",
-    help = "Philosopher decoy prefix", metavar = "STRING")
+    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/pathway_analysis/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
-
-.script_dir <- local({
-  args <- commandArgs(trailingOnly = FALSE)
-  f <- sub("^--file=", "", args[grepl("^--file=", args)])
-  if (length(f)) dirname(normalizePath(f[[1]])) else getwd()
-})
-source(file.path(.script_dir, "decoy_contam.R"))
 
 .or <- function(x, y) if (is.null(x) || is.na(x) || (is.character(x) && !nzchar(trimws(x)))) y else x
 .oneof <- function(x, valid, param) {
@@ -200,8 +189,7 @@ writeLines(c(
   paste("enrichment_direction: Up,Down"),
   paste("gsea_database:", opt$gsea_database),
   paste("gene_annotations:", opt$gene_annotations),
-  paste("zip:", .or(opt$zip, "false")),
-  paste("drop_decoys_contams:", .or(opt$drop_decoys_contams, "true"))
+  paste("zip:", .or(opt$zip, "false"))
 ), param_path)
 
 # Parse typed params (for downstream use)
@@ -256,27 +244,6 @@ if (mode == "LFQ") {
 }
 library(FragPipeAnalystR)
 quant_path <- opt$quantification_file
-drop_dc <- .oneof(.or(opt$drop_decoys_contams, "true"), c("true", "false"), "drop_decoys_contams") == "true"
-if (drop_dc) {
-  quant_sep <- if (grepl("\\.csv$", quant_path, ignore.case = TRUE)) "," else "\t"
-  quant_df <- read.table(
-    quant_path,
-    header = TRUE,
-    sep = quant_sep,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    quote = "",
-    comment.char = ""
-  )
-  n_before <- nrow(quant_df)
-  quant_df <- drop_decoy_contam_rows(
-    quant_df,
-    decoy_prefix = .or(opt$decoy_prefix, "rev_")
-  )
-  quant_path <- tempfile(fileext = if (quant_sep == ",") ".csv" else ".tsv")
-  write.table(quant_df, quant_path, sep = quant_sep, row.names = FALSE, quote = FALSE)
-  cat("Dropped decoy/contam features from quantification table:", n_before - nrow(quant_df), "\n")
-}
 data_se <- make_se_from_files(
   quant_path,
   exp_anno_path,

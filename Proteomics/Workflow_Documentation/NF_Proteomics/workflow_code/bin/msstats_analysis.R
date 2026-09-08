@@ -29,13 +29,6 @@ if (!grepl("/$", rootDir)) {
 }
 
 raw <- read.csv(msstats_csv_path, na.strings = c("", "NA", "0"), stringsAsFactors = FALSE)
-if (.dc_env_flag("DROP_DECOYS_CONTAMS", TRUE)) {
-    raw <- drop_decoy_contam_rows(
-        raw,
-        id_cols = intersect(c("ProteinName", "Protein"), names(raw)),
-        decoy_prefix = .dc_env_str("PHILOSOPHER_DECOY_PREFIX", "rev_")
-    )
-}
 raw$ProteinName <- factor(raw$ProteinName)
 raw$PeptideSequence <- factor(raw$PeptideSequence)
 

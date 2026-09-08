@@ -3,7 +3,7 @@
 ### Added
 
 - First release version of GeneLab Proteomics Nextflow workflow
-- `decoy_contam.py` / `decoy_contam.R`: drop `rev_` / `contam_` before MSstats and FragPipeAnalystR. Leading protein-group token (or all tokens). Params: `drop_decoys_contams`, `fp_analyst_keep_contaminants` (FPAR-only).
+- `DROP_DECOYS_CONTAMS`: `decoy_contam.py` drops `rev_` / `contam_` after FragPipe, before MSstats and FragPipeAnalystR. Leading protein-group token (or all tokens). Params: `drop_decoys_contams`, `fp_analyst_keep_contaminants` (FPAR-only).
 - Scrub MSstats / MSstatsTMT comparison rows with Issue, non-finite log2FC / logFC, missing p, or DF≤0 so adj.pvalue cannot stay 0.
 - Runsheet preflight: per-row `require_bioreplicate` (default true) and error on reused Bioreplicate across Source Names.
 - `--tech_rep` `first` (default) / `all`. `tech_reps_dropped.tsv` from keep-first.

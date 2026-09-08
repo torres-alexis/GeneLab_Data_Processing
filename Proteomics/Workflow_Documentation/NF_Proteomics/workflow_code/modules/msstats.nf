@@ -19,11 +19,7 @@ process MSSTATS {
     path("msstats_contrasts*.csv"), emit: contrasts, optional: true
 
     script:
-    def drop_dc = (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false') ? 'true' : 'false'
-    def decoy_prefix = (params.philosopher_decoy_prefix != null && params.philosopher_decoy_prefix != '') ? params.philosopher_decoy_prefix : 'rev_'
     """
-    export DROP_DECOYS_CONTAMS=${drop_dc}
-    export PHILOSOPHER_DECOY_PREFIX=${decoy_prefix}
     msstats_analysis.R . ${experiment_annotation} ${msstats_csv} ${params.assay_suffix}
     
     # Version info (back in work directory)

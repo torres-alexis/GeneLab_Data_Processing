@@ -62,9 +62,6 @@ process FRAGPIPEANALYSTR {
     def volcano_show_gene = (params.fp_analyst_volcano_show_gene == true || params.fp_analyst_volcano_show_gene == 'true') ? 'true' : 'false'
     def assay_suffix = (params.assay_suffix != null && params.assay_suffix != '') ? params.assay_suffix.toString() : ''
     def fp_zip = (params.fp_analyst_zip == true || params.fp_analyst_zip == 'true') ? 'true' : 'false'
-    def keep_contams = (params.fp_analyst_keep_contaminants == true || params.fp_analyst_keep_contaminants == 'true')
-    def drop_dc = (!keep_contams && (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false')) ? 'true' : 'false'
-    def decoy_prefix = (params.philosopher_decoy_prefix != null && params.philosopher_decoy_prefix != '') ? params.philosopher_decoy_prefix : 'rev_'
     def min_global = params.fp_analyst_min_global_appearance != null ? params.fp_analyst_min_global_appearance : 0
     def min_cond = params.fp_analyst_min_appearance_one_cond != null ? params.fp_analyst_min_appearance_one_cond : 50
     def lfq_type_arg = (mode == 'TMT') ? '' : "--lfq_type \"${lfq_type}\""
@@ -109,8 +106,6 @@ process FRAGPIPEANALYSTR {
         ${gene_annotations_arg} \\
         --assay_suffix "${assay_suffix}" \\
         --zip "${fp_zip}" \\
-        --drop_decoys_contams "${drop_dc}" \\
-        --decoy_prefix "${decoy_prefix}" \\
         --output_dir "output/"
 
     # Version info

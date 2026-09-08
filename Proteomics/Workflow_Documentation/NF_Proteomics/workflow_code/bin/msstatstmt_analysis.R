@@ -151,13 +151,6 @@ if (length(msstats_files) == 0) {
 }
 
 msstats_data <- read_msstats_table(msstats_files)
-if (.dc_env_flag("DROP_DECOYS_CONTAMS", TRUE)) {
-  msstats_data <- drop_decoy_contam_rows(
-    msstats_data,
-    id_cols = intersect(c("ProteinName", "Protein", "ProteinName.1"), names(msstats_data)),
-    decoy_prefix = .dc_env_str("PHILOSOPHER_DECOY_PREFIX", "rev_")
-  )
-}
 
 msstats_runs <- msstats_run_ids(msstats_data)
 run_filter <- filter_annotation_to_msstats(annotation_msstats, msstats_runs, assay_suffix)
