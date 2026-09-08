@@ -1,9 +1,4 @@
 process CHECK_DECOYS_CONTAMS {
-    publishDir path: { "${output_dir}/Proteome/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/*",
-        saveAs: { filename -> filename.replaceAll(/^output\//, '') }
-
     input:
     val(output_dir)
     path(proteome_fasta)

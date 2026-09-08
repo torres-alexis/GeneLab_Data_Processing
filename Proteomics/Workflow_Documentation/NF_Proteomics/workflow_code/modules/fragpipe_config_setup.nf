@@ -1,11 +1,6 @@
 process FRAGPIPE_CONFIG_SETUP {
     tag "${workflow_config.getName()}"
 
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "output/*.workflow",
-        saveAs: { it.replace("output/", "") }
-
     input:
     val(ch_outdir)
     path(workflow_config)

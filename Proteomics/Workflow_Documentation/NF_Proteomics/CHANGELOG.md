@@ -16,3 +16,4 @@
 - Default `philosopher_contaminants_prefix` is `contam_` (Philosopher `--contamprefix` on UniProt pull and custom FASTA add).
 - `drop_decoys_contams` now gates MSstats as well as FPAR.
 - Public `s3://` uses `aws.client.anonymous`. Docker profile no longer enables conda.
+- Workflow outputs (`publish:` / `output { }`) replace process `publishDir`. Same dest tree.

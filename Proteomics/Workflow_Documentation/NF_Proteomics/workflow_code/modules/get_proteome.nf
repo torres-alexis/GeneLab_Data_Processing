@@ -1,8 +1,5 @@
 process GET_PROTEOME {
     tag "${params.uniprot_id}"
-    publishDir path: { "${output_dir}/Proteome/" },
-        mode: params.publish_dir_mode,
-        pattern: "*.fa*"
 
     input:
     val(output_dir)

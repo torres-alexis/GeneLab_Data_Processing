@@ -1,26 +1,5 @@
 process FRAGPIPEANALYSTR {
     tag "${data_type}"
-    
-    publishDir path: { "${output_dir}/FragPipeAnalystR/${data_type}/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/**",
-        saveAs: { filename ->
-            def f = filename.toString()
-            if (f.endsWith('.RData') || f.endsWith('.Rdata')) {
-                return null
-            }
-            f.replaceFirst(/^output\//, '')
-        }
-    publishDir path: { "${output_dir}/processing_info/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/**",
-        saveAs: { filename ->
-            def f = filename.toString()
-            if (f.endsWith('.RData') || f.endsWith('.Rdata')) {
-                return f.replaceFirst(/^output\//, '')
-            }
-            null
-        }
 
     input:
     val(output_dir)
@@ -30,6 +9,7 @@ process FRAGPIPEANALYSTR {
 
     output:
     path("output/**"), emit: output_files
+    tuple val(data_type), path("output/**"), emit: published
     path("versions.yml"), emit: versions
 
     script:

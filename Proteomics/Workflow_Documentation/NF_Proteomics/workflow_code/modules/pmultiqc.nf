@@ -1,8 +1,4 @@
 process PMULTIQC {
-    publishDir path: { "${publishdir}" },
-        pattern:  "*.{html,zip}" ,
-        mode: params.publish_dir_mode
-    
     input:
     val(publishdir)
     path(fragpipe_output_dir)

@@ -2,9 +2,6 @@ process FETCH_ISA {
 
     tag "${osd_accession}"
 
-    publishDir path: { "${output_dir}/Metadata" },
-        mode: params.publish_dir_mode
-
     input:
     val(output_dir)
     val(osd_accession)

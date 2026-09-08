@@ -1,20 +1,6 @@
 process FILTER_TECH_REPS {
     tag "${sheet_file.name}"
 
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "original/*",
-        saveAs: { fname -> fname.replaceFirst(/^original\//, '') }
-
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "publish/*",
-        saveAs: { fname -> fname.replaceFirst(/^publish\//, '') }
-
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "tech_reps_dropped.tsv"
-
     input:
         val ch_outdir
         path sheet_file

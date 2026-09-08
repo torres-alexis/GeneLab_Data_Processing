@@ -32,10 +32,6 @@ process RAWBEANS_QC {
 
 process RAWBEANS_QC_ALL {
 
-    publishDir path: { "${output_dir}/RawBeans/" },
-        mode: params.publish_dir_mode,
-        pattern: "rawbeans_report${params.assay_suffix}.zip"
-    
     input:
     val(output_dir)
     path(mzml_files)

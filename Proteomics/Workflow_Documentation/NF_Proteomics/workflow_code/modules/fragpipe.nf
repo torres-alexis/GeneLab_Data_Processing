@@ -1,16 +1,6 @@
 process FRAGPIPE {
     tag "${workflow_config.getName()}"
 
-    publishDir path: { "${output_dir}/FragPipe/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/msstats.csv",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
-
-    publishDir path: { "${output_dir}/FragPipe/" },
-        mode: params.publish_dir_mode,
-        pattern: "output/msstats_ptm.csv",
-        saveAs: { filename -> filename.toString().replaceFirst(/^output\//, '') }
-
     input:
     val(output_dir)
     path(workflow_config)

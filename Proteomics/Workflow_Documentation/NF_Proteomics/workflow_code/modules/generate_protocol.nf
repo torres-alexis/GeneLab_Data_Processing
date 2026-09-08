@@ -1,8 +1,4 @@
 process GENERATE_PROCESSED_PROTOCOL {
-    publishDir path: { "${ch_outdir}/GeneLab" },
-        mode: params.publish_dir_mode,
-        pattern: "*.txt"
-
     input:
         path(ch_outdir)
         path(software_versions_md)

@@ -1,8 +1,4 @@
 process GENERATE_MD5SUMS {
-    publishDir path: { "${ch_outdir}/GeneLab" },
-        mode: params.publish_dir_mode,
-        pattern: "*.tsv"
-
     input:
         val(ch_outdir)
         path(processing_info)

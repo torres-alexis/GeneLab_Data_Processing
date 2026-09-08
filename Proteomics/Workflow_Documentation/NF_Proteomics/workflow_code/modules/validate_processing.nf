@@ -1,8 +1,4 @@
 process VALIDATE_PROCESSING {
-    publishDir path: { "${ch_outdir}/GeneLab" },
-        mode: params.publish_dir_mode,
-        pattern: "*.log"
-
     input:
         val(ch_outdir)
         path(raw_md5sum)

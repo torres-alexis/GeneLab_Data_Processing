@@ -1,10 +1,6 @@
 process ZIP_FRAGPIPE_OUTPUTS {
     tag "fragpipe_zip"
 
-    publishDir path: { "${output_dir}/FragPipe/" },
-        mode: params.publish_dir_mode,
-        pattern: "*.zip"
-
     input:
     val(output_dir)
     path(fragpipe_output_dir)

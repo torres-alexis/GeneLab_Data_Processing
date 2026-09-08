@@ -1,8 +1,4 @@
 process SOFTWARE_VERSIONS {
-    publishDir path: { "${ch_outdir}/GeneLab" },
-        mode: params.publish_dir_mode,
-        pattern: "software_versions${params.assay_suffix}.md"
-
     input:
         val(ch_outdir)
         path(versions_file)

@@ -1,13 +1,4 @@
 process MSSTATS {
-    // MSstats inputs (e.g. msstats.csv, msstats_ptm.csv) are published under FragPipe/
-    // This process only publishes MSstats results here.
-    publishDir path: { "${output_dir}/MSstats/" },
-        mode: params.publish_dir_mode,
-        pattern: "msstats_comparison*.csv"
-    publishDir path: { "${output_dir}/MSstats/" },
-        mode: params.publish_dir_mode,
-        pattern: "msstats_contrasts*.csv"
-
     input:
     val(output_dir)
     path(experiment_annotation)

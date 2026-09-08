@@ -24,6 +24,68 @@ include { VV_STEP } from '../modules/vv_step.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
+def as_list(x) {
+    if (x == null) return []
+    if (x instanceof Collection && !(x instanceof CharSequence)) return x as List
+    return [x]
+}
+
+def files_only(items) {
+    return items.collectMany { x -> x instanceof Map ? [] : as_list(x) }
+}
+
+def dest_file(root, dir, f) {
+    return ["${root}/${dir}/${f.name}".toString(), f]
+}
+
+def rel_under(f, marker) {
+    def s = f.toString().replace('\\', '/')
+    def key = "/${marker}/"
+    def i = s.lastIndexOf(key)
+    return i >= 0 ? s.substring(i + key.length()) : f.name
+}
+
+def pub(ch, root, dir) {
+    return ch.combine(root).combine(channel.value(dir)).flatMap { row ->
+        def items = as_list(row)
+        def d = items[-1]
+        def r = items[-2]
+        files_only(items[0..-3]).collect { f -> dest_file(r, d, f) }
+    }
+}
+
+def pub_fpar(ch, root) {
+    return ch.combine(root).flatMap { data_type, files, r ->
+        as_list(files).collect { f ->
+            def rel = rel_under(f, 'output')
+            def dest = rel.toLowerCase().endsWith('.rdata')
+                ? "${r}/processing_info/${rel}".toString()
+                : "${r}/FragPipeAnalystR/${data_type}/${rel}".toString()
+            [dest, f]
+        }
+    }
+}
+
+def takeFirst(p) {
+    return p instanceof List ? p[0] : p
+}
+
+def remapLfqFractionIds(metas, is_tmt) {
+    if (is_tmt) {
+        return metas
+    }
+    def counts = metas.countBy { it.id?.toString() }
+    return metas.collect { meta ->
+        def sid = meta.id?.toString()
+        if (!sid || (counts[sid] ?: 0) <= 1) {
+            return meta
+        }
+        def base = file(meta.data_file.toString()).getName()
+        def stem = base.replaceAll(/(?i)\.mzML$/, '')
+        return meta + [id: stem]
+    }
+}
+
 workflow PROTEOMICS {
     main:
         ch_dp_tools_plugin = params.dp_tools_plugin ?
@@ -58,6 +120,14 @@ workflow PROTEOMICS {
 
         // Emission from map/combine is queue → use .first() to get first value
         ch_out_dir = output_dir.first()
+        if (params.results_dir) {
+            ch_root = Channel.value(params.results_dir.toString())
+        } else if (params.accession) {
+            ch_root = osd_accession
+        } else {
+            ch_root = Channel.value('results')
+        }
+        ch_published = Channel.empty()
 
         // TMT: data_sheet + sample_sheet (runsheet not used). LFQ: runsheet (or generate from ISA).
         def is_tmt = params.fragpipe_workflow?.startsWith('TMT')
@@ -79,9 +149,16 @@ workflow PROTEOMICS {
                     FETCH_ISA( output_dir, osd_accession, glds_accession )
                     ISA_TO_RUNSHEET( output_dir, osd_accession, glds_accession, FETCH_ISA.out.isa_archive, ch_dp_tools_plugin )
                     sheet = ISA_TO_RUNSHEET.out.runsheet.map { it.toString() }
+                    ch_published = ch_published
+                        .mix(pub(FETCH_ISA.out.isa_archive, ch_root, 'Metadata'))
+                        .mix(pub(ISA_TO_RUNSHEET.out.runsheet, ch_root, 'Metadata'))
+                        .mix(pub(ISA_TO_RUNSHEET.out.isa_copy, ch_root, 'Metadata'))
                 } else {
                     ISA_TO_RUNSHEET( output_dir, osd_accession, glds_accession, file(params.isa_archive), ch_dp_tools_plugin )
                     sheet = ISA_TO_RUNSHEET.out.runsheet.map { it.toString() }
+                    ch_published = ch_published
+                        .mix(pub(ISA_TO_RUNSHEET.out.runsheet, ch_root, 'Metadata'))
+                        .mix(pub(ISA_TO_RUNSHEET.out.isa_copy, ch_root, 'Metadata'))
                 }
             } else {
                 sheet = Channel.value(params.runsheet)
@@ -99,28 +176,16 @@ workflow PROTEOMICS {
         if (keep_first_tr) {
             FILTER_TECH_REPS(ch_out_dir, sheet_in)
             sheet_fp = FILTER_TECH_REPS.out.filtered
+            ch_published = ch_published
+                .mix(pub(FILTER_TECH_REPS.out.original, ch_root, 'Metadata'))
+                .mix(pub(FILTER_TECH_REPS.out.filtered_publish, ch_root, 'Metadata'))
+                .mix(pub(FILTER_TECH_REPS.out.drop_log, ch_root, 'Metadata'))
         } else {
             sheet_fp = sheet_in
         }
 
         // Convert sheet to list of samples (file metadata + path)
         def sheet_schema = is_tmt ? "$projectDir/schema_data_sheet.json" : "$projectDir/schema_runsheet.json"
-        // LFQ fractions: repeated Sample Name → stage as data_file basename stem; tech reps: same Source Name (Has Tech Reps), Sample Names should differ
-        def remapLfqFractionIds = { metas ->
-            if (is_tmt) {
-                return metas
-            }
-            def counts = metas.countBy { it.id?.toString() }
-            metas.collect { meta ->
-                def sid = meta.id?.toString()
-                if (!sid || (counts[sid] ?: 0) <= 1) {
-                    return meta
-                }
-                def base = file(meta.data_file.toString()).getName()
-                def stem = base.replaceAll(/(?i)\.mzML$/, '')
-                return meta + [id: stem]
-            }
-        }
         // Stage + RawBeans QC on full runsheet (all technical replicates)
         samples_full = sheet_in
             .flatMap { sheet_path ->
@@ -128,7 +193,7 @@ workflow PROTEOMICS {
             }
             .map { row -> row[0] }
             .toList()
-            .flatMap { metas -> remapLfqFractionIds(metas) }
+            .flatMap { metas -> remapLfqFractionIds(metas, is_tmt) }
         // FragPipe manifest + search use collapsed sheet when tech_rep=first
         def samples_fp
         if (keep_first_tr) {
@@ -138,7 +203,7 @@ workflow PROTEOMICS {
                 }
                 .map { row -> row[0] }
                 .toList()
-                .flatMap { metas -> remapLfqFractionIds(metas) }
+                .flatMap { metas -> remapLfqFractionIds(metas, is_tmt) }
         } else {
             samples_fp = samples_full
         }
@@ -151,6 +216,7 @@ workflow PROTEOMICS {
         // mzML only. MSCONVERT exists but is not wired — convert Thermo .raw upstream.
         STAGE_INPUT(ch_out_dir, samples_full)
         RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
+        ch_published = ch_published.mix(pub(RAWBEANS_QC_ALL.out.qc_report, ch_root, 'RawBeans'))
 
         // Organism from runsheet / sample_sheet (one per dataset). Used for reference table lookups.
         ch_organism_sci = (is_tmt ? sample_sheet_rows : samples_fp)
@@ -172,9 +238,11 @@ workflow PROTEOMICS {
         if (params.uniprot_id) {
             GET_PROTEOME(output_dir)
             proteome = GET_PROTEOME.out.proteome_fasta
+            ch_published = ch_published.mix(pub(GET_PROTEOME.out.proteome_fasta, ch_root, 'Proteome'))
         } else if (params.reference_proteome) {
             CHECK_DECOYS_CONTAMS(output_dir, file(params.reference_proteome))
             proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
+            ch_published = ch_published.mix(pub(CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked, ch_root, 'Proteome'))
         } else if (params.reference_table) {
             ch_proteome_source = PARSE_ANNOTATIONS_TABLE.out.proteome_source
                 .map { src ->
@@ -186,6 +254,9 @@ workflow PROTEOMICS {
             FETCH_REFERENCE_PROTEOME(output_dir, ch_proteome_source)
             CHECK_DECOYS_CONTAMS(output_dir, FETCH_REFERENCE_PROTEOME.out.proteome_fasta)
             proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
+            ch_published = ch_published
+                .mix(pub(FETCH_REFERENCE_PROTEOME.out.proteome_fasta, ch_root, 'Proteome'))
+                .mix(pub(CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked, ch_root, 'Proteome'))
         } else {
             error "ERROR: Must specify uniprot_id, reference_proteome, or reference_table with a matching organism row."
         }
@@ -195,6 +266,11 @@ workflow PROTEOMICS {
         ch_sheets = sheet_fp.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
         FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)
         manifest = FRAGPIPE_METADATA_SETUP.out.manifest
+        ch_published = ch_published
+            .mix(pub(FRAGPIPE_METADATA_SETUP.out.manifest, ch_root, 'Metadata'))
+            .mix(pub(FRAGPIPE_METADATA_SETUP.out.experiment_annotation, ch_root, 'Metadata'))
+            .mix(pub(FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation, ch_root, 'Metadata'))
+            .mix(pub(FRAGPIPE_METADATA_SETUP.out.sheets, ch_root, 'Metadata'))
 
         ch_fragpipe_tools = params.fragpipe_tools ? Channel.fromPath( params.fragpipe_tools ) : Channel.fromPath("NO_FILE")
 
@@ -221,6 +297,7 @@ workflow PROTEOMICS {
         }
 
         FRAGPIPE_CONFIG_SETUP(output_dir, fragpipe_config, proteome)
+        ch_published = ch_published.mix(pub(FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_root, 'Metadata'))
         // Join on id — do not combine(collect()) id lists: Groovy flattens List into tuple slots
         ch_fragpipe_mzml = keep_first_tr
             ? STAGE_INPUT.out.mzml_files
@@ -231,14 +308,17 @@ workflow PROTEOMICS {
             : STAGE_INPUT.out.mzml_files.map { it[1] }.collect()
 
         FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, ch_fragpipe_mzml, FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
-
-        if (!params.skip_vv) {
-            VV_STEP(ch_out_dir, Channel.value('fragpipe'), FRAGPIPE.out.msstats_csv)
-        }
+        ch_published = ch_published
+            .mix(pub(FRAGPIPE.out.msstats_csv, ch_root, 'FragPipe'))
+            .mix(pub(FRAGPIPE.out.msstats_ptm_csv, ch_root, 'FragPipe'))
+        ch_vv = FRAGPIPE.out.msstats_csv.map { f -> tuple('fragpipe', f) }
 
         // Run pmultiqc with FragPipe plugin
         ch_fragpipe_output_dir = FRAGPIPE.out.fragpipe_manifest.map { fragpipe_manifest -> fragpipe_manifest.parent }
         PMULTIQC(output_dir.map { it + "/pmultiqc" }, ch_fragpipe_output_dir)
+        ch_published = ch_published
+            .mix(pub(PMULTIQC.out.html, ch_root, 'pmultiqc'))
+            .mix(pub(PMULTIQC.out.zipped_data, ch_root, 'pmultiqc'))
 
         // Pass in FragPipe tables to clean and publish; run downstream modules with original tables
         ch_fragpipe_tables_to_clean = (params.fragpipe_workflow?.startsWith('TMT') ?
@@ -250,8 +330,10 @@ workflow PROTEOMICS {
             ch_fragpipe_tables_to_clean,
             FRAGPIPE_METADATA_SETUP.out.experiment_annotation
         )
+        ch_published = ch_published.mix(pub(CLEAN_FRAGPIPE_TABLES.out.tables, ch_root, 'FragPipe'))
 
         ZIP_FRAGPIPE_OUTPUTS(ch_out_dir, ch_fragpipe_output_dir)
+        ch_published = ch_published.mix(pub(ZIP_FRAGPIPE_OUTPUTS.out.zip, ch_root, 'FragPipe'))
 
         // Resolve gene_annotations_url for DE_results: direct file, or organism + reference table
         gene_annotations_url = Channel.value(null)
@@ -270,7 +352,6 @@ workflow PROTEOMICS {
             params.fp_analyst_levels.toString().split(',')*.trim().findAll { it } :
             (params.fragpipe_workflow?.startsWith('TMT') ? ['protein','gene','peptide','site'] : ['protein','peptide'])
         def tmt_quant = (params.fp_analyst_tmt_quant_type ?: 'abundance').toLowerCase().startsWith('ratio') ? 'ratio' : 'abundance'
-        def takeFirst = { p -> p instanceof List ? p[0] : p }
 
         ch_fp_analyst_inputs = Channel.empty()
         if (fp_levels.contains('protein')) {
@@ -317,9 +398,10 @@ workflow PROTEOMICS {
         if (params.fragpipe_workflow == 'LFQ-MBR') {
             MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, ch_msstats_in)
             ch_lfq_versions = MSSTATS.out.versions
-            if (!params.skip_vv) {
-                VV_STEP(ch_out_dir, Channel.value('msstats'), MSSTATS.out.comparison)
-            }
+            ch_published = ch_published
+                .mix(pub(MSSTATS.out.comparison, ch_root, 'MSstats'))
+                .mix(pub(MSSTATS.out.contrasts, ch_root, 'MSstats'))
+            ch_vv = ch_vv.mix(MSSTATS.out.comparison.map { f -> tuple('msstats', f) })
         }
         if (params.fragpipe_workflow?.startsWith('TMT')) {
             MSSTATSTMT(
@@ -328,15 +410,21 @@ workflow PROTEOMICS {
                 ch_msstats_in
             )
             ch_tmt_versions = MSSTATSTMT.out.versions
-            if (!params.skip_vv) {
-                VV_STEP(ch_out_dir, Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
-            }
+            ch_published = ch_published
+                .mix(pub(MSSTATSTMT.out.comparison, ch_root, 'MSstatsTMT'))
+                .mix(pub(MSSTATSTMT.out.contrasts, ch_root, 'MSstatsTMT'))
+                .mix(pub(MSSTATSTMT.out.conditions_notice, ch_root, 'MSstatsTMT'))
+                .mix(pub(MSSTATSTMT.out.runs_notice, ch_root, 'MSstatsTMT'))
+            ch_vv = ch_vv.mix(MSSTATSTMT.out.comparison.map { f -> tuple('msstatstmt', f) })
         }
 
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
+        ch_published = ch_published.mix(pub_fpar(FRAGPIPEANALYSTR.out.published, ch_root))
+        ch_vv = ch_vv.mix(FRAGPIPEANALYSTR.out.output_files.flatten().collect().map { fs -> tuple('fpar', fs) })
         if (!params.skip_vv) {
-            VV_STEP(ch_out_dir, Channel.value('fpar'), FRAGPIPEANALYSTR.out.output_files.flatten().collect())
+            VV_STEP(ch_out_dir, ch_vv)
+            ch_published = ch_published.mix(pub(VV_STEP.out.log, ch_root, 'VV_Logs'))
         }
 
         ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FRAGPIPEANALYSTR.out.versions)
@@ -373,4 +461,10 @@ workflow PROTEOMICS {
             ch_protocol_reference_table,
             ch_protocol_reference_proteome
         )
+        ch_published = ch_published
+            .mix(pub(SOFTWARE_VERSIONS.out.software_versions, ch_root, 'GeneLab'))
+            .mix(pub(GENERATE_PROCESSED_PROTOCOL.out.processed_protocol, ch_root, 'GeneLab'))
+
+    emit:
+        published = ch_published
 }

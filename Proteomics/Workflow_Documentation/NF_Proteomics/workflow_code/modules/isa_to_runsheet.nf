@@ -1,18 +1,6 @@
 process ISA_TO_RUNSHEET {
     tag "${osd_accession}_${glds_accession}"
 
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "*.csv"
-
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "isa_archive/*",
-        saveAs: { filename ->
-            if (filename.startsWith("isa_archive/")) return filename.replace("isa_archive/", "")
-            else return filename
-        }
-
     input: 
     val(ch_outdir)
     val(osd_accession)
@@ -22,7 +10,7 @@ process ISA_TO_RUNSHEET {
 
     output:
     path("*.csv"), emit: runsheet
-    path("isa_archive/${isa_archive}")
+    path("isa_archive/${isa_archive}"), emit: isa_copy
     //path("versions.yml"), emit: versions
 
     script:

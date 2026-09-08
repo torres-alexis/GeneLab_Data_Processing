@@ -1,8 +1,4 @@
-process PACKAGE_PROCESSING_INFO { 
-    publishDir path: { "${ch_outdir}/GeneLab" },
-        mode: params.publish_dir_mode,
-        pattern: "*.zip"
-
+process PACKAGE_PROCESSING_INFO {
     input:
         path(processing_info)
         val(ch_outdir)

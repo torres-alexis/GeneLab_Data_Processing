@@ -3,10 +3,6 @@
 // Download pattern matches RNAseq download_references.nf (wget keeps remote filename).
 process FETCH_REFERENCE_PROTEOME {
 
-    publishDir path: { "${output_dir}/Proteome/" },
-        mode: params.publish_dir_mode,
-        pattern: "*.fa*"
-
     input:
     val(output_dir)
     val(proteome_source)

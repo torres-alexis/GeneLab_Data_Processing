@@ -1,18 +1,4 @@
 process FRAGPIPE_METADATA_SETUP {
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "*.tsv"
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "MSstatsTMT_annotation*.csv"
-    publishDir path: { "${ch_outdir}/Metadata" },
-        mode: params.publish_dir_mode,
-        pattern: "sheets/*",
-        saveAs: { filename ->
-            if (filename.startsWith("sheets/")) return filename.replace("sheets/", "")
-            else return filename
-        }
-
     input:
     val(ch_outdir)
     path(sheets)
