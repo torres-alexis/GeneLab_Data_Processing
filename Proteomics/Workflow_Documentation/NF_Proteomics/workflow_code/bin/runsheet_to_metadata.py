@@ -110,6 +110,66 @@ def _require_tmt_cell(row: dict, column: str) -> str:
     return val
 
 
+def _truthy_flag(val) -> bool:
+    if val is True:
+        return True
+    if val is False or val is None:
+        return False
+    return str(val).strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _row_has_data(row: dict) -> bool:
+    return bool(
+        (row.get("data_file") or "").strip()
+        or (row.get("Sample Name") or "").strip()
+        or (row.get("run") or "").strip()
+    )
+
+
+def _check_require_bioreplicate(rows, fieldnames, enabled: bool, label: str) -> None:
+    if not enabled:
+        return
+    names = fieldnames or []
+    missing = []
+    for i, row in enumerate(rows, 1):
+        if not _row_has_data(row):
+            continue
+        bio = (row.get("Bioreplicate") or "").strip() if "Bioreplicate" in names else ""
+        if not bio:
+            missing.append((row.get("Sample Name") or row.get("run") or f"row {i}").strip())
+    if missing:
+        shown = ", ".join(missing[:8])
+        more = f" (+{len(missing) - 8} more)" if len(missing) > 8 else ""
+        sys.exit(
+            f"Error: {label} rows missing Bioreplicate: {shown}{more}. "
+            "Pass --require_bioreplicate false for sequential-fill smoke sheets."
+        )
+
+
+def _check_biorep_source_overlap(rows, factor_columns, fieldnames, label: str) -> None:
+    """Same explicit Bioreplicate + condition on different Source Names is an error."""
+    if "Bioreplicate" not in (fieldnames or []):
+        return
+    seen: dict[tuple[str, str], set[str]] = {}
+    for row in rows:
+        bio = (row.get("Bioreplicate") or "").strip()
+        source = (row.get("Source Name") or "").strip()
+        if not bio or not source:
+            continue
+        cond = _condition_from_factors(row, factor_columns) or "__default__"
+        seen.setdefault((cond, bio), set()).add(source)
+    clashes = {k: v for k, v in seen.items() if len(v) > 1}
+    if not clashes:
+        return
+    parts = []
+    for (cond, bio), sources in list(clashes.items())[:5]:
+        parts.append(f"Bioreplicate={bio} in {cond}: {sorted(sources)}")
+    sys.exit(
+        f"Error: {label} reuses Bioreplicate across different Source Names "
+        f"(false biological independence): {'; '.join(parts)}"
+    )
+
+
 def _assign_tmt_sample_bioreplicates(
     sample_rows: list, factor_columns: list, fieldnames: list
 ) -> dict:
@@ -345,7 +405,14 @@ def main():
         default="",
         help="FragPipe workflow preset (e.g. TMT10, TMT16). Fills unused TMT channels with Empty in MSstatsTMT annotation.",
     )
+    parser.add_argument(
+        "--require_bioreplicate",
+        default="true",
+        help="Error if a data row has no Bioreplicate (default true). "
+        "Set false for sequential-fill smoke sheets.",
+    )
     args = parser.parse_args()
+    require_bioreplicate = _truthy_flag(args.require_bioreplicate)
 
     suffix = (args.assay_suffix or "").strip()
     manifest_stem = f"manifest{suffix}" if suffix else "manifest"
@@ -385,6 +452,10 @@ def main():
 
     lfq_repeated_ids = set()
     if mode == "LFQ":
+        _check_require_bioreplicate(
+            rows, fieldnames, require_bioreplicate, "LFQ runsheet"
+        )
+        _check_biorep_source_overlap(rows, factor_columns, fieldnames, "LFQ runsheet")
         lfq_repeated_ids = _lfq_repeated_sample_ids(rows)
         if lfq_repeated_ids:
             _validate_lfq_manifest_filenames(rows, lfq_repeated_ids)
@@ -491,6 +562,12 @@ def main():
         if not sample_rows:
             sys.exit("Error: Sample sheet is empty")
         factor_cols = [c for c in sample_fieldnames if c.startswith("Factor Value[")]
+        _check_require_bioreplicate(
+            sample_rows, sample_fieldnames, require_bioreplicate, "TMT sample sheet"
+        )
+        _check_biorep_source_overlap(
+            sample_rows, factor_cols, sample_fieldnames, "TMT sample sheet"
+        )
         tmt_sample_to_biorep = _assign_tmt_sample_bioreplicates(
             sample_rows, factor_cols, sample_fieldnames
         )

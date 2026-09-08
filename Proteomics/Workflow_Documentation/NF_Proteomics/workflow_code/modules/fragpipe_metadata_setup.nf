@@ -27,9 +27,10 @@ process FRAGPIPE_METADATA_SETUP {
     script:
     def assay_suffix_flag = params.assay_suffix ? "--assay_suffix ${params.assay_suffix}" : ""
     def workflow_flag = params.fragpipe_workflow ? "--fragpipe_workflow ${params.fragpipe_workflow}" : ""
+    def require_bio = (params.require_bioreplicate == false || params.require_bioreplicate == 'false') ? "false" : "true"
     def sheet_flag = params.fragpipe_workflow?.contains('TMT') ? "--data_sheet ${sheets[0]} --sample_sheet ${sheets[1]}" : "--runsheet ${sheets[0]}"
     """
-    runsheet_to_metadata.py ${sheet_flag} ${assay_suffix_flag} ${workflow_flag}
+    runsheet_to_metadata.py ${sheet_flag} ${assay_suffix_flag} ${workflow_flag} --require_bioreplicate ${require_bio}
 
     # Create output dir and copy input sheet(s) there for publishing
     mkdir -p sheets
