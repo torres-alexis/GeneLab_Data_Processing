@@ -121,6 +121,11 @@ def main():
         default="",
         help="Copy output to this path only when row count decreases.",
     )
+    ap.add_argument(
+        "--drop-log",
+        default="tech_reps_dropped.tsv",
+        help="TSV of kept/dropped tech-rep rows (empty groups still get a header).",
+    )
     args = ap.parse_args()
 
     with open(args.input, newline="", encoding="utf-8") as f:
@@ -138,12 +143,39 @@ def main():
     )
     seen = set()
     out = []
+    log_rows = []
+    key_kept = {}
     for row in rows:
         k = key_fn(row)
+        sample = (row.get("Sample Name") or row.get("run") or "").strip()
+        data_file = (row.get("data_file") or "").strip()
+        collapsing = _row_collapse_tech_reps(row, cols)
         if k in seen:
+            log_rows.append(
+                {
+                    "group_key": "|".join(str(x) for x in k),
+                    "action": "dropped",
+                    "Sample Name": sample,
+                    "data_file": data_file,
+                    "kept_sample": key_kept.get(k, ""),
+                    "reason": "keep-first" if collapsing else "duplicate unique key",
+                }
+            )
             continue
         seen.add(k)
         out.append(row)
+        key_kept[k] = sample
+        if collapsing:
+            log_rows.append(
+                {
+                    "group_key": "|".join(str(x) for x in k),
+                    "action": "kept",
+                    "Sample Name": sample,
+                    "data_file": data_file,
+                    "kept_sample": sample,
+                    "reason": "keep-first",
+                }
+            )
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore", lineterminator="\n")
@@ -154,6 +186,22 @@ def main():
         publish_path = Path(args.publish_if_changed)
         publish_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(args.output, publish_path)
+
+    if args.drop_log:
+        log_path = Path(args.drop_log)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fields = [
+            "group_key",
+            "action",
+            "Sample Name",
+            "data_file",
+            "kept_sample",
+            "reason",
+        ]
+        with log_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=log_fields, delimiter="\t", lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(log_rows)
 
     print(f"filter_tech_reps: {len(rows)} -> {len(out)} ({args.mode})", file=sys.stderr)
 
