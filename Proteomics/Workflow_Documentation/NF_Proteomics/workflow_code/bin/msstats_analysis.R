@@ -4,6 +4,13 @@ rm(list = ls())
 library(stringr)
 library(MSstats)
 
+.script_dir <- local({
+    args <- commandArgs(trailingOnly = FALSE)
+    f <- sub("^--file=", "", args[grepl("^--file=", args)])
+    if (length(f)) dirname(normalizePath(f[[1]])) else getwd()
+})
+source(file.path(.script_dir, "decoy_contam.R"))
+
 # Get root directory, experiment_annotation, msstats_csv, and optional assay_suffix 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0) {
@@ -21,8 +28,14 @@ if (!grepl("/$", rootDir)) {
     rootDir <- str_c(rootDir, "/")
 }
 
-# Read MSstats.csv file.
 raw <- read.csv(msstats_csv_path, na.strings = c("", "NA", "0"), stringsAsFactors = FALSE)
+if (.dc_env_flag("DROP_DECOYS_CONTAMS", TRUE)) {
+    raw <- drop_decoy_contam_rows(
+        raw,
+        id_cols = intersect(c("ProteinName", "Protein"), names(raw)),
+        decoy_prefix = .dc_env_str("PHILOSOPHER_DECOY_PREFIX", "rev_")
+    )
+}
 raw$ProteinName <- factor(raw$ProteinName)
 raw$PeptideSequence <- factor(raw$PeptideSequence)
 
@@ -106,6 +119,7 @@ if (length(conditions) > 1) {
     }
     
     # All MSstats pairwise comparisons
+    comparison_df <- scrub_msstats_comparison(comparison_df)
     write.csv(comparison_df, str_c("msstats_comparison", assay_suffix, ".csv"), row.names = FALSE)
     
     contrasts_df <- data.frame(row.names = c("1", "2"))

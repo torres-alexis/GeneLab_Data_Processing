@@ -46,7 +46,6 @@ process FRAGPIPEANALYSTR {
     def top_n_site = params.fp_analyst_top_n_site != null ? params.fp_analyst_top_n_site : 10
     def enrichment_database = (params.fp_analyst_enrichment_database != null && params.fp_analyst_enrichment_database != '') ?
         (params.fp_analyst_enrichment_database instanceof List ? params.fp_analyst_enrichment_database.join(',') : params.fp_analyst_enrichment_database.toString()) : ''
-    def enrichment_direction = (params.fp_analyst_enrichment_direction != null && params.fp_analyst_enrichment_direction != '') ? params.fp_analyst_enrichment_direction : 'Up,Down'
     def gsea_database = (params.fp_analyst_gsea_database != null && params.fp_analyst_gsea_database != '') ?
         (params.fp_analyst_gsea_database instanceof List ? params.fp_analyst_gsea_database.join(',') : params.fp_analyst_gsea_database.toString()) : ''
     def lfq_type = params.fp_analyst_lfq_type ?: "Intensity"
@@ -63,6 +62,11 @@ process FRAGPIPEANALYSTR {
     def volcano_show_gene = (params.fp_analyst_volcano_show_gene == true || params.fp_analyst_volcano_show_gene == 'true') ? 'true' : 'false'
     def assay_suffix = (params.assay_suffix != null && params.assay_suffix != '') ? params.assay_suffix.toString() : ''
     def fp_zip = (params.fp_analyst_zip == true || params.fp_analyst_zip == 'true') ? 'true' : 'false'
+    def keep_contams = (params.fp_analyst_keep_contaminants == true || params.fp_analyst_keep_contaminants == 'true')
+    def drop_dc = (!keep_contams && (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false')) ? 'true' : 'false'
+    def decoy_prefix = (params.philosopher_decoy_prefix != null && params.philosopher_decoy_prefix != '') ? params.philosopher_decoy_prefix : 'rev_'
+    def min_global = params.fp_analyst_min_global_appearance != null ? params.fp_analyst_min_global_appearance : 0
+    def min_cond = params.fp_analyst_min_appearance_one_cond != null ? params.fp_analyst_min_appearance_one_cond : 50
     def lfq_type_arg = (mode == 'TMT') ? '' : "--lfq_type \"${lfq_type}\""
     def gene_annotations_arg = (gene_annotations_url == null || gene_annotations_url?.toString()?.trim() == '') ? '' : "--gene_annotations \"${gene_annotations_url}\""
     """
@@ -87,8 +91,9 @@ process FRAGPIPEANALYSTR {
         --top_n_peptide "${top_n_peptide}" \\
         --top_n_site "${top_n_site}" \\
         --enrichment_database "${enrichment_database}" \\
-        --enrichment_direction "${enrichment_direction}" \\
         --gsea_database "${gsea_database}" \\
+        --min_global_appearance "${min_global}" \\
+        --min_appearance_one_condition "${min_cond}" \\
         ${lfq_type_arg} \\
         --normalization_method "${normalization_method}" \\
         --de_alpha "${de_alpha}" \\
@@ -104,6 +109,8 @@ process FRAGPIPEANALYSTR {
         ${gene_annotations_arg} \\
         --assay_suffix "${assay_suffix}" \\
         --zip "${fp_zip}" \\
+        --drop_decoys_contams "${drop_dc}" \\
+        --decoy_prefix "${decoy_prefix}" \\
         --output_dir "output/"
 
     # Version info

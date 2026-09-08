@@ -4,6 +4,13 @@
 rm(list = ls())
 library(MSstatsTMT)
 
+.script_dir <- local({
+  args <- commandArgs(trailingOnly = FALSE)
+  f <- sub("^--file=", "", args[grepl("^--file=", args)])
+  if (length(f)) dirname(normalizePath(f[[1]])) else getwd()
+})
+source(file.path(.script_dir, "decoy_contam.R"))
+
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 3) {
   stop("Usage: msstatstmt_analysis.R <rootDir> <MSstatsTMT_annotation.csv> <msstats_dir_or_file> [assay_suffix]")
@@ -144,6 +151,13 @@ if (length(msstats_files) == 0) {
 }
 
 msstats_data <- read_msstats_table(msstats_files)
+if (.dc_env_flag("DROP_DECOYS_CONTAMS", TRUE)) {
+  msstats_data <- drop_decoy_contam_rows(
+    msstats_data,
+    id_cols = intersect(c("ProteinName", "Protein", "ProteinName.1"), names(msstats_data)),
+    decoy_prefix = .dc_env_str("PHILOSOPHER_DECOY_PREFIX", "rev_")
+  )
+}
 
 msstats_runs <- msstats_run_ids(msstats_data)
 run_filter <- filter_annotation_to_msstats(annotation_msstats, msstats_runs, assay_suffix)
@@ -268,6 +282,7 @@ if (length(conditions) > 1) {
     comparison_df$Label[comparison_df$Label == rownames(comparison)[i]] <- lbl_new
   }
 
+  comparison_df <- scrub_msstats_comparison(comparison_df)
   write.csv(comparison_df, paste0("msstatstmt_comparison", assay_suffix, ".csv"), row.names = FALSE)
 
   contrasts_df <- data.frame(row.names = c("1", "2"))

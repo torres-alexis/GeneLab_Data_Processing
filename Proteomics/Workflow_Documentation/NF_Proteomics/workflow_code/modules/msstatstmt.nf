@@ -25,10 +25,12 @@ process MSSTATSTMT {
     path("dropped-runs-msstatstmt*.txt"), emit: runs_notice, optional: true
 
     script:
+    def drop_dc = (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false') ? 'true' : 'false'
+    def decoy_prefix = (params.philosopher_decoy_prefix != null && params.philosopher_decoy_prefix != '') ? params.philosopher_decoy_prefix : 'rev_'
     """
-    # Rename workdir msstats.csv header "Probability" -> "PeptideProphetProbability"
     sed -i '1s/,Probability,/,PeptideProphetProbability,/' ${msstats_csv}
-
+    export DROP_DECOYS_CONTAMS=${drop_dc}
+    export PHILOSOPHER_DECOY_PREFIX=${decoy_prefix}
     msstatstmt_analysis.R . ${msstats_tmt_annotation} ${msstats_csv} ${params.assay_suffix}
 
     echo '"${task.process}":' > versions.yml

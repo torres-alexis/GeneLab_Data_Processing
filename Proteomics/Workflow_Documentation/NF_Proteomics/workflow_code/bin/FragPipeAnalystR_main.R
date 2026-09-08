@@ -17,10 +17,10 @@ option_list <- list(
     help = "Output directory", metavar = "DIR"),
   make_option(c("--lfq_type"), type = "character", default = "Intensity",
     help = "LFQ column type: Intensity, MaxLFQ, or Spectral Count (LFQ mode only)", metavar = "STRING"),
-  # make_option(c("--min_global_appearance"), type = "numeric", default = 0,
-  #   help = "Min %% present across all samples (0-100). 0 = unfiltered", metavar = "NUMERIC"),
-  # make_option(c("--min_appearance_one_condition"), type = "numeric", default = 0,
-  #   help = "Min %% present in at least one condition (0-100). 0 = unfiltered", metavar = "NUMERIC"),
+  make_option(c("--min_global_appearance"), type = "numeric", default = 0,
+    help = "Min %% present across all samples (0-100). 0 = unfiltered", metavar = "NUMERIC"),
+  make_option(c("--min_appearance_one_condition"), type = "numeric", default = 50,
+    help = "Min %% present in at least one condition (0-100). 0 = unfiltered. Field default 50.", metavar = "NUMERIC"),
   # --- norm ---
   make_option(c("--normalization_method"), type = "character", default = "none",
     help = "Normalization: none, vsn, MD, or GN (FragPipeAnalystR)", metavar = "STRING"),
@@ -58,11 +58,8 @@ option_list <- list(
   # --- enrichment (FragPipeAnalystR or_test, Enrichr backend) ---
   make_option(c("--enrichment_database"), type = "character", default = "Hallmark,GO_Biological_Process_2021",
     help = "Comma-separated Enrichr DB(s): GO_Biological_Process_2021, GO_Cellular_Component_2021, GO_Molecular_Function_2021, MSigDB_Hallmark_2020, KEGG_2021_Human, Reactome_2022. Aliases: Hallmark, KEGG, Reactome. Empty = skip", metavar = "STRING"),
-  make_option(c("--enrichment_direction"), type = "character", default = "Up,Down",
-    help = "Enrichment direction(s): Up, Down, or comma-separated (e.g. Up,Down)", metavar = "STRING"),
   make_option(c("--gsea_database"), type = "character", default = "Hallmark,GO_Biological_Process_2021",
     help = "GSEA DB(s): Hallmark, GO_Biological_Process_2021, GO_Cellular_Component_2021, GO_Molecular_Function_2021, KEGG_2021_Human. Protein/gene/site only. Empty = skip", metavar = "STRING"),
-  # --- legacy (not yet wired) ---
   make_option(c("--qc_plot_data"), type = "character", default = "nonimputed",
     help = "Data for PCA, correlation, feature, CVs: imputed or nonimputed", metavar = "STRING"),
   make_option(c("--sample_cvs_full_range"), type = "character", default = "false",
@@ -76,11 +73,22 @@ option_list <- list(
   make_option(c("--assay_suffix"), type = "character", default = "",
     help = "Assay suffix after level, e.g. _GLProteomics → filenames like nonimputed_matrix_<level>_GLProteomics.csv; SampleTable/contrasts use suffix only. Empty = no suffix.", metavar = "STRING"),
   make_option(c("--zip"), type = "character", default = "false",
-    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/pathway_analysis/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false")
+    help = "If true, write QC_plots_*.zip, comparison_plots_*.zip, pathway_analysis_plots_*.zip, DE_plots_*.zip (plots under qc/comparison/pathway_analysis/de). DE_results, SampleTable, contrasts CSVs stay at output_dir root, not in DE_plots zip.", metavar = "true|false"),
+  make_option(c("--drop_decoys_contams"), type = "character", default = "true",
+    help = "Drop decoy/contaminant rows from the quantification table before make_se (true/false)", metavar = "true|false"),
+  make_option(c("--decoy_prefix"), type = "character", default = "rev_",
+    help = "Philosopher decoy prefix", metavar = "STRING")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
+
+.script_dir <- local({
+  args <- commandArgs(trailingOnly = FALSE)
+  f <- sub("^--file=", "", args[grepl("^--file=", args)])
+  if (length(f)) dirname(normalizePath(f[[1]])) else getwd()
+})
+source(file.path(.script_dir, "decoy_contam.R"))
 
 .or <- function(x, y) if (is.null(x) || is.na(x) || (is.character(x) && !nzchar(trimws(x)))) y else x
 .oneof <- function(x, valid, param) {
@@ -184,23 +192,24 @@ writeLines(c(
   paste("imputation_type:", opt$imputation_type),
   paste("imputation_shift:", opt$imputation_shift),
   paste("imputation_scale:", opt$imputation_scale),
-  # paste("min_global_appearance:", opt$min_global_appearance),
-  # paste("min_appearance_one_condition:", opt$min_appearance_one_condition),
+  paste("min_global_appearance:", opt$min_global_appearance),
+  paste("min_appearance_one_condition:", opt$min_appearance_one_condition),
   paste("de_alpha:", opt$de_alpha),
   paste("de_lfc:", opt$de_lfc),
   paste("enrichment_database:", opt$enrichment_database),
-  paste("enrichment_direction:", opt$enrichment_direction),
+  paste("enrichment_direction: Up,Down"),
   paste("gsea_database:", opt$gsea_database),
   paste("gene_annotations:", opt$gene_annotations),
-  paste("zip:", .or(opt$zip, "false"))
+  paste("zip:", .or(opt$zip, "false")),
+  paste("drop_decoys_contams:", .or(opt$drop_decoys_contams, "true"))
 ), param_path)
 
 # Parse typed params (for downstream use)
 lfq_type <- .oneof(.or(opt$lfq_type, "Intensity"), c("Intensity", "MaxLFQ", "Spectral Count"), "lfq_type")
 de_alpha <- as.numeric(.or(opt$de_alpha, 0.05))
 de_lfc <- as.numeric(.or(opt$de_lfc, 1.0))
-# min_global <- as.numeric(.or(opt$min_global_appearance, 0))
-# min_cond <- as.numeric(.or(opt$min_appearance_one_condition, 0))
+min_global <- as.numeric(.or(opt$min_global_appearance, 0))
+min_cond <- as.numeric(.or(opt$min_appearance_one_condition, 50))
 norm_method <- .oneof(.or(opt$normalization_method, "none"), c("none", "vsn", "MD", "GN"), "normalization_method")
 imp_type_raw <- trimws(.or(opt$imputation_type, "Perseus-type"))
 imp_valid <- c("none", "Perseus-type", "knn", "MLE", "min", "zero", "bpca", "QRILC", "MinDet", "MinProb", "nbavg", "mixed")
@@ -209,14 +218,7 @@ imp_shift <- as.numeric(.or(opt$imputation_shift, 1.8))
 imp_scale <- as.numeric(.or(opt$imputation_scale, 0.3))
 enrichment_dbs <- if (nzchar(trimws(.or(opt$enrichment_database, ""))))
   unique(trimws(strsplit(trimws(opt$enrichment_database), "\\s*,\\s*")[[1]])) else character(0)
-# Parse comma-separated enrichment directions; each must be Up or Down (Both -> Up,Down for backward compat)
-enrichment_dir_raw <- trimws(.or(opt$enrichment_direction, "Up,Down"))
-enrichment_dir_tokens <- unique(trimws(strsplit(enrichment_dir_raw, "\\s*,\\s*")[[1]]))
-enrichment_dir_tokens <- enrichment_dir_tokens[nzchar(enrichment_dir_tokens)]
-enrichment_dirs <- if (length(enrichment_dir_tokens) == 0) c("Up", "Down") else {
-  expand <- function(t) if (tolower(trimws(t)) == "both") c("Up", "Down") else .oneof(t, c("Up", "Down"), "enrichment_direction")
-  unique(unlist(lapply(enrichment_dir_tokens, expand)))
-}
+enrichment_dirs <- c("Up", "Down")
 gsea_dbs <- if (nzchar(trimws(.or(opt$gsea_database, ""))))
   unique(trimws(strsplit(trimws(opt$gsea_database), "\\s*,\\s*")[[1]])) else character(0)
 volcano_add_names <- .oneof(.or(opt$volcano_display_names, "true"), c("true", "false"), "volcano_display_names") == "true"
@@ -253,8 +255,30 @@ if (mode == "LFQ") {
   }
 }
 library(FragPipeAnalystR)
+quant_path <- opt$quantification_file
+drop_dc <- .oneof(.or(opt$drop_decoys_contams, "true"), c("true", "false"), "drop_decoys_contams") == "true"
+if (drop_dc) {
+  quant_sep <- if (grepl("\\.csv$", quant_path, ignore.case = TRUE)) "," else "\t"
+  quant_df <- read.table(
+    quant_path,
+    header = TRUE,
+    sep = quant_sep,
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    quote = "",
+    comment.char = ""
+  )
+  n_before <- nrow(quant_df)
+  quant_df <- drop_decoy_contam_rows(
+    quant_df,
+    decoy_prefix = .or(opt$decoy_prefix, "rev_")
+  )
+  quant_path <- tempfile(fileext = if (quant_sep == ",") ".csv" else ".tsv")
+  write.table(quant_df, quant_path, sep = quant_sep, row.names = FALSE, quote = FALSE)
+  cat("Dropped decoy/contam features from quantification table:", n_before - nrow(quant_df), "\n")
+}
 data_se <- make_se_from_files(
-  opt$quantification_file,
+  quant_path,
   exp_anno_path,
   type = mode,
   level = level,
@@ -277,35 +301,33 @@ if (mode == "LFQ") {
   }
 }
 
-# global_filter / filter_by_condition: commented out (custom filter not in FragPipeAnalystR)
-# global_filter <- function(se, pct_present) {
-#   pct_na_max <- (100 - pct_present) / 100
-#   ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= pct_na_max
-#   se[ridx, ]
-# }
-# filter_by_condition <- function(se, min_pct) {
-#   min_pct <- min_pct / 100
-#   conds <- unique(colData(se)$condition)
-#   keep <- rep(FALSE, nrow(se))
-#   for (c in conds) {
-#     se_c <- se[, colData(se)$condition == c]
-#     keep <- keep | (rowSums(!is.na(assay(se_c))) / ncol(se_c) >= min_pct)
-#   }
-#   se[keep, ]
-# }
+global_filter <- function(se, pct_present) {
+  pct_na_max <- (100 - pct_present) / 100
+  ridx <- rowSums(is.na(assay(se))) / ncol(assay(se)) <= pct_na_max
+  se[ridx, ]
+}
+filter_by_condition <- function(se, min_pct) {
+  min_pct <- min_pct / 100
+  conds <- unique(colData(se)$condition)
+  keep <- rep(FALSE, nrow(se))
+  for (c in conds) {
+    se_c <- se[, colData(se)$condition == c]
+    keep <- keep | (rowSums(!is.na(assay(se_c))) / ncol(se_c) >= min_pct)
+  }
+  se[keep, ]
+}
 filtered_se <- data_se
 row_filter_stage_ran <- FALSE
-# When row filters are re-enabled: set row_filter_stage_ran <- TRUE each time a filter runs (even if 0 rows removed).
-# if (min_global > 0) {
-#   filtered_se <- global_filter(filtered_se, min_global)
-#   row_filter_stage_ran <- TRUE
-#   cat("global_filter: kept", nrow(filtered_se), "features (min", min_global, "% present globally)\n")
-# }
-# if (min_cond > 0) {
-#   filtered_se <- filter_by_condition(filtered_se, min_cond)
-#   row_filter_stage_ran <- TRUE
-#   cat("filter_by_condition: kept", nrow(filtered_se), "features (min", min_cond, "% in one condition)\n")
-# }
+if (min_global > 0) {
+  filtered_se <- global_filter(filtered_se, min_global)
+  row_filter_stage_ran <- TRUE
+  cat("global_filter: kept", nrow(filtered_se), "features (min", min_global, "% present globally)\n")
+}
+if (min_cond > 0) {
+  filtered_se <- filter_by_condition(filtered_se, min_cond)
+  row_filter_stage_ran <- TRUE
+  cat("filter_by_condition: kept", nrow(filtered_se), "features (min", min_cond, "% in one condition)\n")
+}
 
 # --- Normalization (FragPipeAnalystR: MD_normalization, GN_normalization, VSN_normalization) ---
 # Pipeline: raw (data_se) -> filtered_se (row filter if enabled) -> normalized_se -> imputed_se
@@ -328,9 +350,9 @@ imputed_se <- normalized_se
 if (imp_type != "none") {
   imp_fun <- if (imp_type == "Perseus-type") "man" else imp_type
   if (imp_fun == "man") {
-    imputed_se <- manual_impute(normalized_se, shift = imp_shift, scale = imp_scale, seed = 123L)
+    imputed_se <- manual_impute(normalized_se, shift = imp_shift, scale = imp_scale, seed = 40)
   } else {
-    imputed_se <- impute(normalized_se, fun = imp_fun, seed = 123L)
+    imputed_se <- impute(normalized_se, fun = imp_fun, seed = 40)
   }
   cat("Imputation applied:", imp_type, "\n")
 }
