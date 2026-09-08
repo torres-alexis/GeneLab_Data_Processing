@@ -7,7 +7,7 @@
 - Scrub MSstats / MSstatsTMT comparison rows with Issue, non-finite log2FC / logFC, missing p, or DF≤0 so adj.pvalue cannot stay 0.
 - Runsheet preflight: per-row `require_bioreplicate` (default true) and error on reused Bioreplicate across Source Names.
 - `--tech_rep` `first` (default) / `all`. `tech_reps_dropped.tsv` from keep-first.
-- `VV_STEP` after FragPipe / MSstats / FPAR (`--skip_vv` to bypass). VALIDATE_PROCESSING still checks published products + residual decoys/cRAP.
+- `VV_STEP` after FragPipe / MSstats / FPAR (`--skip_vv` to bypass). Logs under `VV_Logs/VV_log_<step>_GLProteomics.log`. VALIDATE_PROCESSING still checks published products + residual decoys/cRAP.
 - Processed protocol notes decoy drop, FPAR 50% filter + seed 40, dual-stats, human pathway libs, Docker plot quality, MBR compatibility.
 - README: new params, interpretation box; PPP commands drop `--enrichment_direction`.
 

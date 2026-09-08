@@ -233,7 +233,7 @@ workflow PROTEOMICS {
         FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, ch_fragpipe_mzml, FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
 
         if (!params.skip_vv) {
-            VV_STEP(Channel.value('fragpipe'), FRAGPIPE.out.msstats_csv)
+            VV_STEP(ch_out_dir, Channel.value('fragpipe'), FRAGPIPE.out.msstats_csv)
         }
 
         // Run pmultiqc with FragPipe plugin
@@ -318,7 +318,7 @@ workflow PROTEOMICS {
             MSSTATS(output_dir, FRAGPIPE_METADATA_SETUP.out.experiment_annotation, ch_msstats_in)
             ch_lfq_versions = MSSTATS.out.versions
             if (!params.skip_vv) {
-                VV_STEP(Channel.value('msstats'), MSSTATS.out.comparison)
+                VV_STEP(ch_out_dir, Channel.value('msstats'), MSSTATS.out.comparison)
             }
         }
         if (params.fragpipe_workflow?.startsWith('TMT')) {
@@ -329,14 +329,14 @@ workflow PROTEOMICS {
             )
             ch_tmt_versions = MSSTATSTMT.out.versions
             if (!params.skip_vv) {
-                VV_STEP(Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
+                VV_STEP(ch_out_dir, Channel.value('msstatstmt'), MSSTATSTMT.out.comparison)
             }
         }
 
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
         if (!params.skip_vv) {
-            VV_STEP(Channel.value('fpar'), FRAGPIPEANALYSTR.out.output_files.flatten().collect())
+            VV_STEP(ch_out_dir, Channel.value('fpar'), FRAGPIPEANALYSTR.out.output_files.flatten().collect())
         }
 
         ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FRAGPIPEANALYSTR.out.versions)

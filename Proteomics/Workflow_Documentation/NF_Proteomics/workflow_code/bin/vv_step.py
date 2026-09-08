@@ -9,6 +9,7 @@ from pathlib import Path
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--name", required=True)
+    ap.add_argument("--suffix", default="")
     ap.add_argument("paths", nargs="+")
     args = ap.parse_args()
     bad = []
@@ -18,7 +19,9 @@ def main():
             bad.append(raw)
     if bad:
         sys.exit(f"VV_STEP {args.name}: empty/missing: {', '.join(bad)}")
-    print(f"VV_STEP {args.name}: ok ({len(args.paths)} file(s))")
+    msg = f"VV_STEP {args.name}: ok ({len(args.paths)} file(s))"
+    print(msg)
+    Path(f"VV_log_{args.name}{args.suffix}.log").write_text(msg + "\n")
 
 
 if __name__ == "__main__":

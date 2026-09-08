@@ -351,6 +351,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
    - Output:
      - **GeneLab/software_versions_GLProteomics.md** (markdown table of software versions used in the workflow)
      - GeneLab/processed_data_protocol_GLProteomics.txt (processed-data protocol text)
+     - VV_Logs/VV_log_fragpipe_GLProteomics.log, VV_log_msstats_GLProteomics.log (or VV_log_msstatstmt_GLProteomics.log), VV_log_fpar_GLProteomics.log (between-step V&V; skipped if `--skip_vv`)
 
 <br>
 
