@@ -165,17 +165,10 @@ def main():
 
             processing_info_dir = os.path.join(outdir, "processing_info")
             check_nonempty_file(os.path.join(processing_info_dir, "samples.txt"), log)
-            logs = check_nonempty_glob(
-                os.path.join(processing_info_dir, f"nextflow_log*{suffix}.txt"),
+            check_nonempty_glob(
+                os.path.join(processing_info_dir, f"nextflow_processing_info*{suffix}.txt"),
                 log,
-                required=False,
             )
-            if not logs:
-                check_nonempty_glob(
-                    os.path.join(processing_info_dir, f"nextflow_processing_info*{suffix}.txt"),
-                    log,
-                    required=True,
-                )
             check_nonempty_glob(
                 os.path.join(processing_info_dir, f"nextflow_run_command*{suffix}.txt"), log
             )
