@@ -45,17 +45,22 @@ workflow POST_PROCESSING {
             .map { outdir, _dir -> outdir }
 
         PACKAGE_PROCESSING_INFO(ch_processing_info, processed_dir)
-        GENERATE_MD5SUMS(ch_processed_directory, PACKAGE_PROCESSING_INFO.out.zip)
+        GENERATE_MD5SUMS(
+            ch_processed_directory
+                .combine(channel.of('raw', 'processed'))
+                .combine(PACKAGE_PROCESSING_INFO.out.zip)
+        )
+        ch_raw_md5 = GENERATE_MD5SUMS.out.md5sum.filter { f -> f.name.startsWith('raw_') }
+        ch_processed_md5 = GENERATE_MD5SUMS.out.md5sum.filter { f -> f.name.startsWith('processed_') }
         VALIDATE_PROCESSING(
             ch_processed_directory,
-            GENERATE_MD5SUMS.out.raw_md5sum,
-            GENERATE_MD5SUMS.out.processed_md5sum
+            ch_raw_md5,
+            ch_processed_md5
         )
 
         ch_root = Channel.value((params.results_dir ?: (params.accession ?: 'results')).toString())
         ch_published = pub(PACKAGE_PROCESSING_INFO.out.zip, ch_root, 'GeneLab')
-            .mix(pub(GENERATE_MD5SUMS.out.raw_md5sum, ch_root, 'GeneLab'))
-            .mix(pub(GENERATE_MD5SUMS.out.processed_md5sum, ch_root, 'GeneLab'))
+            .mix(pub(GENERATE_MD5SUMS.out.md5sum, ch_root, 'GeneLab'))
             .mix(pub(VALIDATE_PROCESSING.out.validation_log, ch_root, 'GeneLab'))
 
     emit:

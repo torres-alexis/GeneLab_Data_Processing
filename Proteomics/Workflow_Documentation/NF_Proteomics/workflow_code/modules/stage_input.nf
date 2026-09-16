@@ -11,10 +11,8 @@ process STAGE_INPUT {
 
     script:
     """
-    # Stage file from various sources with retry logic
     echo "Staging ${meta.id} from: ${meta.data_file}"
-    
-    # Detect and download/copy based on source type
+
     if [[ "${meta.data_file}" =~ ^s3:// ]]; then
         echo "Detected S3 source"
         aws s3 cp "${meta.data_file}" ./raw_file --retry-mode adaptive
@@ -29,22 +27,16 @@ process STAGE_INPUT {
         exit 1
     fi
     
-    # Check if file was successfully staged
     if [[ ! -f raw_file ]]; then
         echo "ERROR: Failed to stage file from ${meta.data_file}"
         exit 1
     fi
     
-    # Detect format and handle accordingly
-    file_type=\$(file raw_file)
-    echo "File type detected: \$file_type"
-    
-    if [[ \$file_type == *"Zip archive"* ]]; then
+    if unzip -t raw_file >/dev/null 2>&1; then
         echo "Extracting ZIP archive..."
         unzip -q raw_file
-        # Find mzML files in extracted content
         find . -name "*.mzML" -exec mv {} ${meta.id}.mzML \\;
-    elif [[ \$file_type == *"gzip compressed"* ]]; then
+    elif gzip -t raw_file >/dev/null 2>&1; then
         echo "Extracting gzipped file..."
         gunzip -c raw_file > ${meta.id}.mzML
     elif [[ "${meta.data_file}" == *.mzML ]]; then
@@ -55,7 +47,6 @@ process STAGE_INPUT {
         mv raw_file ${meta.id}.mzML
     fi
     
-    # Verify final mzML file exists
     if [[ ! -f ${meta.id}.mzML ]]; then
         echo "ERROR: Failed to create standardized mzML file"
         exit 1
@@ -63,9 +54,7 @@ process STAGE_INPUT {
     
     echo "Successfully staged and standardized: ${meta.id}.mzML"
     
-    # Version info
     echo '"${task.process}":' > versions.yml
     echo "    wget: \$(wget --version | head -n1 | cut -d' ' -f3)" >> versions.yml
-    echo "    file: \$(file --version | head -n1)" >> versions.yml
     """
 }

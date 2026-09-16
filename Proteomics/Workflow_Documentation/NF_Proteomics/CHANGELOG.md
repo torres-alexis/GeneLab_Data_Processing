@@ -11,6 +11,7 @@
 - Processed protocol notes decoy drop, FPAR 50% filter + seed 40, dual-stats, human pathway libs, Docker plot quality, MBR compatibility.
 - README: new params, interpretation box; PPP commands drop `--enrichment_direction`.
 - `--entry_point mzml` (default) or `fragpipe_output` with `--fragpipe_output` (FragPipe results directory).
+- `-profile pbspro` and `-profile podman`. `--walltime` / `process.time` (local unsets). Parallel raw/processed md5 jobs.
 
 ### Changed
 
@@ -18,3 +19,5 @@
 - `drop_decoys_contams` now gates MSstats as well as FPAR.
 - Public `s3://` uses `aws.client.anonymous`. Docker profile no longer enables conda.
 - Workflow outputs (`publish:` / `output { }`) replace process `publishDir`. Same dest tree.
+- Process resources in `conf/process_resources.config`; executor settings in `slurm.config` / `local.config` / `pbspro.config`.
+- `dp_tools` image `1.3.8-slim`. STAGE_INPUT uses `unzip` / `gzip` instead of `file(1)`.

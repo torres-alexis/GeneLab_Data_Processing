@@ -22,9 +22,9 @@ The table below details the default maximum resource allocations for individual 
 
 | Workflow Type | Default CPU Cores | Default Memory |
 |---------------|-------------------|----------------|
-| All workflows | 8                 | 64 GB          |
+| All workflows | 16                | 64 GB          |
 
-> **Note:** These per-process resource allocations are defaults. They can be adjusted by modifying `cpus` and `memory` directives in the configuration file: [`nextflow.config`](workflow_code/nextflow.config).
+> **Note:** These per-process resource allocations are defaults. They can be adjusted by modifying `cpus`, `memory`, and `time` in [`conf/process_resources.config`](workflow_code/conf/process_resources.config); executor settings in [`local.config`](workflow_code/conf/local.config), [`slurm.config`](workflow_code/conf/slurm.config), and [`pbspro.config`](workflow_code/conf/pbspro.config).
 
 <br>
 
@@ -126,7 +126,7 @@ For organisms listed in the [GeneLab annotations table](https://github.com/nasa/
 Below are examples of how to run the NF_Proteomics workflow:
 > Note: Nextflow commands use both single hyphen arguments (e.g. -help) that denote general nextflow arguments and double hyphen arguments (e.g. --reference_version) that denote workflow specific parameters.  Take care to use the proper number of hyphens for each argument.
 
-> Note: To use Docker instead of Singularity, use `-profile docker` in the Nextflow run command. Nextflow will automatically pull images as needed.
+> Note: To use Docker or Podman instead of Singularity, use `-profile docker` or `-profile podman`. Nextflow will automatically pull images as needed.
 
 > Note: The `-resume` parameter can be used to resume a previously interrupted workflow from where it left off (see [Nextflow documentation](https://www.nextflow.io/docs/latest/getstarted.html#modify-and-resume)) or to restart the workflow from a specific point by changing relevant parameters, which will re-execute that process and all downstream affected processes.
 
@@ -215,7 +215,8 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `NF_PPP_1.0.0/main.nf` - Instructs Nextflow to run the NF_Proteomics workflow 
 
-* `-profile` - Specifies the configuration profile(s) to load, `singularity` instructs Nextflow to setup and use singularity for all software called in the workflow; use `local` for local execution ([local.config](workflow_code/conf/local.config)) or `slurm` for SLURM cluster execution ([slurm.config](workflow_code/conf/slurm.config))
+* `-profile` - Container: `singularity` (or `docker` / `podman`). Executor: `local`, `slurm`, or `pbspro`. Combine them, e.g. `-profile singularity,slurm`.
+
 > Note: The output directory will be named `GLDS-#` when using a OSD or GLDS accession as input, or `results` when running the workflow with only a runsheet as input.
 
 
@@ -350,6 +351,10 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--output_dir` - Parent path for workflow outputs (type: string, default: ".")
 * `--results_dir` - Results directory name. If null, uses "results" (params.output_dir/results/) (type: string, default: null)
 * `--publish_dir_mode` - Published outputs: copy, link, or symlink (type: string, default: "link")
+* `--pbs_queue` - PBS Pro queue when using `-profile pbspro` (type: string, default: "normal")
+* `--pbs_model` - PBS node model when using `-profile pbspro`. Adds `:model=<name>` (type: string, default: "")
+* `--pbs_internet_queue` - PBS queue for fetch/download processes when using `-profile pbspro`. Empty uses `--pbs_queue` (type: string, default: "")
+* `--walltime` - Default `process.time` on `-profile slurm` / `pbspro` (type: string, default: "2.h"). Ignored on `-profile local`
 * `--errorStrategy` - Error handling strategy for Nextflow processes. Use "ignore" to allow workflow to continue on process failure (type: string, default: "terminate")
 
 <br>

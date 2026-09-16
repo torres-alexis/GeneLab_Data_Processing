@@ -140,36 +140,40 @@ def main():
     parser = argparse.ArgumentParser(description="Generate MD5 TSVs for GeneLab proteomics outputs.")
     parser.add_argument("--outdir", required=True, help="Completed workflow output root (contains RawData/, etc.)")
     parser.add_argument("--assay_suffix", default="", help="e.g. _GLProteomics")
+    parser.add_argument("--raw", action="store_true")
+    parser.add_argument("--processed", action="store_true")
     args = parser.parse_args()
+
+    do_raw = args.raw or not (args.raw or args.processed)
+    do_processed = args.processed or not (args.raw or args.processed)
 
     outdir = os.path.abspath(args.outdir)
     raw_md5_file = f"raw_md5sum{args.assay_suffix}.tsv"
     processed_md5_file = f"processed_md5sum{args.assay_suffix}.tsv"
 
-    raw_paths = collect_raw_files(outdir)
-    raw_count = 0
-    with open(raw_md5_file, "w") as f:
-        for filepath in raw_paths:
+    if do_raw:
+        raw_paths = collect_raw_files(outdir)
+        raw_count = 0
+        with open(raw_md5_file, "w") as f:
+            for filepath in raw_paths:
+                md5sum = calculate_md5(filepath)
+                f.write(f"{os.path.basename(filepath)}\t{md5sum}\n")
+                raw_count += 1
+        print(f"Raw (RawData/*): {raw_count} rows -> {raw_md5_file}")
+        dedup_by_basename(raw_md5_file)
+
+    if do_processed:
+        print(f"Scanning (processed): {outdir}")
+        processed_paths = collect_processed_files(outdir, args.assay_suffix)
+        processed_lines = []
+        for filepath in processed_paths:
             md5sum = calculate_md5(filepath)
-            f.write(f"{os.path.basename(filepath)}\t{md5sum}\n")
-            raw_count += 1
-
-    print(f"Scanning (processed): {outdir}")
-    processed_paths = collect_processed_files(outdir, args.assay_suffix)
-    processed_lines = []
-    for filepath in processed_paths:
-        md5sum = calculate_md5(filepath)
-        processed_lines.append(f"{os.path.basename(filepath)}\t{md5sum}\n")
-
-    processed_count = len(processed_lines)
-    with open(processed_md5_file, "w") as f:
-        f.writelines(processed_lines)
-
-    print(f"Raw (RawData/*): {raw_count} rows -> {raw_md5_file}")
-    print(f"Processed: {processed_count} rows -> {processed_md5_file}")
-
-    dedup_by_basename(raw_md5_file)
-    dedup_by_basename(processed_md5_file)
+            processed_lines.append(f"{os.path.basename(filepath)}\t{md5sum}\n")
+        processed_count = len(processed_lines)
+        with open(processed_md5_file, "w") as f:
+            f.writelines(processed_lines)
+        print(f"Processed: {processed_count} rows -> {processed_md5_file}")
+        dedup_by_basename(processed_md5_file)
 
 
 if __name__ == "__main__":
