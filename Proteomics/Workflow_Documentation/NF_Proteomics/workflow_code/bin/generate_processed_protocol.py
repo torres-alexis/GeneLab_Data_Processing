@@ -29,6 +29,7 @@ def parse_args():
     parser.add_argument("--reference_proteome", default="", help="User-supplied reference proteome path param, if used")
     parser.add_argument("--reference_table", default="", help="GL-DPPD-7110-A reference table path/URL, if used for proteome")
     parser.add_argument("--used_proteome", default="", help="Proteome FASTA staged by the pipeline (decoys/contams applied)")
+    parser.add_argument("--entry_point", default="mzml", help="Workflow entry point: mzml or fragpipe_output")
     parser.add_argument("--min_appearance_one_condition", default="50", help="Min % observed in at least one condition before imputation")
     parser.add_argument("--min_global_appearance", default="0", help="Min % observed globally before imputation")
     parser.add_argument("--drop_decoys_contams", default="true", help="Whether decoys/contaminants were dropped before DE")
@@ -183,26 +184,43 @@ def generate_protocol_content(args, software_versions):
             "MSFragger, Percolator, and Philosopher through FragPipe. "
         )
 
-    description = (
-        f"Data were processed as described in {dppd}, using NF_Proteomics version "
-        f"{args.workflow_version}. In short, raw mass spectrometry files were staged as mzML files, "
-        f"and raw data QC reports were generated with RawBeans (version {version(software_versions, 'RawBeans')}). "
-        f"{database_sentence}"
-        f"FragPipe (version {fp_ver}) was executed in headless (command-line) mode "
-        f"with the \"{fragpipe_workflow}\" workflow preset. "
-        f"{identification_sentence}"
-        f"{ptm_sentence}"
-        f"{quant_sentence}"
-        f"QC metrics produced by FragPipe were summarized first using pmultiqc "
-        f"(version {version(software_versions, 'pmultiqc')}); those summaries were then aggregated with MultiQC "
-        f"(version {version(software_versions, 'MultiQC')}). "
-        f"{msstats_sentence}"
+    fpar_sentence = (
         f"Downstream statistical analysis and visualizations were performed "
         f"at the {fp_levels} levels with FragPipeAnalystR (version {version(software_versions, 'FragPipeAnalystR')}), "
         f"including data quality control, limma-based differential expression analysis using adjusted p-value "
         f"threshold {de_alpha}, absolute log2 fold change greater than {de_lfc}, and {de_fdr} multiple-testing correction, "
         f"together with feature, volcano, and heatmap visualization, and gene ontology and pathway enrichment analysis."
     )
+    entry_point = (getattr(args, "entry_point", None) or "mzml").strip().lower()
+    if entry_point == "fragpipe_output":
+        description = (
+            f"Data were processed as described in {dppd}, using NF_Proteomics version "
+            f"{args.workflow_version}. In short, existing FragPipe outputs from the "
+            f"\"{fragpipe_workflow}\" workflow were used as the starting point. "
+            f"{database_sentence}"
+            f"{identification_sentence}"
+            f"{ptm_sentence}"
+            f"{quant_sentence}"
+            f"{msstats_sentence}"
+            f"{fpar_sentence}"
+        )
+    else:
+        description = (
+            f"Data were processed as described in {dppd}, using NF_Proteomics version "
+            f"{args.workflow_version}. In short, raw mass spectrometry files were staged as mzML files, "
+            f"and raw data QC reports were generated with RawBeans (version {version(software_versions, 'RawBeans')}). "
+            f"{database_sentence}"
+            f"FragPipe (version {fp_ver}) was executed in headless (command-line) mode "
+            f"with the \"{fragpipe_workflow}\" workflow preset. "
+            f"{identification_sentence}"
+            f"{ptm_sentence}"
+            f"{quant_sentence}"
+            f"QC metrics produced by FragPipe were summarized first using pmultiqc "
+            f"(version {version(software_versions, 'pmultiqc')}); those summaries were then aggregated with MultiQC "
+            f"(version {version(software_versions, 'MultiQC')}). "
+            f"{msstats_sentence}"
+            f"{fpar_sentence}"
+        )
 
     extra = []
     if _str_or_default(getattr(args, "drop_decoys_contams", None), "true").lower() in {"true", "1", "yes"}:

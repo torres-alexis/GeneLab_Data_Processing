@@ -10,6 +10,7 @@
 - `VV_STEP` after FragPipe / MSstats / FPAR (`--skip_vv` to bypass). Logs under `VV_Logs/VV_log_<step>_GLProteomics.log`. VALIDATE_PROCESSING still checks published products + residual decoys/cRAP.
 - Processed protocol notes decoy drop, FPAR 50% filter + seed 40, dual-stats, human pathway libs, Docker plot quality, MBR compatibility.
 - README: new params, interpretation box; PPP commands drop `--enrichment_direction`.
+- `--entry_point mzml` (default) or `fragpipe_output` with `--fragpipe_output` (FragPipe results directory).
 
 ### Changed
 

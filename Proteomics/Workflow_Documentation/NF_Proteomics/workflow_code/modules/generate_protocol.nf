@@ -2,7 +2,7 @@ process GENERATE_PROCESSED_PROTOCOL {
     input:
         path(ch_outdir)
         path(software_versions_md)
-        path(proteome_fasta)
+        val(used_proteome)
         val(uniprot_id)
         val(reference_table)
         val(reference_proteome)
@@ -31,7 +31,8 @@ process GENERATE_PROCESSED_PROTOCOL {
             --uniprot_id "${uniprot_id}" \\
             --reference_proteome "${reference_proteome}" \\
             --reference_table "${reference_table}" \\
-            --used_proteome ${proteome_fasta} \\
+            --used_proteome "${used_proteome}" \\
+            --entry_point "${params.entry_point ?: 'mzml'}" \\
             --min_appearance_one_condition "${params.fp_analyst_min_appearance_one_cond ?: 50}" \\
             --min_global_appearance "${params.fp_analyst_min_global_appearance ?: 0}" \\
             --drop_decoys_contams "${params.drop_decoys_contams != false && params.drop_decoys_contams != 'false' ? 'true' : 'false'}" \\

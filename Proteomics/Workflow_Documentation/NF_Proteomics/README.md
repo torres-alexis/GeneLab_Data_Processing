@@ -42,7 +42,8 @@ The table below details the default maximum resource allocations for individual 
    4c. [Run the LFQ-MBR workflow on a custom dataset](#4c-run-the-lfq-mbr-workflow-on-a-custom-dataset)  
    4d. [Run the LFQ-MBR workflow with custom FragPipe workflow config](#4d-run-the-lfq-mbr-workflow-with-custom-fragpipe-workflow-config)  
    4e. [Run the TMT10 workflow on a custom dataset](#4e-run-the-tmt10-workflow-on-a-custom-dataset)  
-5. [Additional Output Files](#5-additional-output-files)  
+   4f. [Resume a workflow from an existing FragPipe output folder](#4f-resume-a-workflow-from-an-existing-fragpipe-output-folder)
+5. [Additional Output Files](#5-additional-output-files)
 6. [Post-processing](#6-post-processing)  
 <br>
 
@@ -197,12 +198,25 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 <br>
 
+#### 4f. Resume a workflow from an existing FragPipe output folder
+
+```bash
+nextflow run NF_PPP_1.0.0/main.nf \
+   -profile singularity,local \
+   --entry_point fragpipe_output \
+   --fragpipe_output </path/to/FragPipe> \
+   --fragpipe_workflow LFQ-MBR \
+   --runsheet </path/to/runsheet>
+```
+
+<br>
+
 #### Required Parameters For All Approaches:
 
 * `NF_PPP_1.0.0/main.nf` - Instructs Nextflow to run the NF_Proteomics workflow 
 
 * `-profile` - Specifies the configuration profile(s) to load, `singularity` instructs Nextflow to setup and use singularity for all software called in the workflow; use `local` for local execution ([local.config](workflow_code/conf/local.config)) or `slurm` for SLURM cluster execution ([slurm.config](workflow_code/conf/slurm.config))
-  > Note: The output directory will be named `GLDS-#` when using a OSD or GLDS accession as input, or `results` when running the workflow with only a runsheet as input.
+> Note: The output directory will be named `GLDS-#` when using a OSD or GLDS accession as input, or `results` when running the workflow with only a runsheet as input.
 
 
 <br>
@@ -253,6 +267,18 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 <br>
 
+**Additional Required Parameters For [4f](#4f-resume-a-workflow-from-an-existing-fragpipe-output-folder):**
+
+* `--entry_point` - `fragpipe_output`
+
+* `--fragpipe_output` - FragPipe results directory
+
+* `--fragpipe_workflow` - Must match the tables in that folder: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
+
+* `--runsheet` (LFQ) or `--data_sheet` and `--sample_sheet` (TMT)
+
+<br>
+
 **Reference proteome (one of the following; default = annotations table lookup):**
 
 * `--reference_table` - Path or URL to [GL-DPPD-7110-A_annotations.csv](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv). With runsheet/sample-sheet `organism`, resolves the pinned `proteome` FASTA and `genelab_annots_link` for DE_results. This is the default when `--uniprot_id` and `--reference_proteome` are unset.
@@ -267,15 +293,17 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional [Optional] Parameters For All Approaches**
 
-> *Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.*
+> Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.
 
+* `--entry_point` - `mzml` (default) or `fragpipe_output` (type: string, default: "mzml")
+* `--fragpipe_output` - FragPipe results directory. Required when `--entry_point fragpipe_output` (type: string, default: null)
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
 * `--tech_rep` - Technical replicate handling for FragPipe: `first` (default, keep the first technical replicate by runsheet order), `all` (search every technical replicate). LFQ: `Source Name` + Factor Value columns; TMT: plex + TechRepMixture + fraction. (type: string, default: "first")
 * `--require_bioreplicate` - Require `Bioreplicate` in the input runsheet (LFQ) or sample sheet (TMT). If false, missing values are inferred within each condition from runsheet order. (type: boolean, default: true)
 * `--drop_decoys_contams` - Drop Philosopher decoys (`rev_`) and contaminant-tagged IDs (`contam_`) before MSstats and FragPipeAnalystR. (type: boolean, default: true)
 * `--fp_analyst_keep_contaminants` - If true, FragPipeAnalystR keeps contaminants (manual dual-run). Does not change MSstats. (type: boolean, default: false)
 * `--skip_vv` - Skip between-step `VV_STEP` gates after FragPipe / MSstats / FPAR. End-of-run `VALIDATE_PROCESSING` still runs in post-processing. (type: boolean, default: false)
-* `--fragpipe_tools` - Path to FragPipe tools dir (type: string, default: "${projectDir}/conf/tools")
+* `--fragpipe_tools` - Headless FragPipe `--config-tools-folder`: MSFragger / IonQuant / diaTracer JARs plus `ext/bruker/` and `ext/thermo/`. Unused when `--entry_point fragpipe_output` (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
 * `--uniprot_id` - UniProt proteome ID override; live download via Philosopher `--id` (type: string, default: null). Mutually exclusive with `--reference_proteome`. Not needed when the organism row in `--reference_table` has a `proteome` URL/path.
@@ -334,7 +362,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 > **Interpretation:** MSstats (peptide-level models, no Perseus imputation) and FragPipeAnalystR (limma on imputed intensities) are complementary and will not give identical hit lists. FPAR pathway analysis uses **human** Enrichr / MSigDB / `org.Hs.eg.db` libraries; non-human symbols are shared-symbol homology, not species-native pathways. LFQ-MBR assumes one technically compatible cohort per OSDR assay.
 
->Note: All outputs are written to a subdirectory within `--output_dir`. If `--results_dir` is specified, its value is used as the subdirectory name. Otherwise, the subdirectory defaults to `results/` when `--accession` is not provided, or to the GLDS accession (`GLDS-X`) when `--accession` is provided.
+> Note: All outputs are written to a subdirectory within `--output_dir`. If `--results_dir` is specified, its value is used as the subdirectory name. Otherwise, the subdirectory defaults to `results/` when `--accession` is not provided, or to the GLDS accession (`GLDS-X`) when `--accession` is provided.
 
 **Processing Metadata**
 

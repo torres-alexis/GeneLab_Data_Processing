@@ -37,7 +37,9 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | Bioreplicate | string | Numeric biological replicate ID for the FragPipe manifest. Required when `require_bioreplicate` is true (default). If that flag is false: from this column if set; else one ID per Source Name within each condition when Has Tech Reps is present; else sheet order. See [FragPipe tutorial](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html). | 1 |
 | fraction | string | Optional LC fraction ID. Only needed when the dataset has both fractionated runs and technical replicates. | 1 |
 
-Note: If the same Sample Name appears on more than one row, staging/manifest file names use each `data_file` basename instead of `Sample Name`.
+> Note: For `--entry_point fragpipe_output`, `data_file` is still required on the runsheet / data sheet. Those files are not read and need not exist.
+
+> Note: If the same Sample Name appears on more than one row, staging/manifest file names use each `data_file` basename instead of `Sample Name`.
 
 ---
 
