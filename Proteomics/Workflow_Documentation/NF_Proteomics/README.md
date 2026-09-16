@@ -330,7 +330,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--fp_analyst_de_alpha` - Adjusted p-value threshold for DE significance (type: float, default: 0.05)
 * `--fp_analyst_de_lfc` - Log2 fold change threshold for DE significance (type: float, default: 1.0)
 * `--fp_analyst_de_fdr` - FDR correction: 'Benjamini Hochberg' or 'Local and tail area-based' (type: string, default: "Benjamini Hochberg")
-* `--fp_analyst_enrichment_database` - Enrichr databases: `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `MSigDB_Hallmark_2020`, `KEGG_2021_Human`, `Reactome_2022`. Comma-separated. '' = skip. (type: string, default: "Hallmark,GO_Biological_Process_2021")
+* `--fp_analyst_enrichment_database` - Enrichr databases: `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `MSigDB_Hallmark_2020`, `KEGG_2021_Human`, `Reactome_2022`. Comma-separated. '' = skip. ORA is always run on both the up- and down-regulated sets of features. (type: string, default: "Hallmark,GO_Biological_Process_2021")
 * `--fp_analyst_gsea_database` - GSEA databases: Hallmark, GO_Biological_Process_2021, GO_Cellular_Component_2021, GO_Molecular_Function_2021, KEGG_2021_Human. Protein/gene/site only. '' = skip (type: string, default: "Hallmark,GO_Biological_Process_2021")
 * `--fp_analyst_protein_feature_list` - Comma-separated protein IDs for feature plots. Empty = use top_n_protein (type: string, default: null)
 * `--fp_analyst_gene_feature_list` - Comma-separated gene names for feature plots. Empty = use top_n_gene (type: string, default: null)
