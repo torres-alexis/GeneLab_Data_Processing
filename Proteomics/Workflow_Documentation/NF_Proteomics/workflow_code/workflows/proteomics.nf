@@ -122,9 +122,15 @@ def resolve_fp_root(raw) {
         error "entry_point=fragpipe_output: ${raw} is not a directory."
     }
     def candidates = [d, file("${d}/output"), file("${d}/FragPipe")]
-    def hit = candidates.find { c -> c.exists() && c.isDirectory() && file("${c}/msstats.csv").exists() }
+    def hit = candidates.find { c ->
+        if (!c.exists() || !c.isDirectory()) return false
+        if (file("${c}/msstats.csv").exists()) return true
+        if (file("${c}/combined_protein.tsv").exists()) return true
+        def abund = existing_under(c, ['tmt-report/abundance_protein_*.tsv', 'abundance_protein_*.tsv'])
+        return abund as boolean
+    }
     if (!hit) {
-        error "entry_point=fragpipe_output: no msstats.csv in ${raw}."
+        error "entry_point=fragpipe_output: no msstats.csv, combined_protein.tsv, or abundance_protein_*.tsv in ${raw}."
     }
     return hit
 }
@@ -523,7 +529,7 @@ workflow PROTEOMICS {
             }
         }
 
-        // Pass in FragPipe tables to clean and publish; run downstream modules with original tables
+        // Publish sample-name headers; FragPipeAnalystR still reads the original tables
         ch_fragpipe_tables_to_clean = (params.fragpipe_workflow?.startsWith('TMT') ?
             ch_tmt_report_tables :
             ch_combined_tables

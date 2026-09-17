@@ -272,7 +272,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 * `--entry_point` - `fragpipe_output`
 
-* `--fragpipe_output` - FragPipe results directory
+* `--fragpipe_output` - Unzipped `fragpipe{assay_suffix}.zip` (default `fragpipe_GLProteomics.zip`) or the `FRAGPIPE` module `output/` folder
 
 * `--fragpipe_workflow` - Must match the tables in that folder: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho`
 
@@ -297,7 +297,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 > Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.
 
 * `--entry_point` - `mzml` (default) or `fragpipe_output` (type: string, default: "mzml")
-* `--fragpipe_output` - FragPipe results directory. Required when `--entry_point fragpipe_output` (type: string, default: null)
+* `--fragpipe_output` - Unzipped `fragpipe{assay_suffix}.zip` (default `fragpipe_GLProteomics.zip`) or the `FRAGPIPE` module `output/` folder. Required when `--entry_point fragpipe_output` (type: string, default: null)
 * `--isa_archive` - Path or URL to ISA.zip. If omitted, pulled from OSDR when runsheet (LFQ) or data sheet and sample sheet (TMT) are missing (type: string, default: null)
 * `--tech_rep` - Technical replicate handling for FragPipe: `first` (default, keep the first technical replicate by runsheet order), `all` (search every technical replicate). LFQ: `Source Name` + Factor Value columns; TMT: plex + TechRepMixture + fraction. (type: string, default: "first")
 * `--require_bioreplicate` - Require `Bioreplicate` in the input runsheet (LFQ) or sample sheet (TMT). If false, missing values are inferred within each condition from runsheet order. (type: boolean, default: true)

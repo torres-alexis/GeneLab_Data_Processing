@@ -10,7 +10,7 @@
 - `VV_STEP` after FragPipe / MSstats / FPAR (`--skip_vv` to bypass). CSV logs plus `VV_CONCAT_FILTER` (`VV_log_final` / `VV_log_final_only_issues`). VALIDATE_PROCESSING still checks published products + residual decoys/cRAP.
 - Processed protocol notes decoy drop, FPAR 50% filter + seed 40, dual-stats, human pathway libs, Docker plot quality, MBR compatibility.
 - README: new params, interpretation box; PPP commands drop `--enrichment_direction`.
-- `--entry_point mzml` (default) or `fragpipe_output` with `--fragpipe_output` (FragPipe results directory).
+- `--entry_point mzml` (default) or `fragpipe_output` with `--fragpipe_output` (unzipped `fragpipe{assay_suffix}.zip` or the `FRAGPIPE` module `output/` folder).
 - `-profile pbspro` and `-profile podman`. `--walltime` / `process.time` (local unsets). Parallel raw/processed md5 jobs.
 
 ### Changed
@@ -20,5 +20,6 @@
 - Public `s3://` uses `aws.client.anonymous`. Docker profile no longer enables conda.
 - Workflow outputs (`publish:` / `output { }`) replace process `publishDir`. Same dest tree.
 - Process resources in `conf/process_resources.config`; executor settings in `slurm.config` / `local.config` / `pbspro.config`.
-- `dp_tools` image `1.3.8-slim`. STAGE_INPUT uses `unzip` / `gzip` instead of `file(1)`.
+- `dp_tools` image `1.3.8-slim`. COPY_INPUT / FETCH_INPUT unpack `unzip` / `gzip` instead of `file(1)`.
+- `--fragpipe_output` is the unzipped `fragpipe{assay_suffix}.zip` or the `FRAGPIPE` module `output/` folder.
 - pmultiqc image `0.0.48` (was `0.0.40`; MultiQC 1.35).
