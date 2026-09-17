@@ -303,7 +303,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--require_bioreplicate` - Require `Bioreplicate` in the input runsheet (LFQ) or sample sheet (TMT). If false, missing values are inferred within each condition from runsheet order. (type: boolean, default: true)
 * `--drop_decoys_contams` - Drop Philosopher decoys (`rev_`) and contaminant-tagged IDs (`contam_`) before MSstats and FragPipeAnalystR. (type: boolean, default: true)
 * `--fp_analyst_keep_contaminants` - If true, FragPipeAnalystR keeps contaminants (manual dual-run). Does not change MSstats. (type: boolean, default: false)
-* `--skip_vv` - Skip between-step `VV_STEP` gates after FragPipe / MSstats / FPAR. End-of-run `VALIDATE_PROCESSING` still runs in post-processing. (type: boolean, default: false)
+* `--skip_vv` - Skip `VV_STEP` and `VV_CONCAT_FILTER`. End-of-run `VALIDATE_PROCESSING` still runs in post-processing. (type: boolean, default: false)
 * `--fragpipe_tools` - Headless FragPipe `--config-tools-folder`: MSFragger / IonQuant / diaTracer JARs plus `ext/bruker/` and `ext/thermo/`. Unused when `--entry_point fragpipe_output` (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
@@ -384,7 +384,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
    - Output:
      - **GeneLab/software_versions_GLProteomics.md** (markdown table of software versions used in the workflow)
      - GeneLab/processed_data_protocol_GLProteomics.txt (processed-data protocol text)
-     - VV_Logs/VV_log_fragpipe_GLProteomics.log, VV_log_msstats_GLProteomics.log (or VV_log_msstatstmt_GLProteomics.log), VV_log_fpar_GLProteomics.log (between-step V&V; skipped if `--skip_vv`)
+     - VV_Logs/VV_log_fragpipe_GLProteomics.csv, VV_log_msstats_GLProteomics.csv (or VV_log_msstatstmt_GLProteomics.csv), VV_log_fpar_*_GLProteomics.csv, VV_log_final_GLProteomics.csv, VV_log_final_only_issues_GLProteomics.csv (between-step V&V + combine; skipped if `--skip_vv`)
 
 <br>
 

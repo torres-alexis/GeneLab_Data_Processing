@@ -5,7 +5,8 @@ include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
-include { STAGE_INPUT } from '../modules/stage_input.nf'
+include { COPY_INPUT } from '../modules/copy_input.nf'
+include { FETCH_INPUT } from '../modules/fetch_input.nf'
 include { RAWBEANS_QC_ALL } from '../modules/rawbeans_qc.nf'
 include { FRAGPIPE_CONFIG_SETUP } from '../modules/fragpipe_config_setup.nf'
 include { FRAGPIPE_METADATA_SETUP } from '../modules/fragpipe_metadata_setup.nf'
@@ -20,7 +21,7 @@ include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 include { FILTER_TECH_REPS } from '../modules/filter_tech_reps.nf'
-include { VV_STEP } from '../modules/vv_step.nf'
+include { VV_STEP; VV_CONCAT_FILTER } from '../modules/vv_step.nf'
 
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
@@ -68,6 +69,11 @@ def pub_fpar(ch, root) {
 
 def takeFirst(p) {
     return p instanceof List ? p[0] : p
+}
+
+def isRemoteSrc(meta) {
+    def src = meta.data_file.toString()
+    return src.startsWith('s3://') || src.startsWith('http://') || src.startsWith('https://')
 }
 
 def remapLfqFractionIds(metas, is_tmt) {
@@ -251,7 +257,6 @@ workflow PROTEOMICS {
             sheet_fp = sheet_in
         }
 
-        // Convert sheet to list of samples (file metadata + path)
         def sheet_schema = is_tmt ? "$projectDir/schema_data_sheet.json" : "$projectDir/schema_runsheet.json"
         samples_full = sheet_in
             .flatMap { sheet_path ->
@@ -359,8 +364,14 @@ workflow PROTEOMICS {
 
         if (ep == 'mzml') {
             // mzML only. MSCONVERT exists but is not wired — convert Thermo .raw upstream.
-            STAGE_INPUT(ch_out_dir, samples_full)
-            RAWBEANS_QC_ALL(output_dir, STAGE_INPUT.out.mzml_files.map { it[1] }.collect())
+            samples_full.branch { meta ->
+                remote: isRemoteSrc(meta)
+                local: true
+            }.set { ch_src }
+            COPY_INPUT(ch_out_dir, ch_src.local.map { meta -> tuple(meta, file(meta.data_file.toString())) })
+            FETCH_INPUT(ch_out_dir, ch_src.remote.map { meta -> tuple(meta, meta.data_file.toString()) })
+            ch_mzml = COPY_INPUT.out.mzml_files.mix(FETCH_INPUT.out.mzml_files)
+            RAWBEANS_QC_ALL(output_dir, ch_mzml.map { it[1] }.collect())
             ch_published = ch_published.mix(pub(RAWBEANS_QC_ALL.out.qc_report, ch_root, 'RawBeans'))
 
             ///////////////////////////////////////////////////////////
@@ -409,12 +420,12 @@ workflow PROTEOMICS {
             ch_published = ch_published.mix(pub(FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_root, 'Metadata'))
             // Join on id — do not combine(collect()) id lists: Groovy flattens List into tuple slots
             ch_fragpipe_mzml = keep_first_tr
-                ? STAGE_INPUT.out.mzml_files
+                ? ch_mzml
                     .map { meta, mzml -> tuple(meta.id.toString(), mzml) }
                     .join(samples_fp.map { m -> tuple(m.id.toString(), 1) }, by: 0)
                     .map { id, mzml, fpMarker -> mzml }
                     .collect()
-                : STAGE_INPUT.out.mzml_files.map { it[1] }.collect()
+                : ch_mzml.map { it[1] }.collect()
 
             FRAGPIPE(output_dir, FRAGPIPE_CONFIG_SETUP.out.fragpipe_config, ch_fragpipe_tools, manifest, proteome, ch_fragpipe_mzml, FRAGPIPE_METADATA_SETUP.out.experiment_annotation)
 
@@ -436,7 +447,7 @@ workflow PROTEOMICS {
             ch_ratio_peptide = FRAGPIPE.out.ratio_peptide
             ch_ratio_gene = FRAGPIPE.out.ratio_gene
             ch_ratio_single_site = FRAGPIPE.out.ratio_single_site
-            ch_search_versions = STAGE_INPUT.out.versions
+            ch_search_versions = COPY_INPUT.out.versions.mix(FETCH_INPUT.out.versions)
                 .mix(RAWBEANS_QC_ALL.out.versions)
                 .mix(FRAGPIPE.out.versions)
 
@@ -501,9 +512,6 @@ workflow PROTEOMICS {
             ch_ratio_gene = files_ch(existing_under(fp_root, tmt_table_pats('gene', 'ratio')))
             ch_ratio_single_site = files_ch(existing_under(fp_root, tmt_table_pats('single-site', 'ratio')))
 
-            ch_published = ch_published
-                .mix(pub(ch_msstats_csv, ch_root, 'FragPipe'))
-                .mix(pub(ch_msstats_ptm, ch_root, 'FragPipe'))
             ch_vv = ch_msstats_csv.map { f -> tuple('fragpipe', f) }
 
             if (is_fp_workdir(fp_root)) {
@@ -608,10 +616,15 @@ workflow PROTEOMICS {
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
         FRAGPIPEANALYSTR(ch_out_dir, ch_fp_with_annot)
         ch_published = ch_published.mix(pub_fpar(FRAGPIPEANALYSTR.out.published, ch_root))
-        ch_vv = ch_vv.mix(FRAGPIPEANALYSTR.out.output_files.flatten().collect().map { fs -> tuple('fpar', fs) })
+        ch_vv = ch_vv.mix(
+            FRAGPIPEANALYSTR.out.published.map { kind, files -> tuple("fpar_${kind}", files_only(as_list(files))) }
+        )
         if (!params.skip_vv) {
             VV_STEP(ch_out_dir, ch_vv)
-            ch_published = ch_published.mix(pub(VV_STEP.out.log, ch_root, 'VV_Logs'))
+            VV_CONCAT_FILTER(ch_out_dir, VV_STEP.out.log.collect())
+            ch_published = ch_published
+                .mix(pub(VV_STEP.out.log, ch_root, 'VV_Logs'))
+                .mix(pub(VV_CONCAT_FILTER.out.logs, ch_root, 'VV_Logs'))
         }
 
         ch_lfq_versions = ch_lfq_versions.mix(ch_tmt_versions).mix(FRAGPIPEANALYSTR.out.versions)

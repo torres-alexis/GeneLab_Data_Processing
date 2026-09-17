@@ -152,6 +152,23 @@ if (length(msstats_files) == 0) {
 
 msstats_data <- read_msstats_table(msstats_files)
 
+nms <- names(msstats_data)
+has_channel_cols <- "Channel" %in% nms || any(grepl("^Channel[ .]", nms))
+has_is_unique <- "Is.Unique" %in% nms
+if (!has_channel_cols || !has_is_unique) {
+  notice_suffix <- if (nzchar(assay_suffix)) assay_suffix else "_GLProteomics"
+  notice_path <- paste0("dropped-runs-msstatstmt", notice_suffix, ".txt")
+  writeLines(
+    c(
+      "msstats.csv is not Philosopher TMT format (need Is.Unique and Channel / 'Channel *' columns).",
+      "MSstatsTMT skipped. Use --tmt_extraction_tool Philosopher so FragPipe writes philosopher-msstats.",
+      paste("columns:", paste(nms, collapse = ", "))
+    ),
+    notice_path
+  )
+  quit(save = "no", status = 0)
+}
+
 msstats_runs <- msstats_run_ids(msstats_data)
 run_filter <- filter_annotation_to_msstats(annotation_msstats, msstats_runs, assay_suffix)
 annotation_msstats <- run_filter$annotation
@@ -180,6 +197,22 @@ if (nrow(annotation_msstats) == 0) {
     "See ", dropped_runs_path
   )
 }
+
+ms_run_col <- if ("Spectrum.File" %in% names(msstats_data)) "Spectrum.File" else "Run"
+ms_run_raw <- unique(as.character(msstats_data[[ms_run_col]]))
+norm_to_raw <- stats::setNames(ms_run_raw, normalize_run_id(ms_run_raw))
+mapped_runs <- unname(norm_to_raw[normalize_run_id(annotation_msstats$Run, assay_suffix)])
+if (anyNA(mapped_runs)) {
+  stop(
+    "MSstatsTMT: annotation Run could not be mapped to ",
+    ms_run_col,
+    ". annot=",
+    paste(unique(annotation_msstats$Run[is.na(mapped_runs)]), collapse = ","),
+    " msstats=",
+    paste(ms_run_raw, collapse = ",")
+  )
+}
+annotation_msstats$Run <- mapped_runs
 
 input_tmt <- PhilosophertoMSstatsTMTFormat(
   input = msstats_data,
