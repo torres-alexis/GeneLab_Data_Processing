@@ -21,3 +21,4 @@
 - Workflow outputs (`publish:` / `output { }`) replace process `publishDir`. Same dest tree.
 - Process resources in `conf/process_resources.config`; executor settings in `slurm.config` / `local.config` / `pbspro.config`.
 - `dp_tools` image `1.3.8-slim`. STAGE_INPUT uses `unzip` / `gzip` instead of `file(1)`.
+- pmultiqc image `0.0.48` (was `0.0.40`; MultiQC 1.35).
