@@ -15,6 +15,7 @@
 
 ### Changed
 
+- If `--uniprot_id` downloads a proteome from UniProt instead of the FASTA already listed in the annotations table, Philosopher `--reviewed` is used only for Arabidopsis, human, and mouse. All other organisms include unreviewed (TrEMBL) sequences. `--philosopher_reviewed true` or `false` overrides that.
 - Default `philosopher_contaminants_prefix` is `contam_` (Philosopher `--contamprefix` on UniProt pull and custom FASTA add).
 - `drop_decoys_contams` now gates MSstats as well as FPAR.
 - Public `s3://` uses `aws.client.anonymous`. Docker profile no longer enables conda.

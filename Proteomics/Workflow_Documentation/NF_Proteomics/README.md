@@ -307,9 +307,9 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--fragpipe_tools` - Headless FragPipe `--config-tools-folder`: MSFragger / IonQuant / diaTracer JARs plus `ext/bruker/` and `ext/thermo/`. Unused when `--entry_point fragpipe_output` (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)
 * `--fragpipe_workflow_config` - Path to custom workflow config (type: string, default: null)
-* `--uniprot_id` - UniProt proteome ID override; live download via Philosopher `--id` (type: string, default: null). Mutually exclusive with `--reference_proteome`. Not needed when the organism row in `--reference_table` has a `proteome` URL/path.
+* `--uniprot_id` - UniProt proteome ID. Downloads a proteome from UniProt with Philosopher `--id` instead of the FASTA already listed in the annotations table. Mutually exclusive with `--reference_proteome`. Not needed when the organism row in `--reference_table` has a `proteome` URL or path. (type: string, default: null)
 * `--reference_proteome` - Custom reference proteome FASTA path (type: string, default: null). Mutually exclusive with `--uniprot_id`.
-* `--philosopher_reviewed` - Download only reviewed (Swiss-Prot) entries when using `--uniprot_id` (type: boolean, default: true)
+* `--philosopher_reviewed` - If `--uniprot_id` downloads a proteome from UniProt instead of the FASTA already listed in the annotations table, pass Philosopher `--reviewed` (Swiss-Prot only). If this parameter is not set, `--reviewed` is used only for Arabidopsis (`UP000006548`), human (`UP000005640`), and mouse (`UP000000589`). Set `true` or `false` to override. (type: boolean, default: null)
 * `--philosopher_isoforms` - Include protein isoforms in database when using `--uniprot_id` (type: boolean, default: false)
 * `--philosopher_enzyme` - Enzyme for digestion: trypsin, lys_c, lys_n, glu_c, chymotrypsin (type: string, default: "trypsin")
 * `--philosopher_spike_in` - Path to spike-in FASTA file to add to database (e.g., iRT peptides) (type: string, default: null)

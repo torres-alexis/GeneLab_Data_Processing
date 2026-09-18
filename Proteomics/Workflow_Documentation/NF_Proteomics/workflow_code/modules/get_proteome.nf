@@ -8,7 +8,15 @@ process GET_PROTEOME {
     path("*.fa*"), emit: proteome_fasta
 
     script:
-    def reviewed_flag = params.philosopher_reviewed ? '--reviewed' : ''
+    // Used only if --uniprot_id downloads from UniProt instead of the FASTA in the annotations table.
+    // Arabidopsis, human, and mouse use --reviewed. Every other organism does not.
+    // --philosopher_reviewed true or false overrides.
+    def reviewed_uniprot_ids = ['UP000006548', 'UP000005640', 'UP000000589']
+    def uid = params.uniprot_id?.toString()?.toUpperCase()
+    def use_reviewed = (params.philosopher_reviewed != null)
+        ? params.philosopher_reviewed.toString().toBoolean()
+        : (uid in reviewed_uniprot_ids)
+    def reviewed_flag = use_reviewed ? '--reviewed' : ''
     def isoforms_flag = params.philosopher_isoforms ? '--isoform' : ''
     def contaminants_flag = params.philosopher_contaminants ? '--contam' : ''
     def contaminants_prefix_flag = (params.philosopher_contaminants && params.philosopher_contaminants_prefix) ? '--contamprefix' : ''
