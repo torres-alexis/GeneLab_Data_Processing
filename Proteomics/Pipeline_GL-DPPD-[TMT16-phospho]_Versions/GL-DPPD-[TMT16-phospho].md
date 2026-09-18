@@ -42,7 +42,7 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4h. Database Annotation](#4h-database-annotation)
     - [4i. Filter Results by FDR](#4i-filter-results-by-fdr)
     - [4j. Generate Reports](#4j-generate-reports)
-    - [4l. TMT-Integrator TMT Quantification](#4l-tmt-integrator-tmt-quantification)
+    - [4k. TMT-Integrator TMT Quantification](#4k-tmt-integrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
   - [**6. MSstatsTMT Differential Abundance Analysis**](#6-msstatstmt-differential-abundance-analysis)
   - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
@@ -669,7 +669,7 @@ PTMProphetParser-7.3.0 \
 
 <br>
 
-### 4l. TMT-Integrator TMT Quantification
+### 4k. TMT-Integrator TMT Quantification
 
 ```bash
 java -Xmx64G -jar TMT-Integrator-6.1.3.jar \
@@ -708,7 +708,7 @@ Abundance tables are the ratio tables converted back to intensity scale. Convers
 - **ratio_modified-peptide_MD.tsv** (modified-peptide–level)
 - **ratio_single-site_MD.tsv** (single localized PTM site)
 - **ratio_multi-site_MD.tsv** (multi-site PTM)
-- **msstats.csv** (MSstatsTMT input from TMT-Integrator with Philosopher reporter-ion extraction; MSstatsPTM is not run)
+- **msstats.csv** (MSstatsTMT input from TMT-Integrator with Philosopher reporter-ion extraction)
 
 <br>
 
@@ -738,7 +738,7 @@ multiqc --fragpipe-plugin \
 - ion.tsv (plex-specific ion reports, output from [Step 4j](#4j-generate-reports))
 - peptide.tsv (plex-specific peptide reports, output from [Step 4j](#4j-generate-reports))
 - protein.tsv (plex-specific protein reports, output from [Step 4j](#4j-generate-reports))
-- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
 - fragpipe.workflow (FragPipe workflow configuration file, output from [Step 4a](#4a-launch-fragpipe))
 - fragger.params (MSFragger parameters file, output from [Step 4a](#4a-launch-fragpipe))
 
@@ -767,7 +767,7 @@ msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLPr
 
 **Input Data:**
 
-- msstats.csv (MSstats input file, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- msstats.csv (MSstats input file, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
 - MSstatsTMT_annotation_GLProteomics.csv (MSstatsTMT annotation table, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
 
 **Output Data:**
@@ -926,10 +926,10 @@ Rscript FragPipeAnalystR_main.R \
 **Input Data:**
 
 - experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
-- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
-- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
-- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
-- abundance_single-site_MD.tsv (TMT-Integrator site-level abundance table, output from [Step 4l](#4l-tmt-integrator-tmt-quantification))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_single-site_MD.tsv (TMT-Integrator site-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
 - annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
 
 **Output Data:**
