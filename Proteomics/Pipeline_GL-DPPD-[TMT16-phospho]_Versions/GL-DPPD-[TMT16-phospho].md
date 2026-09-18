@@ -403,7 +403,7 @@ java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar
 ### 4d. MSFragger Database Search
 
 ```bash
-java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.3.jar fragger.params plexA_1/sample1.mzML plexA_1/sample2.mzML
+java -jar -Dfile.encoding=UTF-8 -Xmx64G MSFragger-4.4.1.jar fragger.params plexA_1/sample1.mzML plexA_1/sample2.mzML
 ```
 
 **Parameter Definitions:**
@@ -672,7 +672,7 @@ PTMProphetParser-7.3.0 \
 ### 4l. TMT-Integrator TMT Quantification
 
 ```bash
-java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
+java -Xmx64G -jar TMT-Integrator-6.1.3.jar \
   tmt-integrator-conf.yml \
   sample1/psm.tsv \
   sample2/psm.tsv
@@ -694,17 +694,21 @@ java -Xmx64G -jar TMT-Integrator-6.1.1.jar \
 
 **Output Data:**
 
-- **abundance_protein_MD.tsv** (protein-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities; `_MD` suffix = median centering normalization per sample)
-- **abundance_peptide_MD.tsv** (peptide-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
-- **abundance_gene_MD.tsv** (gene-level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
-- **abundance_single-site_MD.tsv** (single PTM site–level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
-- **abundance_multi-site_MD.tsv** (multi-site PTM–level intensity-like log2 quantification matrix per channel across all plexes, derived from log2(sample/reference) ratios and aggregated MS1 reference intensities)
-- **ratio_protein_MD.tsv** (protein-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
-- **ratio_peptide_MD.tsv** (peptide-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
-- **ratio_gene_MD.tsv** (gene-level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
-- **ratio_single-site_MD.tsv** (single PTM site–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
-- **ratio_multi-site_MD.tsv** (multi-site PTM–level log2(sample/reference) quantification matrix per channel across all plexes, relative to Bridge reference channel)
-- **msstats.csv** (input file for MSstatsTMT differential abundance analysis and MSstatsPTM PTM differential analysis)
+Abundance tables are the ratio tables converted back to intensity scale. Conversion uses MS1 precursor intensity (`ms1_int=true`). Ratio tables are log2(channel / reference): bridge channel when specified, otherwise the plex-average virtual reference. Single-site = one localized PTM site. Multi-site = sites quantified together on the same peptide.
+
+- **abundance_protein_MD.tsv** (protein-level; `_MD` = median-centered)
+- **abundance_peptide_MD.tsv** (peptide-level)
+- **abundance_gene_MD.tsv** (gene-level)
+- **abundance_modified-peptide_MD.tsv** (modified-peptide–level)
+- **abundance_single-site_MD.tsv** (single localized PTM site)
+- **abundance_multi-site_MD.tsv** (multi-site PTM)
+- **ratio_protein_MD.tsv** (protein-level)
+- **ratio_peptide_MD.tsv** (peptide-level)
+- **ratio_gene_MD.tsv** (gene-level)
+- **ratio_modified-peptide_MD.tsv** (modified-peptide–level)
+- **ratio_single-site_MD.tsv** (single localized PTM site)
+- **ratio_multi-site_MD.tsv** (multi-site PTM)
+- **msstats.csv** (MSstatsTMT input from TMT-Integrator with Philosopher reporter-ion extraction; MSstatsPTM is not run)
 
 <br>
 

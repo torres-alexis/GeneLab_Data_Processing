@@ -684,18 +684,18 @@ java -Djava.awt.headless=true -Xmx64G \
 
 **Output Data:**
 
-- protein.tsv (sample-specific protein report with MS1 quantification data added from IonQuant)
-- peptide.tsv (sample-specific peptide report with MS1 quantification data and additional data added from IonQuant)
-- ion.tsv (sample-specific ion report with MS1 quantification data and additional data added from IonQuant)
-- psm.tsv (sample-specific PSM report with MS1 quantification data and additional data added from IonQuant)
+- protein.tsv (sample-specific FDR-filtered protein results; one row per protein group; MS1 Intensity added)
+- peptide.tsv (sample-specific FDR-filtered search results; one row per identified peptide sequence; ions collapsed; MS1 Intensity added)
+- ion.tsv (sample-specific FDR-filtered search results; one row per peptide sequence, charge, and modification state; PSMs collapsed; MS1 Intensity added)
+- psm.tsv (sample-specific FDR-filtered search results; one row per peptide-spectrum match (PSM); MS1 precursor intensity added)
 - \*_model.png (sample-specific IonQuant model visualization plot showing quantification model fits)
-- **combined_protein.tsv** (combined protein report with MS1 quantification data across all samples)
-- **combined_peptide.tsv** (combined peptide report with MS1 quantification data and additional data across all samples)
-- **combined_modified_peptide.tsv** (combined modified peptide report with MS1 quantification data and additional data across all samples)
-- **combined_ion.tsv** (combined ion report with MS1 quantification data and additional data across all samples)
+- **combined_protein.tsv** (FDR-filtered protein groups from all samples; per-sample Intensity, MaxLFQ, and spectral count)
+- **combined_peptide.tsv** (FDR-filtered stripped peptide sequences from all samples; modified forms collapsed; per-sample Intensity and MaxLFQ)
+- **combined_modified_peptide.tsv** (FDR-filtered modified peptides from all samples; ions collapsed; per-sample Intensity and MaxLFQ)
+- **combined_ion.tsv** (FDR-filtered ions from all samples; one row per peptide sequence, charge, and modification state; PSMs collapsed)
 - **combined_site_*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
-- **msstats.csv** (input file for MSstats downstream differential analysis)
-- **msstats_ptm.csv** (input file for MSstatsPTM PTM differential analysis)
+- **msstats.csv** (IonQuant table formatted for MSstats)
+- **msstats_ptm.csv** (IonQuant site-level table formatted for MSstatsPTM)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 <!-- - *.mbrbin (match-between-runs binary data file for MBR feature matching) -->
