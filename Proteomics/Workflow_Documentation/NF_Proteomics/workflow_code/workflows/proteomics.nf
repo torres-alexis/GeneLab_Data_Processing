@@ -1,7 +1,7 @@
 include { GET_ACCESSIONS } from '../modules/get_accessions.nf'
 include { GET_PROTEOME } from '../modules/get_proteome.nf'
 include { FETCH_REFERENCE_PROTEOME } from '../modules/fetch_reference_proteome.nf'
-include { CHECK_DECOYS_CONTAMS } from '../modules/check_decoys_contams.nf'
+include { ADD_DECOYS_CONTAMS } from '../modules/add_decoys_contams.nf'
 include { FETCH_ISA } from '../modules/fetch_isa.nf'
 include { ISA_TO_RUNSHEET } from '../modules/isa_to_runsheet.nf'
 include { PARSE_ANNOTATIONS_TABLE } from '../modules/parse_annotations_table.nf'
@@ -313,9 +313,9 @@ workflow PROTEOMICS {
             proteome = GET_PROTEOME.out.proteome_fasta
             ch_published = ch_published.mix(pub(GET_PROTEOME.out.proteome_fasta, ch_root, 'Proteome'))
         } else if (params.reference_proteome) {
-            CHECK_DECOYS_CONTAMS(output_dir, file(params.reference_proteome))
-            proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
-            ch_published = ch_published.mix(pub(CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked, ch_root, 'Proteome'))
+            ADD_DECOYS_CONTAMS(output_dir, file(params.reference_proteome))
+            proteome = ADD_DECOYS_CONTAMS.out.proteome_fasta
+            ch_published = ch_published.mix(pub(ADD_DECOYS_CONTAMS.out.proteome_fasta, ch_root, 'Proteome'))
         } else if (ep == 'mzml' && params.reference_table) {
             ch_proteome_source = PARSE_ANNOTATIONS_TABLE.out.proteome_source
                 .map { src ->
@@ -325,11 +325,11 @@ workflow PROTEOMICS {
                     src
                 }
             FETCH_REFERENCE_PROTEOME(output_dir, ch_proteome_source)
-            CHECK_DECOYS_CONTAMS(output_dir, FETCH_REFERENCE_PROTEOME.out.proteome_fasta)
-            proteome = CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked
+            ADD_DECOYS_CONTAMS(output_dir, FETCH_REFERENCE_PROTEOME.out.proteome_fasta)
+            proteome = ADD_DECOYS_CONTAMS.out.proteome_fasta
             ch_published = ch_published
                 .mix(pub(FETCH_REFERENCE_PROTEOME.out.proteome_fasta, ch_root, 'Proteome'))
-                .mix(pub(CHECK_DECOYS_CONTAMS.out.proteome_fasta_checked, ch_root, 'Proteome'))
+                .mix(pub(ADD_DECOYS_CONTAMS.out.proteome_fasta, ch_root, 'Proteome'))
         } else if (ep == 'mzml') {
             error "ERROR: Must specify uniprot_id, reference_proteome, or reference_table with a matching organism row."
         }
