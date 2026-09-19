@@ -343,7 +343,6 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 **Output Data:**
 
 - fragger.params (MSFragger parameter configuration file)
-- msbooster_params.txt (MSBooster parameter configuration file)
 - tmt-integrator-conf.yml (TMT-Integrator configuration file)
 - filelist_proteinprophet.txt (list of interact.pep.xml files to be passed to ProteinProphet)
 - experiment_annotation.tsv (experiment annotation file mapping TMT channels to samples)
