@@ -357,7 +357,7 @@ bash tmt_stage_by_plex.sh manifest_GLProteomics.tsv experiment_annotation_GLProt
 ### 4b. Check Spectral Files Centroid Status
 
 ```bash
-java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.35.4.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 16
+java -Xmx64G -cp /fragpipe_bin/fragpipe-24.0/fragpipe-24.0/lib/fragpipe-24.0.jar:/fragpipe_bin/fragpipe-24.0/fragpipe-24.0/tools/batmass-io-1.36.5.jar org.nesvilab.fragpipe.util.CheckCentroid *.mzML 16
 ```
 
 **Parameter Definitions:**
