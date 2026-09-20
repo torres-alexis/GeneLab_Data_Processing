@@ -117,6 +117,8 @@ philosopher database \
   --nodecoys
 ```
 
+> Note: This pipeline version uses the FASTA indicated in the `proteome` column of [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) unless a UniProt proteome ID is provided. The `proteome_info` column of that table holds the corresponding `*-GL-build-info.txt` file, which includes the UniProt proteome ID, the Philosopher command, the date the UniProt proteome was accessed, the target organism, the output FASTA filename, whether Swiss-Prot (reviewed) and isoforms were included, FASTA entry counts (total, Swiss-Prot, and TrEMBL), and the Philosopher version.
+
 **Parameter Definitions:**
 
 - `--id` – UniProt proteome ID (e.g., UP000059680)
@@ -142,9 +144,9 @@ philosopher workspace --clean
 
 **Parameter Definitions:**
 
-- `--custom` – path to reference FASTA from [Step 2a](#2a-download-proteome-from-uniprot)
+- `--custom` – path to the reference FASTA
 - `--prefix rev_` – prefix for reversed decoy sequences
-- `--contam` – add 116 common contaminant proteins to the FASTA database (see [Philosopher Database Wiki](https://github.com/Nesvilab/philosopher/wiki/Database))
+- `--contam` – add 118 common contaminant protein sequences from `crap-gpmdb.fas`, embedded in [Philosopher 5.1.3-RC9](https://github.com/Nesvilab/philosopher/releases/tag/v5.1.3-RC9)
 
 **Output Data:**
 
