@@ -874,8 +874,8 @@ Rscript FragPipeAnalystR_main.R \
 
 - **FragPipeAnalystR_parameters_{level}_GLProteomics.txt** (run parameters)
 - **FragPipeAnalystR_{level}_GLProteomics.RData** (R data file containing SummarizedExperiment object)
-- **nonimputed_matrix_{level}_GLProteomics.csv** (from combined_protein/peptide: contaminants removed; selected `--lfq_type` quantification columns reappended at the end of the table as either log2 intensity (Intensity/MaxLFQ) or raw counts (Spectral Count). NAs where feature not detected.)
-- **imputed_matrix_{level}_GLProteomics.csv** (same structure as nonimputed_matrix_{level}_GLProteomics.csv; NAs filled by Perseus-type imputation: missing values replaced with random numbers sampled from a normal distribution with mean shifted 1.8 standard deviations below and a width (SD) of 0.3, per sample.)
+- **nonimputed_matrix_{level}_GLProteomics.csv** (feature table and sample quantification columns from combined_protein.tsv or combined_peptide.tsv, before imputation. `--lfq_type` selects Intensity, MaxLFQ, or Spectral Count. NAs where the feature was not detected.)
+- **imputed_matrix_{level}_GLProteomics.csv** (feature table and sample quantification columns after Perseus-type imputation. Missing values are random draws from a normal distribution with mean `--imputation_shift` standard deviations below the sample mean and width `--imputation_scale` standard deviations.)
 - **QC_plots_{level}_GLProteomics.zip** (QC plots folder)
   - pca.pdf, .png (PCA plot)
   - missing_value_heatmap.pdf, .png (missing value pattern heatmap)
