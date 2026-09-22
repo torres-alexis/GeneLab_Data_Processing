@@ -9,9 +9,6 @@ import re
 import sys
 from pathlib import Path
 
-DECOY_PREFIXES = ("rev_", "REV_", "decoy_", "DECOY_")
-CONTAM_PREFIXES = ("contam_", "Cont_", "CONTAM_", "CRAP_", "crap_")
-
 ID_COLUMNS = (
     "ProteinName",
     "Protein ID",
@@ -40,19 +37,16 @@ def group_parts(value) -> list[str]:
 def token_is_junk(
     token: str,
     *,
-    decoy_prefixes=DECOY_PREFIXES,
-    contam_prefixes=CONTAM_PREFIXES,
+    decoy_prefix: str = "rev_",
+    contam_prefix: str = "contam_",
 ) -> bool:
     t = token.strip()
     if not t:
         return False
-    low = t.lower()
-    for p in decoy_prefixes:
-        if t.startswith(p) or low.startswith(p.lower()):
-            return True
-    for p in contam_prefixes:
-        if t.startswith(p) or low.startswith(p.lower()):
-            return True
+    if decoy_prefix and t.startswith(decoy_prefix):
+        return True
+    if contam_prefix and t.startswith(contam_prefix):
+        return True
     return False
 
 
@@ -116,9 +110,14 @@ def scan_table(path: Path, **kwargs) -> list[dict]:
 
 
 def _self_test() -> None:
-    assert token_is_junk("rev_sp|P12345|X_MOUSE", decoy_prefixes=("rev_",))
-    assert not token_is_junk("decoy_sp|P12345|X_MOUSE", decoy_prefixes=("rev_",))
+    assert token_is_junk("rev_sp|P12345|X_MOUSE")
+    assert not token_is_junk("REV_sp|P12345|X_MOUSE")
+    assert not token_is_junk("decoy_sp|P12345|X_MOUSE")
     assert token_is_junk("contam_sp|P00761|TRYP_PIG")
+    assert not token_is_junk("Cont_sp|P00761|TRYP_PIG")
+    assert not token_is_junk("CONTAM_sp|P00761|TRYP_PIG")
+    assert not token_is_junk("CRAP_sp|P00761|TRYP_PIG")
+    assert not token_is_junk("crap_sp|P00761|TRYP_PIG")
     assert not token_is_junk("sp|P00761|TRYP_PIG")
     assert not token_is_junk("P02769")
     assert not token_is_junk("ALBU_BOVIN")
@@ -134,14 +133,17 @@ def main():
     ap.add_argument("--output", help="Filtered table path")
     ap.add_argument("--scan", help="Scan only; exit 1 if junk rows remain")
     ap.add_argument("--decoy-prefix", default="rev_")
+    ap.add_argument("--contam-prefix", default="contam_")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
         _self_test()
         return
-    kwargs = {"decoy_prefixes": (args.decoy_prefix,)}
+    kwargs = {
+        "decoy_prefix": args.decoy_prefix,
+        "contam_prefix": args.contam_prefix,
+    }
     if args.scan:
-        kwargs["decoy_prefixes"] = tuple(dict.fromkeys((args.decoy_prefix, *DECOY_PREFIXES)))
         hits = scan_table(Path(args.scan), **kwargs)
         if hits:
             print(f"FAIL: {len(hits)} decoy/contam row(s) in {args.scan}", file=sys.stderr)

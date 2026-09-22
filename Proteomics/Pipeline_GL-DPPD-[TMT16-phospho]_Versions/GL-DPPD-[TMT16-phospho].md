@@ -44,8 +44,9 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4j. Generate Reports](#4j-generate-reports)
     - [4k. TMT-Integrator TMT Quantification](#4k-tmt-integrator-tmt-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
-  - [**6. MSstatsTMT Differential Abundance Analysis**](#6-msstatstmt-differential-abundance-analysis)
-  - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
+  - [**6. Remove Decoys and Contaminants**](#6-remove-decoys-and-contaminants)
+  - [**7. MSstatsTMT Differential Abundance Analysis**](#7-msstatstmt-differential-abundance-analysis)
+  - [**8. FragPipeAnalystR Downstream Analysis**](#8-fragpipeanalystr-downstream-analysis)
 
 ---
 
@@ -753,10 +754,49 @@ multiqc --fragpipe-plugin \
 
 ---
 
-## 6. MSstatsTMT Differential Abundance Analysis
+## 6. Remove Decoys and Contaminants
 
 ```bash
-msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLProteomics
+decoy_contam.py \
+  --input * \
+  --output cleaned/* \
+  --decoy-prefix rev_ \
+  --contam-prefix contam_
+```
+
+> Note: The same command is run on each input table. A row is removed when an identifier starts with the decoy or contaminant prefix. cRAP UniProt IDs already in the study proteome stay untagged and are kept.
+
+**Parameter Definitions:**
+
+- `--input *` – table to filter, one file from Input Data
+- `--output cleaned/*` – filtered table, same filename under `cleaned/`
+- `--decoy-prefix rev_` – prefix for decoy identifiers
+- `--contam-prefix contam_` – prefix for contaminant identifiers
+
+**Input Data:**
+
+- msstats.csv (MSstats input file, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- abundance_single-site_MD.tsv (TMT-Integrator site-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+
+**Output Data:**
+
+- cleaned/msstats.csv (filtered MSstatsTMT input)
+- cleaned/abundance_protein_MD.tsv (filtered protein abundance table)
+- cleaned/abundance_gene_MD.tsv (filtered gene abundance table)
+- cleaned/abundance_peptide_MD.tsv (filtered peptide abundance table)
+- cleaned/abundance_single-site_MD.tsv (filtered single-site abundance table)
+
+<br>
+
+---
+
+## 7. MSstatsTMT Differential Abundance Analysis
+
+```bash
+msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv cleaned/msstats.csv _GLProteomics
 ```
 
 **Parameter Definitions:**
@@ -764,12 +804,12 @@ msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLPr
 - `msstatstmt_analysis.R` – R script for MSstatsTMT differential abundance analysis
 - `.` – root directory for output
 - `MSstatsTMT_annotation_GLProteomics.csv` – MSstatsTMT annotation (Run, Fraction, TechRepMixture, Mixture, Channel, BioReplicate, Condition; output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
-- `msstats.csv` – Philosopher MSstats input file from FragPipe
+- `cleaned/msstats.csv` – filtered MSstatsTMT input from [Step 6](#6-remove-decoys-and-contaminants)
 - `_GLProteomics` – assay suffix appended to output filenames
 
 **Input Data:**
 
-- msstats.csv (MSstats input file, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- cleaned/msstats.csv (filtered MSstatsTMT input, output from [Step 6](#6-remove-decoys-and-contaminants))
 - MSstatsTMT_annotation_GLProteomics.csv (MSstatsTMT annotation table, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
 
 **Output Data:**
@@ -781,16 +821,16 @@ msstatstmt_analysis.R . MSstatsTMT_annotation_GLProteomics.csv msstats.csv _GLPr
 
 ---
 
-## 7. FragPipeAnalystR Downstream Analysis
+## 8. FragPipeAnalystR Downstream Analysis
 
-The FragPipeAnalystR downstream analysis script is executed four times: once using the **protein**-level quantification file (abundance_protein_MD.tsv), once using the **gene**-level quantification file (abundance_gene_MD.tsv), once using the **peptide**-level quantification file (abundance_peptide_MD.tsv), and once using the **site**-level quantification file (abundance_single-site_MD.tsv).
+The FragPipeAnalystR downstream analysis script is executed four times: once using the **protein**-level quantification file (cleaned/abundance_protein_MD.tsv), once using the **gene**-level quantification file (cleaned/abundance_gene_MD.tsv), once using the **peptide**-level quantification file (cleaned/abundance_peptide_MD.tsv), and once using the **site**-level quantification file (cleaned/abundance_single-site_MD.tsv).
 
 **Protein run:**
 
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "abundance_protein_MD.tsv" \
+  --quantification_file "cleaned/abundance_protein_MD.tsv" \
   --mode "TMT" \
   --level "protein" \
   --feature_list_protein "" \
@@ -819,7 +859,7 @@ Rscript FragPipeAnalystR_main.R \
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "abundance_gene_MD.tsv" \
+  --quantification_file "cleaned/abundance_gene_MD.tsv" \
   --mode "TMT" \
   --level "gene" \
   --feature_list_gene "" \
@@ -846,7 +886,7 @@ Rscript FragPipeAnalystR_main.R \
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "abundance_peptide_MD.tsv" \
+  --quantification_file "cleaned/abundance_peptide_MD.tsv" \
   --mode "TMT" \
   --level "peptide" \
   --feature_list_peptide "" \
@@ -872,7 +912,7 @@ Rscript FragPipeAnalystR_main.R \
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "abundance_single-site_MD.tsv" \
+  --quantification_file "cleaned/abundance_single-site_MD.tsv" \
   --mode "TMT" \
   --level "site" \
   --feature_list_site "" \
@@ -897,7 +937,7 @@ Rscript FragPipeAnalystR_main.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (table mapping TMT channels to samples)
-- `--quantification_file` – path to TMT-Integrator abundance file (abundance_protein_MD.tsv, abundance_gene_MD.tsv, abundance_peptide_MD.tsv, or abundance_single-site_MD.tsv)
+- `--quantification_file` – path to a filtered TMT-Integrator abundance file (cleaned/abundance_protein_MD.tsv, cleaned/abundance_gene_MD.tsv, cleaned/abundance_peptide_MD.tsv, or cleaned/abundance_single-site_MD.tsv, output from [Step 6](#6-remove-decoys-and-contaminants))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein`, `gene`, `peptide`, or `site`
 - `--normalization_method` – normalization method: `none`, `vsn` (Variance Stabilizing Normalization), `MD` (median subtraction), or `GN` (global median + MAD scaling)
@@ -928,10 +968,10 @@ Rscript FragPipeAnalystR_main.R \
 **Input Data:**
 
 - experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation))
-- abundance_protein_MD.tsv (TMT-Integrator protein-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
-- abundance_gene_MD.tsv (TMT-Integrator gene-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
-- abundance_peptide_MD.tsv (TMT-Integrator peptide-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
-- abundance_single-site_MD.tsv (TMT-Integrator site-level abundance table, output from [Step 4k](#4k-tmt-integrator-tmt-quantification))
+- cleaned/abundance_protein_MD.tsv (filtered protein abundance table, output from [Step 6](#6-remove-decoys-and-contaminants))
+- cleaned/abundance_gene_MD.tsv (filtered gene abundance table, output from [Step 6](#6-remove-decoys-and-contaminants))
+- cleaned/abundance_peptide_MD.tsv (filtered peptide abundance table, output from [Step 6](#6-remove-decoys-and-contaminants))
+- cleaned/abundance_single-site_MD.tsv (filtered single-site abundance table, output from [Step 6](#6-remove-decoys-and-contaminants))
 - annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
 
 **Output Data:**

@@ -9,11 +9,13 @@ process DROP_DECOYS_CONTAMS {
 
     script:
     def decoy_prefix = (params.philosopher_decoy_prefix != null && params.philosopher_decoy_prefix != '') ? params.philosopher_decoy_prefix : 'rev_'
+    def contam_prefix = params.philosopher_contaminants_prefix != null ? params.philosopher_contaminants_prefix : 'contam_'
     """
     mkdir -p cleaned
     decoy_contam.py \\
         --input ${table} \\
         --output cleaned/${table.name} \\
-        --decoy-prefix ${decoy_prefix}
+        --decoy-prefix "${decoy_prefix}" \\
+        --contam-prefix "${contam_prefix}"
     """
 }

@@ -43,8 +43,9 @@ Alexis Torres (GeneLab Data Processing Team)
     - [4j. Generate Reports](#4j-generate-reports)
     - [4k. IonQuant Label-Free Quantification](#4k-ionquant-label-free-quantification)
   - [**5. Compile FragPipe QC Reports**](#5-compile-fragpipe-qc-reports)
-  - [**6. MSstats Differential Abundance Analysis**](#6-msstats-differential-abundance-analysis)
-  - [**7. FragPipeAnalystR Downstream Analysis**](#7-fragpipeanalystr-downstream-analysis)
+  - [**6. Remove Decoys and Contaminants**](#6-remove-decoys-and-contaminants)
+  - [**7. MSstats Differential Abundance Analysis**](#7-msstats-differential-abundance-analysis)
+  - [**8. FragPipeAnalystR Downstream Analysis**](#8-fragpipeanalystr-downstream-analysis)
 
 ---
 
@@ -744,10 +745,45 @@ multiqc --fragpipe-plugin \
 
 ---
 
-## 6. MSstats Differential Abundance Analysis
+## 6. Remove Decoys and Contaminants
 
 ```bash
-msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProteomics
+decoy_contam.py \
+  --input * \
+  --output cleaned/* \
+  --decoy-prefix rev_ \
+  --contam-prefix contam_
+```
+
+> Note: The same command is run on each input table. A row is removed when an identifier starts with the decoy or contaminant prefix. cRAP UniProt IDs already in the study proteome stay untagged and are kept.
+
+**Parameter Definitions:**
+
+- `--input *` – table to filter, one file from Input Data
+- `--output cleaned/*` – filtered table, same filename under `cleaned/`
+- `--decoy-prefix rev_` – prefix for decoy identifiers
+- `--contam-prefix contam_` – prefix for contaminant identifiers
+
+**Input Data:**
+
+- msstats.csv (MSstats input file, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+
+**Output Data:**
+
+- cleaned/msstats.csv (filtered MSstats input)
+- cleaned/combined_protein.tsv (filtered protein quantification table)
+- cleaned/combined_peptide.tsv (filtered peptide quantification table)
+
+<br>
+
+---
+
+## 7. MSstats Differential Abundance Analysis
+
+```bash
+msstats_analysis.R . experiment_annotation_GLProteomics.tsv cleaned/msstats.csv _GLProteomics
 ```
 
 **Parameter Definitions:**
@@ -755,12 +791,12 @@ msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProte
 - `msstats_analysis.R` – R script for MSstats differential abundance analysis
 - `.` – root directory for output
 - `experiment_annotation_GLProteomics.tsv` – experiment annotation (sample metadata, condition assignments)
-- `msstats.csv` – MSstats input file from IonQuant
+- `cleaned/msstats.csv` – filtered MSstats input from [Step 6](#6-remove-decoys-and-contaminants)
 - `_GLProteomics` – assay suffix: stripped from Run column for matching; appended to output filenames. 
 
 **Input Data:**
 
-- msstats.csv (MSstats input file, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- cleaned/msstats.csv (filtered MSstats input, output from [Step 6](#6-remove-decoys-and-contaminants))
 - experiment_annotation_GLProteomics.tsv (sample metadata and condition assignments)
 
 **Output Data:**
@@ -772,16 +808,16 @@ msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProte
 
 ---
 
-## 7. FragPipeAnalystR Downstream Analysis
+## 8. FragPipeAnalystR Downstream Analysis
 
-The FragPipeAnalystR downstream analysis script is executed twice: once using the **protein**-level quantification file (combined_protein.tsv) and once using the **peptide**-level quantification file (combined_peptide.tsv).
+The FragPipeAnalystR downstream analysis script is executed twice: once using the **protein**-level quantification file (cleaned/combined_protein.tsv) and once using the **peptide**-level quantification file (cleaned/combined_peptide.tsv).
 
 **Protein run:**
 
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "combined_protein.tsv" \
+  --quantification_file "cleaned/combined_protein.tsv" \
   --mode "LFQ" \
   --level "protein" \
   --feature_list_protein "" \
@@ -811,7 +847,7 @@ Rscript FragPipeAnalystR_main.R \
 ```bash
 Rscript FragPipeAnalystR_main.R \
   --experiment_annotation "experiment_annotation_GLProteomics.tsv" \
-  --quantification_file "combined_peptide.tsv" \
+  --quantification_file "cleaned/combined_peptide.tsv" \
   --mode "LFQ" \
   --level "peptide" \
   --feature_list_peptide "" \
@@ -836,7 +872,7 @@ Rscript FragPipeAnalystR_main.R \
 **Parameter Definitions:**
 
 - `--experiment_annotation` – path to experiment annotation TSV file (sample metadata and condition assignments)
-- `--quantification_file` – path to combined quantification file (combined_protein.tsv or combined_peptide.tsv, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- `--quantification_file` – path to a filtered quantification file (cleaned/combined_protein.tsv or cleaned/combined_peptide.tsv, output from [Step 6](#6-remove-decoys-and-contaminants))
 - `--mode` – quantification mode: `LFQ`, `TMT`, or `DIA`
 - `--level` – analysis level: `protein` or `peptide`
 - `--lfq_type` – LFQ column type: `Intensity`, `MaxLFQ`, or `Spectral Count`
@@ -866,8 +902,8 @@ Rscript FragPipeAnalystR_main.R \
 **Input Data:**
 
 - experiment_annotation_GLProteomics.tsv (experiment annotation file, output from [Step 3b](#3b-create-manifest-and-experiment-annotation-from-runsheet))
-- combined_protein.tsv (combined protein report, output from [Step 4k](#4k-ionquant-label-free-quantification))
-- combined_peptide.tsv (combined peptide report, output from [Step 4k](#4k-ionquant-label-free-quantification))
+- cleaned/combined_protein.tsv (filtered protein quantification table, output from [Step 6](#6-remove-decoys-and-contaminants))
+- cleaned/combined_peptide.tsv (filtered peptide quantification table, output from [Step 6](#6-remove-decoys-and-contaminants))
 - annotations_link (variable containing URL of GeneLab gene annotation table for the organism; output from [Step 3c](#3c-get-organism-specific-gene-annotations-table))
 
 **Output Data:**

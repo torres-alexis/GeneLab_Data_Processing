@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from decoy_contam import DECOY_PREFIXES, scan_table
+from decoy_contam import scan_table
 
 
 def fail(message, log):
@@ -61,10 +61,13 @@ def check_nonempty_glob(pattern, log, required=True):
     return matches
 
 
-def check_decoy_free(paths, log, decoy_prefix="rev_"):
-    prefixes = tuple(dict.fromkeys((decoy_prefix, *DECOY_PREFIXES)))
+def check_decoy_free(paths, log, decoy_prefix="rev_", contam_prefix="contam_"):
     for path in paths:
-        hits = scan_table(Path(path), decoy_prefixes=prefixes)
+        hits = scan_table(
+            Path(path),
+            decoy_prefix=decoy_prefix,
+            contam_prefix=contam_prefix,
+        )
         if hits:
             fail(
                 f"{len(hits)} decoy/contam row(s) remain in {path} "
@@ -92,7 +95,12 @@ def main():
     parser.add_argument(
         "--decoy-prefix",
         default="rev_",
-        help="Philosopher decoy prefix; VALIDATE also scans the leftover default prefixes.",
+        help="Decoy identifier prefix.",
+    )
+    parser.add_argument(
+        "--contam-prefix",
+        default="contam_",
+        help="Contaminant identifier prefix.",
     )
     args = parser.parse_args()
 
@@ -157,7 +165,12 @@ def main():
                 fail("FragPipeAnalystR/ exists but no DE_results_*.csv", log)
 
         if check_decoys:
-            check_decoy_free(comparison_files + de_files, log, decoy_prefix=args.decoy_prefix)
+            check_decoy_free(
+                comparison_files + de_files,
+                log,
+                decoy_prefix=args.decoy_prefix,
+                contam_prefix=args.contam_prefix,
+            )
 
         if require_pp:
             for dirname in ("GeneLab", "processing_info"):
