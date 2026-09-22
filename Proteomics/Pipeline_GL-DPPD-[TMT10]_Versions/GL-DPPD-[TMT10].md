@@ -118,7 +118,7 @@ philosopher database \
   --nodecoys
 ```
 
-> Note: This pipeline version uses the FASTA indicated in the `proteome` column of [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) unless a UniProt proteome ID is provided. The `proteome_info` column of that table holds the corresponding `*-GL-build-info.txt` file, which includes the UniProt proteome ID, the Philosopher command, the date the UniProt proteome was accessed, the target organism, the output FASTA filename, whether Swiss-Prot (reviewed) and isoforms were included, FASTA entry counts (total, Swiss-Prot, and TrEMBL), and the Philosopher version.
+> Note: This pipeline version uses the pinned FASTA in the `proteome` column of [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv). The command above downloads a proteome from UniProt only when a UniProt proteome ID is provided. The `proteome_info` column of that table holds the corresponding `*-GL-build-info.txt` file, which includes the UniProt proteome ID, the Philosopher command, the date the UniProt proteome was accessed, the target organism, the output FASTA filename, whether Swiss-Prot (reviewed) and isoforms were included, FASTA entry counts (total, Swiss-Prot, and TrEMBL), and the Philosopher version.
 
 **Parameter Definitions:**
 
