@@ -695,7 +695,7 @@ java -Djava.awt.headless=true -Xmx64G \
 - **combined_peptide.tsv** (FDR-filtered stripped peptide sequences from all samples; modified forms collapsed; per-sample Intensity and MaxLFQ)
 - **combined_modified_peptide.tsv** (FDR-filtered modified peptides from all samples; ions collapsed; per-sample Intensity and MaxLFQ)
 - **combined_ion.tsv** (FDR-filtered ions from all samples; one row per peptide sequence, charge, and modification state; PSMs collapsed)
-- **combined_site_*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
+- **combined_site_\*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
 - **msstats.csv** (IonQuant table formatted for MSstats)
 - **msstats_ptm.csv** (IonQuant site-level table formatted for MSstatsPTM)
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
@@ -764,7 +764,6 @@ msstats_analysis.R . experiment_annotation_GLProteomics.tsv msstats.csv _GLProte
 - experiment_annotation_GLProteomics.tsv (sample metadata and condition assignments)
 
 **Output Data:**
-
 
 - **msstats_comparison_GLProteomics.csv** (all MSstats pairwise comparisons)
 - **msstats_contrasts_GLProteomics.csv** (contrast definitions)
@@ -896,7 +895,7 @@ Rscript FragPipeAnalystR_main.R \
   - DE_heatmap.pdf, .png (DE heatmap)
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
 - **SampleTable_GLProteomics.csv** (table specifying the group or set of factor levels for each sample)
-- **contrasts_GLProteomics.csv** (table listing all pairwise group comparisons )
+- **contrasts_GLProteomics.csv** (table listing all pairwise group comparisons)
 - **DE_results_{level}_GLProteomics.csv** (differential expression results table; columns in order:
     - Organism-specific gene annotations
     - Protein level:

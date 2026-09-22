@@ -961,7 +961,7 @@ Rscript FragPipeAnalystR_main.R \
   - DE_heatmap.pdf, .png (DE heatmap)
   - volcano/ (volcano plots per contrast: contrast_volcano.pdf, .png)
 - **SampleTable_GLProteomics.csv** (table specifying the group or set of factor levels for each sample)
-- **contrasts_GLProteomics.csv** (table listing all pairwise group comparisons )
+- **contrasts_GLProteomics.csv** (table listing all pairwise group comparisons)
 - **DE_results_{level}_GLProteomics.csv** (differential expression results table; columns in order:
     - Organism-specific gene annotations
     - Protein level:
@@ -1016,4 +1016,3 @@ Rscript FragPipeAnalystR_main.R \
     - For each group:
       - Group.Mean_(group) (mean within group)
       - Group.Stdev_(group) (standard deviation within group))
-      
