@@ -54,7 +54,7 @@ Alexis Torres (GeneLab Data Processing Team)
 |:------|:------:|:-------------|
 |dp_tools|1.3.8|[https://github.com/J-81/dp_tools](https://github.com/J-81/dp_tools)|
 |RawBeans|1.6.4|[https://bitbucket.org/incpm/prot-qc/src/master/protqc/](https://bitbucket.org/incpm/prot-qc/src/master/protqc/)|
-|Philosopher|5.1.3|[https://github.com/Nesvilab/philosopher/releases/latest](https://github.com/Nesvilab/philosopher/releases/latest)|
+|Philosopher|5.1.3|[https://philosopher.nesvilab.org/](https://philosopher.nesvilab.org/)|
 |FragPipe|24.0|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
 |MultiQC|1.35|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.48|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|

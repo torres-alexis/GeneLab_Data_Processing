@@ -20,7 +20,7 @@ CONFIG = {
         ["NF_Proteomics", "https://github.com/nasa/GeneLab_Data_Processing/tree/master/Proteomics"],
         ["dp_tools", "https://github.com/J-81/dp_tools"],
         ["RawBeans", "https://bitbucket.org/incpm/prot-qc/src/master/protqc/"],
-        ["Philosopher", "https://github.com/Nesvilab/philosopher/releases/latest"],
+        ["Philosopher", "https://philosopher.nesvilab.org/"],
         ["FragPipe", "https://fragpipe.nesvilab.org/"],
         ["MultiQC", "https://multiqc.info/"],
         ["pmultiqc", "https://github.com/bigbio/pmultiqc"],
