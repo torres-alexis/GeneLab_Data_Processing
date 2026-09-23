@@ -1,26 +1,2 @@
-## [1.0.0](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_Proteomics_1.0.0/Proteomics/Workflow_Documentation/NF_Proteomics) - 2025-XX-XX
+## [1.0.0](https://github.com/nasa/GeneLab_Data_Processing/tree/NF_Proteomics_1.0.0/Proteomics/Workflow_Documentation/NF_Proteomics) - 2026-09-23
 
-### Added
-
-- First release version of GeneLab Proteomics Nextflow workflow
-- `DROP_DECOYS_CONTAMS`: `decoy_contam.py` drops `rev_` / `contam_` after FragPipe, before MSstats and FragPipeAnalystR. Leading protein-group token (or all tokens). Params: `drop_decoys_contams`, `fp_analyst_keep_contaminants` (FPAR-only).
-- Scrub MSstats / MSstatsTMT comparison rows with Issue, non-finite log2FC / logFC, missing p, or DF≤0 so adj.pvalue cannot stay 0.
-- Runsheet preflight: per-row `require_bioreplicate` (default true) and error on reused Bioreplicate across Source Names.
-- `--tech_rep` `first` (default) / `all`. `tech_reps_dropped.tsv` from keep-first.
-- `VV_STEP` after FragPipe / MSstats / FPAR (`--skip_vv` to bypass). CSV logs plus `VV_CONCAT_FILTER` (`VV_log_final` / `VV_log_final_only_issues`). VALIDATE_PROCESSING still checks published products + residual decoys/cRAP.
-- Processed protocol notes decoy drop, FPAR 50% filter + seed 40, dual-stats, human pathway libs, Docker plot quality, MBR compatibility.
-- README: new params, interpretation box; PPP commands drop `--enrichment_direction`.
-- `--entry_point mzml` (default) or `fragpipe_output` with `--fragpipe_output` (unzipped `fragpipe{assay_suffix}.zip` or the `FRAGPIPE` module `output/` folder).
-- `-profile pbspro` and `-profile podman`. `--walltime` / `process.time` (local unsets). Parallel raw/processed md5 jobs.
-
-### Changed
-
-- If `--uniprot_id` downloads a proteome from UniProt instead of the FASTA already listed in the annotations table, Philosopher `--reviewed` is used only for Arabidopsis, human, and mouse. All other organisms include unreviewed (TrEMBL) sequences. `--philosopher_reviewed true` or `false` overrides that.
-- Default `philosopher_contaminants_prefix` is `contam_` (Philosopher `--contamprefix` on UniProt pull and custom FASTA add).
-- `drop_decoys_contams` now gates MSstats as well as FPAR.
-- Public `s3://` uses `aws.client.anonymous`. Docker profile no longer enables conda.
-- Workflow outputs (`publish:` / `output { }`) replace process `publishDir`. Same dest tree.
-- Process resources in `conf/process_resources.config`; executor settings in `slurm.config` / `local.config` / `pbspro.config`.
-- `dp_tools` image `1.3.8-slim`. COPY_INPUT / FETCH_INPUT unpack `unzip` / `gzip` instead of `file(1)`.
-- `--fragpipe_output` is the unzipped `fragpipe{assay_suffix}.zip` or the `FRAGPIPE` module `output/` folder.
-- pmultiqc image `0.0.48` (was `0.0.40`; MultiQC 1.35).
