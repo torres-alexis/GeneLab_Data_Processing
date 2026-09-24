@@ -42,7 +42,7 @@ The software for each pipeline is released under the NASA Open Source Agreement 
 - [Methyl-Seq License](./Licenses/Methylation_Sequencing_NOSA_License.pdf)
 - [RNAseq License](./Licenses/RNA_Sequencing_NOSA_License.pdf)
 - [Microarray License](./Licenses/Microarray_GPL-3.0_with_Additional_Requirements_License.pdf)
-- [STUB_Proteomics License](./Licenses/Proteomics_NOSA_License.pdf)
+- [Proteomics License](./Licenses/Proteomics_NOSA_License.pdf)
 
 ### 3rd Party Software Licenses
 
