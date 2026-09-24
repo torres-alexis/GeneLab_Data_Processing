@@ -148,7 +148,7 @@ philosopher workspace --clean
 
 - `--custom` – path to the reference FASTA
 - `--prefix rev_` – prefix for reversed decoy sequences
-- `--contam` – add 118 common contaminant protein sequences from `crap-gpmdb.fas`, embedded in [Philosopher 5.1.3-RC9](https://github.com/Nesvilab/philosopher/releases/tag/v5.1.3-RC9)
+- `--contam` – add 118 common contaminant protein sequences from `crap-gpmdb.fas`, embedded in [Philosopher](https://github.com/Nesvilab/philosopher)
 
 **Input Data:**
 
