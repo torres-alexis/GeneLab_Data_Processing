@@ -43,7 +43,7 @@ The software for the Proteomics pipeline and workflow is released under the [NAS
 
 ### 3rd Party Software Licenses
 
-Licenses for the 3rd party open source software utilized in the Proteomics pipeline and workflow can be found in the [3rd_Party_Licenses sub-directory](../3rd_Party_Licenses/Proteomics_3rd_Party_Software.md). 
+Licenses for the 3rd party open source software utilized in the Proteomics pipeline and workflow can be found in the [3rd_Party_Licenses sub-directory](Workflow_Documentation/NF_Proteomics/License/3rd_Party_Licenses/README.md). 
 
 <br>
 
@@ -59,7 +59,7 @@ No Warranty: THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF AN
 
 Waiver and Indemnity:  RECIPIENT AGREES TO WAIVE ANY AND ALL CLAIMS AGAINST THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT.  IF RECIPIENT'S USE OF THE SUBJECT SOFTWARE RESULTS IN ANY LIABILITIES, DEMANDS, DAMAGES, EXPENSES OR LOSSES ARISING FROM SUCH USE, INCLUDING ANY DAMAGES FROM PRODUCTS BASED ON, OR RESULTING FROM, RECIPIENT'S USE OF THE SUBJECT SOFTWARE, RECIPIENT SHALL INDEMNIFY AND HOLD HARMLESS THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT, TO THE EXTENT PERMITTED BY LAW.  RECIPIENT'S SOLE REMEDY FOR ANY SUCH MATTER SHALL BE THE IMMEDIATE, UNILATERAL TERMINATION OF THIS AGREEMENT. 
 
-The "GeneLab Proteomics Processing Pipeline and Workflow" software also makes use of the following 3rd party Open Source software, released under the licenses indicated above. A complete listing of 3rd Party software notices and licenses made use of in "GeneLab Proteomics Processing Pipeline and Workflow" can be found in the [Proteomics_3rd_Party_Software.md](../3rd_Party_Licenses/Proteomics_3rd_Party_Software.md) file. 
+The "GeneLab Proteomics Processing Pipeline and Workflow" software also makes use of the following 3rd party Open Source software, released under the licenses indicated above. A complete listing of 3rd Party software notices and licenses made use of in "GeneLab Proteomics Processing Pipeline and Workflow" can be found in the [3rd Party Licenses README.md](Workflow_Documentation/NF_Proteomics/License/3rd_Party_Licenses/README.md) file. 
 
 <br>
 
