@@ -796,7 +796,7 @@ msstats_analysis.R . experiment_annotation_GLProteomics.tsv cleaned/msstats.csv 
 - `.` – root directory for output
 - `experiment_annotation_GLProteomics.tsv` – experiment annotation (sample metadata, condition assignments)
 - `cleaned/msstats.csv` – filtered MSstats input from [Step 6](#6-remove-decoys-and-contaminants)
-- `_GLProteomics` – assay suffix: stripped from Run column for matching; appended to output filenames. 
+- `_GLProteomics` – assay suffix appended to output filenames 
 
 **Input Data:**
 
