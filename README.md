@@ -42,6 +42,7 @@ The software for each pipeline is released under the NASA Open Source Agreement 
 - [Methyl-Seq License](./Licenses/Methylation_Sequencing_NOSA_License.pdf)
 - [RNAseq License](./Licenses/RNA_Sequencing_NOSA_License.pdf)
 - [Microarray License](./Licenses/Microarray_GPL-3.0_with_Additional_Requirements_License.pdf)
+- [STUB_Proteomics License](./Licenses/Proteomics_NOSA_License.pdf)
 
 ### 3rd Party Software Licenses
 
@@ -52,6 +53,7 @@ Licenses for the 3rd party open source software utilized for each pipeline can b
 - [RNAseq Licenses](./3rd_Party_Licenses/RNAseq_3rd_Party_Software.md)
 - [Microarray - Agilent 1-channel Licenses](./3rd_Party_Licenses/Microarray_Agilent_1_Channel_3rd_Party_Software.md)
 - [Microarray - Affymetrix Licenses](./3rd_Party_Licenses/Microarray_Affymetrix_3rd_Party_Software.md)
+- [Proteomics Licenses](./Proteomics/Workflow_Documentation/NF_Proteomics/License/3rd_Party_Licenses/README.md)
 
 ---
 
