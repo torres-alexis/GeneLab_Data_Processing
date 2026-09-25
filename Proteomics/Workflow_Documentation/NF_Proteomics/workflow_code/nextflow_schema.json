@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nasa/GeneLab_Data_Processing/tree/master/Proteomics",
+  "title": "NASA GeneLab Data Processing Proteomics Pipeline parameters",
+  "description": "Nextflow workflow for GL-DPPD-[LFQ-MBR], GL-DPPD-[TMT10], GL-DPPD-[TMT16], and GL-DPPD-[TMT16-phospho].",
+  "type": "object",
+  "$defs": {
+    "input": {
+      "title": "Input",
+      "type": "object",
+      "properties": {
+        "accession": {
+          "type": "string",
+          "description": "OSD or GLDS accession. Used to pull the ISA archive when sheets are not supplied."
+        },
+        "runsheet": {
+          "type": "string",
+          "description": "LFQ runsheet. For OSDR, generated from the ISA archive when not supplied."
+        },
+        "data_sheet": {
+          "type": "string",
+          "description": "TMT data sheet. Required for TMT."
+        },
+        "sample_sheet": {
+          "type": "string",
+          "description": "TMT sample sheet. Required for TMT."
+        },
+        "isa_archive": {
+          "type": "string",
+          "description": "Path or URL to ISA.zip. If omitted, pulled from OSDR when the runsheet (LFQ) or data sheet and sample sheet (TMT) are missing."
+        },
+        "entry_point": {
+          "type": "string",
+          "default": "mzml",
+          "enum": ["mzml", "fragpipe_output"],
+          "description": "mzml starts from spectra. fragpipe_output starts from an existing FragPipe folder."
+        },
+        "fragpipe_output": {
+          "type": "string",
+          "description": "Unzipped fragpipe{assay_suffix}.zip or the FRAGPIPE module output/ folder. Required when entry_point is fragpipe_output."
+        },
+        "fragpipe_workflow": {
+          "type": "string",
+          "enum": ["LFQ-MBR", "TMT10", "TMT16", "TMT16-phospho"],
+          "description": "FragPipe workflow preset."
+        },
+        "fragpipe_workflow_config": {
+          "type": "string",
+          "description": "Path to a custom FragPipe .workflow file."
+        },
+        "fragpipe_tools": {
+          "type": "string",
+          "default": "${projectDir}/conf/tools",
+          "description": "Headless FragPipe --config-tools-folder. MSFragger, IonQuant, and diaTracer JARs plus ext/bruker and ext/thermo."
+        },
+        "tmt_extraction_tool": {
+          "type": "string",
+          "default": "Philosopher",
+          "enum": ["Philosopher", "IonQuant"],
+          "description": "TMT-Integrator extraction tool."
+        },
+        "tech_rep": {
+          "type": "string",
+          "default": "first",
+          "enum": ["first", "all"],
+          "description": "first keeps one technical replicate for FragPipe. all searches every technical replicate."
+        },
+        "require_bioreplicate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require Bioreplicate on the LFQ runsheet or TMT sample sheet. false fills missing values in sheet order."
+        }
+      }
+    },
+    "database": {
+      "title": "Database",
+      "type": "object",
+      "properties": {
+        "reference_table": {
+          "type": "string",
+          "default": "https://raw.githubusercontent.com/torres-alexis/GeneLab_Data_Processing/refs/heads/proteomics/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv",
+          "description": "GL-DPPD-7110-A annotations CSV. With the sheet organism, stages the pinned proteome and genelab_annots_link."
+        },
+        "uniprot_id": {
+          "type": "string",
+          "description": "UniProt proteome ID. Philosopher --id download. Mutually exclusive with reference_proteome."
+        },
+        "reference_proteome": {
+          "type": "string",
+          "description": "Pre-formed reference proteome FASTA. Mutually exclusive with uniprot_id."
+        },
+        "gene_annotations_file": {
+          "type": "string",
+          "description": "Direct gene-annotation table. Skips the reference_table genelab_annots_link lookup."
+        },
+        "philosopher_reviewed": {
+          "type": "boolean",
+          "description": "Swiss-Prot only for a UniProt download. Unset uses reviewed for Arabidopsis, human, and mouse."
+        },
+        "philosopher_isoforms": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include isoforms on a UniProt download."
+        },
+        "philosopher_enzyme": {
+          "type": "string",
+          "default": "trypsin",
+          "enum": ["trypsin", "lys_c", "lys_n", "glu_c", "chymotrypsin"],
+          "description": "Digestion enzyme for the UniProt download."
+        },
+        "philosopher_spike_in": {
+          "type": "string",
+          "description": "Spike-in FASTA added to the database."
+        },
+        "philosopher_contaminants": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add cRAP sequences."
+        },
+        "philosopher_contaminants_prefix": {
+          "type": "string",
+          "default": "contam_",
+          "description": "Philosopher --contamprefix. Empty leaves new cRAP sequences untagged."
+        },
+        "philosopher_decoy_prefix": {
+          "type": "string",
+          "default": "rev_",
+          "description": "Prefix for decoy sequences."
+        },
+        "philosopher_decoys": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add decoy sequences."
+        },
+        "drop_decoys_contams": {
+          "type": "boolean",
+          "default": true,
+          "description": "Drop rev_ and contam_ rows before MSstats and FragPipeAnalystR."
+        },
+        "fp_analyst_keep_contaminants": {
+          "type": "boolean",
+          "default": false,
+          "description": "FragPipeAnalystR reads unfiltered quantification tables. MSstats still uses the filtered table."
+        }
+      }
+    },
+    "fragpipe_analyst": {
+      "title": "FragPipeAnalystR",
+      "type": "object",
+      "properties": {
+        "fp_analyst_levels": {
+          "type": "string",
+          "description": "Comma-separated levels: protein, peptide, gene, site. Unset uses protein,peptide for LFQ and protein,gene,peptide,site for TMT."
+        },
+        "fp_analyst_tmt_quant_type": {
+          "type": "string",
+          "default": "abundance",
+          "enum": ["abundance", "ratio"],
+          "description": "TMT tmt-report table type."
+        },
+        "fp_analyst_lfq_type": {
+          "type": "string",
+          "default": "Intensity",
+          "enum": ["Intensity", "MaxLFQ", "Spectral Count"],
+          "description": "LFQ combined-table column type."
+        },
+        "fp_analyst_min_global_appearance": {
+          "type": "integer",
+          "default": 0,
+          "description": "Minimum percent present across all samples. 0 disables the filter."
+        },
+        "fp_analyst_min_appearance_one_cond": {
+          "type": "integer",
+          "default": 50,
+          "description": "Minimum percent present in at least one condition."
+        },
+        "fp_analyst_normalization_method": {
+          "type": "string",
+          "default": "none",
+          "enum": ["none", "MD", "GN", "vsn"],
+          "description": "Normalization before differential expression."
+        },
+        "fp_analyst_imputation_type": {
+          "type": "string",
+          "default": "Perseus-type",
+          "enum": ["none", "Perseus-type", "knn", "MLE", "min", "zero", "bpca", "QRILC", "MinDet", "MinProb", "nbavg", "mixed"],
+          "description": "Imputation method."
+        },
+        "fp_analyst_imputation_shift": {
+          "type": "number",
+          "default": 1.8,
+          "description": "Perseus-type shift in SD units."
+        },
+        "fp_analyst_imputation_scale": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Perseus-type scale factor."
+        },
+        "fp_analyst_de_alpha": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Adjusted p-value threshold."
+        },
+        "fp_analyst_de_lfc": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Log2 fold-change threshold."
+        },
+        "fp_analyst_de_fdr": {
+          "type": "string",
+          "default": "Benjamini Hochberg",
+          "enum": ["Benjamini Hochberg", "Local and tail area-based"],
+          "description": "FDR correction."
+        },
+        "fp_analyst_protein_feature_list": {
+          "type": "string",
+          "description": "Comma-separated protein IDs for feature plots. Empty uses top_n_protein."
+        },
+        "fp_analyst_gene_feature_list": {
+          "type": "string",
+          "description": "Comma-separated gene names for feature plots. Empty uses top_n_gene."
+        },
+        "fp_analyst_peptide_feature_list": {
+          "type": "string",
+          "description": "Comma-separated peptide IDs for feature plots. Empty uses top_n_peptide."
+        },
+        "fp_analyst_site_feature_list": {
+          "type": "string",
+          "description": "Comma-separated site IDs for feature plots. Empty uses top_n_site."
+        },
+        "fp_analyst_top_n_protein": {
+          "type": "integer",
+          "default": 10,
+          "description": "Top N variable proteins when the protein feature list is empty. 0 skips."
+        },
+        "fp_analyst_top_n_gene": {
+          "type": "integer",
+          "default": 10,
+          "description": "Top N variable genes when the gene feature list is empty. 0 skips."
+        },
+        "fp_analyst_top_n_peptide": {
+          "type": "integer",
+          "default": 10,
+          "description": "Top N variable peptides when the peptide feature list is empty. 0 skips."
+        },
+        "fp_analyst_top_n_site": {
+          "type": "integer",
+          "default": 10,
+          "description": "Top N variable sites when the site feature list is empty. 0 skips."
+        },
+        "fp_analyst_qc_plot_data": {
+          "type": "string",
+          "default": "nonimputed",
+          "enum": ["imputed", "nonimputed"],
+          "description": "Matrix used for PCA, correlation, feature, and CV plots."
+        },
+        "fp_analyst_sample_cvs_full_range": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sample CV axis. true is the full range. false is 0-1."
+        },
+        "fp_analyst_volcano_display_names": {
+          "type": "boolean",
+          "default": true,
+          "description": "Label significant points on the volcano plot."
+        },
+        "fp_analyst_volcano_show_gene": {
+          "type": "boolean",
+          "default": true,
+          "description": "Volcano labels use gene names. false uses the protein or peptide ID."
+        },
+        "fp_analyst_zip": {
+          "type": "boolean",
+          "default": true,
+          "description": "Write the QC, comparison, pathway, and DE plot zip files."
+        },
+        "fp_analyst_enrichment_database": {
+          "type": "string",
+          "default": "Hallmark,GO_Biological_Process_2021",
+          "description": "Comma-separated Enrichr databases. Empty skips over-representation."
+        },
+        "fp_analyst_gsea_database": {
+          "type": "string",
+          "default": "Hallmark,GO_Biological_Process_2021",
+          "description": "Comma-separated GSEA databases. Protein, gene, and site only. Empty skips GSEA."
+        }
+      }
+    },
+    "runtime": {
+      "title": "Runtime",
+      "type": "object",
+      "properties": {
+        "multiqc_config": {
+          "type": "string",
+          "default": "${projectDir}/conf/multiqc.config",
+          "description": "MultiQC config."
+        },
+        "clean_paths": {
+          "type": "boolean",
+          "default": true,
+          "description": "Scrub paths from published artifacts during post-processing."
+        },
+        "skip_vv": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip VV_STEP and VV_CONCAT_FILTER. VALIDATE_PROCESSING still runs."
+        },
+        "dp_tools_plugin": {
+          "type": "string",
+          "description": "Path to a dp_tools plugin."
+        },
+        "assay_suffix": {
+          "type": "string",
+          "default": "_GLProteomics",
+          "description": "Suffix appended to output filenames."
+        },
+        "post_processing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run post-processing only."
+        },
+        "output_dir": {
+          "type": "string",
+          "default": ".",
+          "description": "Parent path for workflow outputs."
+        },
+        "results_dir": {
+          "type": "string",
+          "description": "Results directory name. Unset uses results, or the GLDS accession when accession is set."
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "link",
+          "enum": ["copy", "link", "symlink"],
+          "description": "How published files are written."
+        },
+        "pbs_queue": {
+          "type": "string",
+          "default": "normal",
+          "description": "PBS Pro queue for -profile pbspro."
+        },
+        "pbs_model": {
+          "type": "string",
+          "default": "",
+          "description": "PBS node model. Adds :model=<name>."
+        },
+        "pbs_internet_queue": {
+          "type": "string",
+          "default": "",
+          "description": "PBS queue for fetch and download processes. Empty uses pbs_queue."
+        },
+        "walltime": {
+          "type": "string",
+          "default": "2.h",
+          "description": "Default process.time on slurm and pbspro. Ignored on local."
+        },
+        "api_url": {
+          "type": "string",
+          "default": "https://visualization.osdr.nasa.gov/biodata/api/v2/dataset/*/",
+          "hidden": true,
+          "description": "OSDR dataset API URL."
+        },
+        "email": {
+          "type": "string",
+          "hidden": true,
+          "description": "Email address for completion notification."
+        },
+        "version": {
+          "type": "boolean",
+          "default": false,
+          "hidden": true,
+          "description": "Print the workflow version and exit."
+        },
+        "help": {
+          "type": "boolean",
+          "default": false,
+          "hidden": true,
+          "description": "Print the parameter help and exit."
+        },
+        "trace_timestamp": {
+          "type": "string",
+          "hidden": true,
+          "description": "Timestamp used in Nextflow report filenames."
+        }
+      }
+    }
+  },
+  "allOf": [
+    { "$ref": "#/$defs/input" },
+    { "$ref": "#/$defs/database" },
+    { "$ref": "#/$defs/fragpipe_analyst" },
+    { "$ref": "#/$defs/runtime" }
+  ]
+}

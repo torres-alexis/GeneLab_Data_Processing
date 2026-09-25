@@ -23,7 +23,7 @@ include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
 include { FILTER_TECH_REPS } from '../modules/filter_tech_reps.nf'
 include { VV_STEP; VV_CONCAT_FILTER } from '../modules/vv_step.nf'
 
-include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
+include { samplesheetToList } from 'plugin/nf-schema'
 
 def as_list(x) {
     if (x == null) return []
