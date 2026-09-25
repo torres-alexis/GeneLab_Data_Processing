@@ -8,6 +8,7 @@ process PARSE_ANNOTATIONS_TABLE {
   input:
     val(annotations_csv_url_string)
     val(organism_sci)
+    val(require_row)
 
   output:
     val(gene_annotations_url), emit: gene_annotations_url
@@ -43,6 +44,8 @@ process PARSE_ANNOTATIONS_TABLE {
       println "  gene_annotations_url: ${gene_annotations_url ?: '(empty)'}"
       println "  uniprot_id: ${uniprot_id ?: '(empty)'}"
       println "  proteome: ${proteome_source ?: '(empty)'}"
+    } else if (require_row == true || require_row == 'true') {
+      error "Organism '${organism_key}' is not in the reference annotations table. Specify --uniprot_id or --reference_proteome."
     } else {
       println "WARNING: Organism '${organism_key}' not in reference annotations table."
       gene_annotations_url = null

@@ -299,7 +299,12 @@ workflow PROTEOMICS {
             }
 
         if (params.reference_table) {
-            PARSE_ANNOTATIONS_TABLE(Channel.value(params.reference_table), ch_organism_sci)
+            def require_organism_row = !params.uniprot_id && !params.reference_proteome
+            PARSE_ANNOTATIONS_TABLE(
+                Channel.value(params.reference_table),
+                ch_organism_sci,
+                Channel.value(require_organism_row)
+            )
         }
 
         if (params.uniprot_id && params.reference_proteome) {
