@@ -888,6 +888,9 @@ Rscript FragPipeAnalystR_main.R \
 - `--volcano_show_gene` – show gene names (`true`) or protein/peptide ID (`false`) on volcano. Peptide level uses Index; set `false` for peptide
 - `--enrichment_database` – Enrichr database(s): `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `MSigDB_Hallmark_2020`, `KEGG_2021_Human`, `Reactome_2022`. Comma-separated for multiple. Empty = skip. ORA is always run on both the up- and down-regulated sets of features. 
 - `--gsea_database` – GSEA database(s): `Hallmark`, `GO_Biological_Process_2021`, `GO_Cellular_Component_2021`, `GO_Molecular_Function_2021`, `KEGG_2021_Human`. Comma-separated. Protein/gene/site only. Empty = skip
+
+> Note: Every database currently accepted by `--enrichment_database` and `--gsea_database` is a human Enrichr, MSigDB, or `org.Hs.eg.db` library. This step is only relevant to Homo sapiens datasets.
+
 - `--gene_annotations` – path or URL of gene annotations TSV/CSV; merges into DE_results on Gene. Empty = skip
 - `--assay_suffix` – assay suffix for output filenames; empty = no suffix
 - `--output_dir` – output directory for results
