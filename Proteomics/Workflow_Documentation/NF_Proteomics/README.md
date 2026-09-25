@@ -439,7 +439,7 @@ The outputs of the post-processing workflow are described below:
 
 # Licenses
 
-The software for the Proteomics pipeline and workflow is released under the [NASA Open Source Agreement (NOSA) Version 1.3](License/Proteomics_NOSA_License.pdf).
+The software for the Proteomics pipeline and workflow is released under the [NASA Open Source Agreement (NOSA) Version 1.3](../../../Licenses/Proteomics_NOSA_License.pdf).
 
 
 ### 3rd Party Software Licenses
