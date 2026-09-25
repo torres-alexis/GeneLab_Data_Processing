@@ -59,15 +59,6 @@ safe_to_label <- if ("condition_name" %in% colnames(anno) && all(nzchar(trimws(a
     setNames(anno$condition, anno$condition)
 }
 
-print("Condition mapping from experiment_annotation:")
-print(anno[, intersect(c("file", "condition", "condition_name"), colnames(anno)), drop = FALSE])
-
-# Debug: Print unique Condition values in raw data
-print("Unique Condition values in raw data after matching:")
-print(table(raw$Condition, useNA = "always"))
-
-# Change root directory for MSstats
-print(str_c("Root DIR: ", rootDir))
 setwd(rootDir)
 
 #https://fragpipe.nesvilab.org/docs/tutorial_msstats.html

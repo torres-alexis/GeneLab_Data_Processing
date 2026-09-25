@@ -41,9 +41,6 @@ safe_to_label <- if ("condition_name" %in% colnames(anno) && all(nzchar(trimws(a
   setNames(anno$condition, anno$condition)
 }
 
-print("Condition mapping from MSstatsTMT annotation:")
-print(anno[, intersect(c("condition", "condition_name"), colnames(anno)), drop = FALSE])
-
 annotation_msstats <- annotation[, required, drop = FALSE]
 
 normalize_run_id <- function(x, assay_suffix = "") {
