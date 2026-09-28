@@ -302,7 +302,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--tech_rep` - Technical replicate handling for FragPipe: `first` (default, keep the first technical replicate by runsheet order), `all` (search every technical replicate). LFQ: `Source Name` + Factor Value columns; TMT: plex + TechRepMixture + fraction. (type: string, default: "first")
 * `--require_bioreplicate` - Require `Bioreplicate` in the input runsheet (LFQ) or sample sheet (TMT). If false, missing values are inferred within each condition from runsheet order. (type: boolean, default: true)
 * `--drop_decoys_contams` - Drop Philosopher decoys (`rev_`) and contaminant-tagged IDs (`contam_`) before MSstats and FragPipeAnalystR. (type: boolean, default: true)
-* `--fp_analyst_keep_contaminants` - If true, FragPipeAnalystR keeps contaminants (manual dual-run). Does not change MSstats. (type: boolean, default: false)
+* `--keep_decoys_contams` - If true, the MSstats and FragPipeAnalystR inputs keep decoys and contaminants. (type: boolean, default: false)
 * `--skip_vv` - Skip `VV_STEP` and `VV_CONCAT_FILTER`. End-of-run `VALIDATE_PROCESSING` still runs in post-processing. (type: boolean, default: false)
 * `--fragpipe_tools` - Headless FragPipe `--config-tools-folder`: MSFragger / IonQuant / diaTracer JARs plus `ext/bruker/` and `ext/thermo/`. Unused when `--entry_point fragpipe_output` (type: string, default: "${projectDir}/conf/tools")
 * `--fragpipe_workflow` - FragPipe workflow: `LFQ-MBR`, `TMT10`, `TMT16`, or `TMT16-phospho` (type: string, default: null)

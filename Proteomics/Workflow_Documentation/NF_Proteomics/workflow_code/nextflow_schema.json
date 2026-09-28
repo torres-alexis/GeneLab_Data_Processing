@@ -135,12 +135,12 @@
         "drop_decoys_contams": {
           "type": "boolean",
           "default": true,
-          "description": "Drop rev_ and contam_ rows before MSstats and FragPipeAnalystR."
+          "description": "Drop decoys and contaminants before MSstats and FragPipeAnalystR."
         },
-        "fp_analyst_keep_contaminants": {
+        "keep_decoys_contams": {
           "type": "boolean",
           "default": false,
-          "description": "FragPipeAnalystR reads unfiltered quantification tables. MSstats still uses the filtered table."
+          "description": "If true, the MSstats and FragPipeAnalystR inputs keep decoys and contaminants."
         }
       }
     },

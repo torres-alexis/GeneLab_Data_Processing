@@ -555,8 +555,9 @@ workflow PROTEOMICS {
         }
         ch_lfq_versions = Channel.empty()
         ch_tmt_versions = Channel.empty()
-        def do_drop = (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false')
-        def keep_fpar_contams = (params.fp_analyst_keep_contaminants == true || params.fp_analyst_keep_contaminants == 'true')
+        def drop_requested = (params.drop_decoys_contams != false && params.drop_decoys_contams != 'false')
+        def keep_decoys_contams = (params.keep_decoys_contams == true || params.keep_decoys_contams == 'true')
+        def do_drop = drop_requested && !keep_decoys_contams
 
         // FRAGPIPEANALYSTR (FragPipeAnalystR): levels from params or workflow default. TMT uses tmt-report abundance/ratio; LFQ uses combined_*.
         ch_fp_analyst_inputs = Channel.empty()
@@ -588,17 +589,13 @@ workflow PROTEOMICS {
         ch_msstats_in = ch_msstats_csv
         if (do_drop) {
             ch_drop_in = ch_msstats_csv.map { f -> tuple('msstats', f) }
-            if (!keep_fpar_contams) {
-                ch_drop_in = ch_drop_in.mix(ch_fp_analyst_inputs.map { kind, q, e -> tuple(kind, q) })
-            }
+            ch_drop_in = ch_drop_in.mix(ch_fp_analyst_inputs.map { kind, q, e -> tuple(kind, q) })
             DROP_DECOYS_CONTAMS(ch_drop_in)
             ch_msstats_in = DROP_DECOYS_CONTAMS.out.cleaned.filter { it[0] == 'msstats' }.map { it[1] }
-            if (!keep_fpar_contams) {
-                ch_fp_analyst_inputs = ch_fp_analyst_inputs
-                    .map { kind, q, e -> tuple(kind, e) }
-                    .join(DROP_DECOYS_CONTAMS.out.cleaned.filter { it[0] != 'msstats' })
-                    .map { kind, e, q -> tuple(kind, q, e) }
-            }
+            ch_fp_analyst_inputs = ch_fp_analyst_inputs
+                .map { kind, q, e -> tuple(kind, e) }
+                .join(DROP_DECOYS_CONTAMS.out.cleaned.filter { it[0] != 'msstats' })
+                .map { kind, e, q -> tuple(kind, q, e) }
         }
 
         if (params.fragpipe_workflow == 'LFQ-MBR') {
