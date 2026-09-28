@@ -26,6 +26,7 @@ Click on an assay type below for data processing information.
 - [Microarray](Microarray)
   - [Agilent 1-channel](Microarray/Agilent_1-channel)
   - [Affymetrix](Microarray/Affymetrix)
+- [Proteomics](Proteomics)
 
 ---
 
