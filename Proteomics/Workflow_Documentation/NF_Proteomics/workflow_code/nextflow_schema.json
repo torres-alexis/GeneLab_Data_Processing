@@ -314,6 +314,14 @@
           "default": "_GLProteomics",
           "description": "Suffix appended to output filenames."
         },
+        "msstats_protein_csv": {
+          "type": "string",
+          "description": "Optional paired global-proteome Philosopher msstats.csv for MSstatsPTM adjustment on TMT16-phospho."
+        },
+        "msstats_protein_annotation": {
+          "type": "string",
+          "description": "MSstatsTMT annotation for that global-proteome assay. Required if msstats_protein_csv is set."
+        },
         "post_processing": {
           "type": "boolean",
           "default": false,

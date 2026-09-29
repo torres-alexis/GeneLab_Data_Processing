@@ -348,6 +348,8 @@ nextflow run NF_PPP_1.0.0/main.nf \
 * `--reference_table` - Path or URL to GeneLab Reference Annotations table for organism lookup (type: string, default: [GL-DPPD-7110-A_annotations.csv](https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/refs/heads/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv)). Resolves pinned `proteome` FASTA and `genelab_annots_link` from runsheet/sample-sheet `organism` when `--uniprot_id` and `--reference_proteome` are unset.
 * `--gene_annotations_file` - Override: direct path/URL to gene annotations table (type: string, default: null)
 * `--assay_suffix` - Suffix to append to output filenames (type: string, default: "_GLProteomics")
+* `--msstats_protein_csv` - Optional paired global-proteome Philosopher msstats.csv for MSstatsPTM adjustment on TMT16-phospho (type: string, default: null)
+* `--msstats_protein_annotation` - MSstatsTMT annotation for that global-proteome assay. Required if `--msstats_protein_csv` is set (type: string, default: null)
 * `--output_dir` - Parent path for workflow outputs (type: string, default: ".")
 * `--results_dir` - Results directory name. If null, uses "results" (params.output_dir/results/) (type: string, default: null)
 * `--publish_dir_mode` - Published outputs: copy, link, or symlink (type: string, default: "link")

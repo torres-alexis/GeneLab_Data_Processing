@@ -79,6 +79,13 @@ def collect_processed_files(outdir, assay_suffix):
         "msstatstmt_comparison*.csv",
         "msstatstmt_contrasts*.csv",
     ]))
+    out.extend(collect_matches(os.path.join(outdir, "MSstatsTMTPTM"), [
+        "msstatstmtptm_comparison*.csv",
+        "msstatstmtptm_ptm_comparison*.csv",
+        "msstatstmtptm_adjusted_comparison*.csv",
+        "msstatstmtptm_protein_comparison*.csv",
+        "msstatstmtptm_contrasts*.csv",
+    ]))
     out.extend(collect_matches(os.path.join(outdir, "FragPipe"), [
         "combined_*.tsv",
         "msstats.csv",

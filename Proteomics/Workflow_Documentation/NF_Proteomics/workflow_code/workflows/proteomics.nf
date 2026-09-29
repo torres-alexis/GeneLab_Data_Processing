@@ -17,6 +17,7 @@ include { PMULTIQC } from '../modules/pmultiqc.nf'
 include { DROP_DECOYS_CONTAMS } from '../modules/drop_decoys_contams.nf'
 include { MSSTATS } from '../modules/msstats.nf'
 include { MSSTATSTMT } from '../modules/msstatstmt.nf'
+include { MSSTATSTMTPTM } from '../modules/msstatstmtptm.nf'
 include { FRAGPIPEANALYSTR }  from '../modules/fragpipeanalystr.nf'
 include { SOFTWARE_VERSIONS } from '../modules/software_versions.nf'
 include { GENERATE_PROCESSED_PROTOCOL } from '../modules/generate_protocol.nf'
@@ -619,6 +620,40 @@ workflow PROTEOMICS {
                 .mix(pub(MSSTATSTMT.out.conditions_notice, ch_root, 'MSstatsTMT'))
                 .mix(pub(MSSTATSTMT.out.runs_notice, ch_root, 'MSstatsTMT'))
             ch_vv = ch_vv.mix(MSSTATSTMT.out.comparison.map { f -> tuple('msstatstmt', f) })
+        }
+        if (params.fragpipe_workflow == 'TMT16-phospho') {
+            def ch_ptm_workflow
+            if (ep == 'mzml') {
+                ch_ptm_workflow = FRAGPIPE_CONFIG_SETUP.out.fragpipe_config
+            } else {
+                def wf = params.fragpipe_workflow_config
+                    ? params.fragpipe_workflow_config.toString()
+                    : "${projectDir}/conf/workflows/${params.fragpipe_workflow}.workflow"
+                ch_ptm_workflow = Channel.fromPath(wf, checkIfExists: true)
+            }
+            ch_msstats_protein = params.msstats_protein_csv
+                ? Channel.fromPath(params.msstats_protein_csv, checkIfExists: true)
+                : Channel.fromPath('/dev/null')
+            ch_msstats_protein_annot = params.msstats_protein_annotation
+                ? Channel.fromPath(params.msstats_protein_annotation, checkIfExists: true)
+                : Channel.fromPath('/dev/null')
+            MSSTATSTMTPTM(
+                output_dir,
+                FRAGPIPE_METADATA_SETUP.out.msstats_tmt_annotation,
+                ch_msstats_in,
+                ch_ptm_workflow,
+                ch_msstats_protein,
+                ch_msstats_protein_annot
+            )
+            ch_tmt_versions = ch_tmt_versions.mix(MSSTATSTMTPTM.out.versions)
+            ch_published = ch_published
+                .mix(pub(MSSTATSTMTPTM.out.comparison, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.ptm_comparison, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.protein_comparison, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.adjusted_comparison, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.contrasts, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.conditions_notice, ch_root, 'MSstatsTMTPTM'))
+                .mix(pub(MSSTATSTMTPTM.out.runs_notice, ch_root, 'MSstatsTMTPTM'))
         }
 
         ch_fp_with_annot = ch_fp_analyst_inputs.combine(gene_annotations_url)
