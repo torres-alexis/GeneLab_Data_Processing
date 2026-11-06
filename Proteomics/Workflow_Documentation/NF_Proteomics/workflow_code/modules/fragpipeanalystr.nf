@@ -30,8 +30,8 @@ process FRAGPIPEANALYSTR {
         (params.fp_analyst_gsea_database instanceof List ? params.fp_analyst_gsea_database.join(',') : params.fp_analyst_gsea_database.toString()) : ''
     def lfq_type = params.fp_analyst_lfq_type ?: "Intensity"
     def normalization_method = (params.fp_analyst_normalization_method != null && params.fp_analyst_normalization_method != '') ? params.fp_analyst_normalization_method : 'none'
-    def de_alpha = params.fp_analyst_de_alpha ?: 0.05
-    def de_lfc = params.fp_analyst_de_lfc ?: 1.0
+    def de_alpha = params.fp_analyst_de_alpha != null ? params.fp_analyst_de_alpha : 0.05
+    def de_lfc = params.fp_analyst_de_lfc != null ? params.fp_analyst_de_lfc : 1.0
     def de_fdr = (params.fp_analyst_de_fdr != null && params.fp_analyst_de_fdr != '') ? params.fp_analyst_de_fdr : 'Benjamini Hochberg'
     def imputation_type = (params.fp_analyst_imputation_type != null && params.fp_analyst_imputation_type != '') ? params.fp_analyst_imputation_type : 'Perseus-type'
     def imputation_shift = params.fp_analyst_imputation_shift != null ? params.fp_analyst_imputation_shift : 1.8

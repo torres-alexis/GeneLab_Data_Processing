@@ -33,9 +33,9 @@ process GENERATE_PROCESSED_PROTOCOL {
             --reference_table "${reference_table}" \\
             --used_proteome "${used_proteome}" \\
             --entry_point "${params.entry_point ?: 'mzml'}" \\
-            --min_appearance_one_condition "${params.fp_analyst_min_appearance_one_cond ?: 50}" \\
+            --min_appearance_one_condition "${params.fp_analyst_min_appearance_one_cond != null ? params.fp_analyst_min_appearance_one_cond : 50}" \\
             --min_global_appearance "${params.fp_analyst_min_global_appearance ?: 0}" \\
-            --drop_decoys_contams "${params.drop_decoys_contams != false && params.drop_decoys_contams != 'false' ? 'true' : 'false'}" \\
+            --drop_decoys_contams "${params.drop_decoys_contams != false && params.drop_decoys_contams != 'false' && params.keep_decoys_contams != true && params.keep_decoys_contams != 'true' ? 'true' : 'false'}" \\
             --output "processed_data_protocol${params.assay_suffix}.txt"
         """
 }

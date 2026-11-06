@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import sys
 from datetime import datetime
 
 
@@ -118,7 +119,7 @@ def generate_protocol_content(args, software_versions):
     used_proteome_note = f" ({used_proteome})" if used_proteome else ""
 
     database_sentence = ""
-    if args.reference_table:
+    if args.reference_table and not args.reference_proteome:
         uniprot_note = f" (UniProt proteome {args.uniprot_id})" if args.uniprot_id else ""
         database_sentence = (
             f"A pinned reference proteome from the GeneLab GL-DPPD-7110-A annotations table "
@@ -305,14 +306,20 @@ def embedded_config_block(config):
     return "".join(lines)
 
 
-def apply_saved_config(args):
+def apply_saved_config(args, explicit_options=None):
     if not args.from_protocol:
         return args
 
     protocol_path = os.path.abspath(args.from_protocol)
     saved = load_saved_config(protocol_path)
+    # Restore saved values unless the option was explicitly supplied.
+    if explicit_options is None:
+        explicit_options = {
+            item.split("=", 1)[0][2:].replace("-", "_")
+            for item in sys.argv[1:] if item.startswith("--")
+        }
     for key, value in saved.items():
-        if getattr(args, key, None) in (None, ""):
+        if key not in explicit_options:
             setattr(args, key, value)
 
     args.outdir = os.path.dirname(protocol_path)
