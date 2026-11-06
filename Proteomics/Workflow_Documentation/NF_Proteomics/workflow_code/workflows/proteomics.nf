@@ -170,7 +170,7 @@ workflow PROTEOMICS {
 
         ch_dp_tools_plugin = params.dp_tools_plugin ?
             Channel.value(file(params.dp_tools_plugin)) :
-            Channel.value(file("$projectDir/bin/dp_tools__NF_Proteomics"))
+            Channel.value(file("$projectDir/bin/dp_tools__NF_Proteomics_LFQ"))
 
         output_dir = Channel.value(file(params.output_dir, type: 'dir', checkIfExists: false))
 
@@ -341,8 +341,9 @@ workflow PROTEOMICS {
         }
 
         // Generate manifest: TMT [data_sheet, sample_sheet]; LFQ [runsheet]
-        ch_sample_sheet = (is_tmt && params.sample_sheet) ? Channel.fromPath(params.sample_sheet) : Channel.value(file("${projectDir}/bin/placeholder"))
-        ch_sheets = sheet_fp.combine(ch_sample_sheet).map { s, ss -> [s, ss] }
+        ch_sheets = is_tmt
+            ? sheet_fp.combine(Channel.fromPath(params.sample_sheet, checkIfExists: true)).map { s, ss -> [s, ss] }
+            : sheet_fp.map { s -> [s] }
         FRAGPIPE_METADATA_SETUP(output_dir, ch_sheets)
         manifest = FRAGPIPE_METADATA_SETUP.out.manifest
         ch_published = ch_published
@@ -687,12 +688,12 @@ workflow PROTEOMICS {
 
         if (params.uniprot_id) {
             ch_protocol_uniprot = Channel.value(params.uniprot_id.toString())
-        } else if (staged_proteome && params.reference_table) {
+        } else if (staged_proteome && params.reference_table && !params.reference_proteome) {
             ch_protocol_uniprot = PARSE_ANNOTATIONS_TABLE.out.uniprot_id.map { uid -> uid?.toString() ?: '' }
         } else {
             ch_protocol_uniprot = Channel.value('')
         }
-        ch_protocol_reference_table = Channel.value(staged_proteome ? (params.reference_table?.toString() ?: '') : '')
+        ch_protocol_reference_table = Channel.value(staged_proteome && !params.uniprot_id && !params.reference_proteome ? (params.reference_table?.toString() ?: '') : '')
         ch_protocol_reference_proteome = Channel.value(staged_proteome ? (params.reference_proteome?.toString() ?: '') : '')
         ch_used_proteome = proteome.map { it.toString() }.ifEmpty('')
         GENERATE_PROCESSED_PROTOCOL(
