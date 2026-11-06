@@ -2,6 +2,8 @@
 
 > **GeneLab has wrapped each step of the pipeline into a workflow with validation and verification of output files built in after each step. The table below lists (and links to) each Proteomics pipeline version and the corresponding workflow subdirectory, the current Proteomics pipeline/workflow implementation is indicated. Each workflow subdirectory contains information about the workflow along with instructions for installation and usage. Exact workflow version and run info for specific datasets that have been released are available in the \*nextflow_processing_info.txt file on the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/), which can be found under 'Files' -> 'GeneLab Processed Proteomics Files' -> 'Supplemental Materials'.**  
 
+> **Draft status:** The table describes the version declared by the checked-in workflow, not an approved production release. [STUB] Release designation and approval remain to be verified.
+
 ## Pipeline Version and Corresponding Workflows
 
 |Pipeline Version|Workflow Type|Current Workflow Version (for respective pipeline version)|Nextflow Version|

@@ -18,11 +18,19 @@ The current GeneLab Proteomics processing pipelines (PPP) for label-free quantif
 
 ### NF_Proteomics Resource Requirements
 
-The table below details the default maximum resource allocations for individual Nextflow processes.
+The table below describes allocations in `conf/process_resources.config`, not a measured whole-workflow requirement. Concurrent processes can require more resources than any single row.
 
-| Workflow Type | Default CPU Cores | Default Memory |
-|---------------|-------------------|----------------|
-| All workflows | 16                | 64 GB          |
+| Process | Initial CPU cores | Initial memory | Configured retry allocation |
+|---------|-------------------|----------------|-----------------------------|
+| Default | 1 | 2 GB | Unchanged |
+| FRAGPIPE | 16 | 64 GB | Up to 22 cores / 256 GB on attempt 4 |
+| RAWBEANS_QC_ALL | 8 | 64 GB | Unchanged |
+| FRAGPIPEANALYSTR | 4 | 16 GB | Up to 12 cores / 48 GB on attempt 3 |
+| MSSTATS / MSSTATSTMT / MSSTATSTMTPTM | 2 | 8 GB | Unchanged |
+| PMULTIQC | 1 | 4 GB | Unchanged |
+| GENERATE_MD5SUMS | 1 | 8 GB | 16 GB on attempt 2 |
+
+These values describe existing configuration only; they are not new resource recommendations or evidence of successful full-scale runs.
 
 > **Note:** These per-process resource allocations are defaults. They can be adjusted by modifying `cpus`, `memory`, and `time` in [`conf/process_resources.config`](workflow_code/conf/process_resources.config); executor settings in [`local.config`](workflow_code/conf/local.config), [`slurm.config`](workflow_code/conf/slurm.config), and [`pbspro.config`](workflow_code/conf/pbspro.config).
 
@@ -82,14 +90,16 @@ We recommend installing Singularity on a system wide level as per the associated
 
 ### 2. Download the Workflow Files
 
-All files required for utilizing the NF_Proteomics GeneLab workflow for processing Proteomics data are in the [workflow_code](workflow_code) directory. To get a 
-copy of latest NF_Proteomics version on to your system, the code can be downloaded as a zip file from the release page then unzipped after downloading by running the following commands: 
+All workflow files are in the [workflow_code](workflow_code) directory of this repository. Use a reviewed checkout of the intended branch and record its commit before running. From the repository root:
 
 ```bash
-wget https://github.com/nasa/GeneLab_Proteomics_Workflow/releases/download/NF_PPP_1.0.0/NF_PPP_1.0.0.zip
-
-unzip NF_PPP_1.0.0.zip
+cd Proteomics/Workflow_Documentation/NF_Proteomics
+git rev-parse HEAD
 ```
+
+The commands below assume this directory contains `workflow_code/`. Replace example `/path/to/...` values with real paths before execution.
+
+**[STUB] Official release archive, release tag, and publication approval remain to be verified.** No downloadable release is asserted by these draft instructions.
 
 <br>
 
@@ -99,11 +109,11 @@ unzip NF_PPP_1.0.0.zip
 
 Although Nextflow can fetch Singularity images from a url, doing so may cause issues as detailed [here](https://github.com/nextflow-io/nextflow/issues/1210).
 
-To avoid this issue, run the following command to fetch the Singularity images prior to running the NF_PPP workflow:
-> Note: This command should be run in the location containing the `NF_PPP_1.0.0` directory that was downloaded in [step 2](#2-download-the-workflow-files) above. Depending on your network speed, fetching the images will take ~20 minutes. Approximately 8GB of RAM is needed to download and build the Singularity images.
+To avoid this issue, run the following command to fetch the Singularity images prior to running the NF_Proteomics workflow:
+> Note: This command should be run in the location containing the `workflow_code` directory identified in [step 2](#2-download-the-workflow-files) above. Depending on your network speed, fetching the images will take ~20 minutes. Approximately 8GB of RAM is needed to download and build the Singularity images.
 
 ```bash
-bash NF_PPP_1.0.0/bin/prepull_singularity.sh NF_PPP_1.0.0/conf/by_docker_image.config
+bash workflow_code/bin/prepull_singularity.sh workflow_code/conf/by_docker_image.config
 ```
 
 
@@ -119,7 +129,7 @@ export NXF_SINGULARITY_CACHEDIR=$(pwd)/singularity
 
 ### 4. Run the Workflow
 
-While in the location containing the `NF_PPP_1.0.0` directory that was downloaded in [step 2](#2-download-the-workflow-files), you are now able to run the workflow.
+While in the location containing the `workflow_code` directory identified in [step 2](#2-download-the-workflow-files), you are now able to run the workflow.
 
 For organisms listed in the [GeneLab annotations table](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv), the workflow automatically stages the pinned reference proteome from the table `proteome` column (Figshare URL or local path) and resolves gene annotation files from `genelab_annots_link` using the `organism` field in the runsheet (LFQ) or sample sheet (TMT).
 
@@ -135,7 +145,7 @@ Below are examples of how to run the NF_Proteomics workflow:
 #### 4a. Run the LFQ-MBR workflow on a GeneLab Proteomics dataset
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
    --accession OSD-581
@@ -146,11 +156,11 @@ nextflow run NF_PPP_1.0.0/main.nf \
 #### 4b. Run the LFQ-MBR workflow with custom reference proteome
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
-   --runsheet </path/to/runsheet> \ 
-   --reference_proteome </path/to/fasta>
+   --runsheet "/path/to/runsheet" \
+   --reference_proteome "/path/to/fasta"
 ```
 
 > Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md).
@@ -160,10 +170,10 @@ nextflow run NF_PPP_1.0.0/main.nf \
 #### 4c. Run the LFQ-MBR workflow on a custom dataset
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
-   --runsheet </path/to/runsheet>
+   --runsheet "/path/to/runsheet"
 ```
 
 > Note: Specifications for creating a runsheet manually are described [here](examples/runsheet/README.md). The runsheet `organism` must match a `species` value in the [GeneLab annotations table](https://github.com/nasa/GeneLab_Data_Processing/blob/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) unless you supply `--uniprot_id` or `--reference_proteome`.
@@ -173,11 +183,11 @@ nextflow run NF_PPP_1.0.0/main.nf \
 #### 4d. Run the LFQ-MBR workflow with custom FragPipe workflow config
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --fragpipe_workflow LFQ-MBR \
-   --fragpipe_workflow_config </path/to/LFQ-MBR_edited.workflow> \
-   --runsheet </path/to/runsheet>
+   --fragpipe_workflow_config "/path/to/LFQ-MBR_edited.workflow" \
+   --runsheet "/path/to/runsheet"
 ```
 
 > Note: Use `--fragpipe_workflow_config` to override the default FragPipe workflow with a custom `.workflow` file. For example, `LFQ-MBR_edited.workflow` may have `msfragger.fragment_mass_tolerance=300` set (from the default value of 20).
@@ -187,10 +197,10 @@ nextflow run NF_PPP_1.0.0/main.nf \
 #### 4e. Run the TMT10 workflow on a custom dataset
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
-   --data_sheet </path/to/data_sheet.csv> \ 
-   --sample_sheet </path/to/sample_sheet.csv> \
+   --data_sheet "/path/to/data_sheet.csv" \
+   --sample_sheet "/path/to/sample_sheet.csv" \
    --fragpipe_workflow TMT10
 ```
 
@@ -201,19 +211,19 @@ nextflow run NF_PPP_1.0.0/main.nf \
 #### 4f. Resume a workflow from an existing FragPipe output folder
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --entry_point fragpipe_output \
-   --fragpipe_output </path/to/FragPipe> \
+   --fragpipe_output "/path/to/FragPipe" \
    --fragpipe_workflow LFQ-MBR \
-   --runsheet </path/to/runsheet>
+   --runsheet "/path/to/runsheet"
 ```
 
 <br>
 
 #### Required Parameters For All Approaches:
 
-* `NF_PPP_1.0.0/main.nf` - Instructs Nextflow to run the NF_Proteomics workflow 
+* `workflow_code/main.nf` - Instructs Nextflow to run the NF_Proteomics workflow
 
 * `-profile` - Container: `singularity` (or `docker` / `podman`). Executor: `local`, `slurm`, or `pbspro`. Combine them, e.g. `-profile singularity,slurm`.
 
@@ -294,7 +304,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 **Additional [Optional] Parameters For All Approaches**
 
-> Note: See `nextflow run NF_PPP_1.0.0/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.
+> Note: See `nextflow run workflow_code/main.nf --help` and [Nextflow's CLI run command documentation](https://nextflow.io/docs/latest/cli.html#run) for more options and details on how to run Nextflow.
 
 * `--entry_point` - `mzml` (default) or `fragpipe_output` (type: string, default: "mzml")
 * `--fragpipe_output` - Unzipped `fragpipe{assay_suffix}.zip` (default `fragpipe_GLProteomics.zip`) or the `FRAGPIPE` module `output/` folder. Required when `--entry_point fragpipe_output` (type: string, default: null)
@@ -367,7 +377,7 @@ nextflow run NF_PPP_1.0.0/main.nf \
 
 > Note: The outputs from the Proteomics Processing Pipeline are documented in the [GL-DPPD-[LFQ-MBR]](../../Pipeline_GL-DPPD-[LFQ-MBR]_Versions/GL-DPPD-[LFQ-MBR].md), [GL-DPPD-[TMT10]](../../Pipeline_GL-DPPD-[TMT10]_Versions/GL-DPPD-[TMT10].md), [GL-DPPD-[TMT16]](../../Pipeline_GL-DPPD-[TMT16]_Versions/GL-DPPD-[TMT16].md), and [GL-DPPD-[TMT16-phospho]](../../Pipeline_GL-DPPD-[TMT16-phospho]_Versions/GL-DPPD-[TMT16-phospho].md) processing protocols.
 
-> **Interpretation:** MSstats (peptide-level models, no Perseus imputation) and FragPipeAnalystR (limma on imputed intensities) are complementary and will not give identical hit lists. FPAR pathway analysis uses **human** Enrichr / MSigDB / `org.Hs.eg.db` libraries; non-human symbols are shared-symbol homology, not species-native pathways. LFQ-MBR assumes one technically compatible cohort per OSDR assay.
+> **Interpretation:** MSstats (peptide/feature-level modeling summarized to proteins, without FragPipeAnalystR's Perseus-type imputation) and FragPipeAnalystR (limma on imputed intensities) are complementary and will not give identical hit lists. FPAR pathway analysis uses **human** Enrichr / MSigDB / `org.Hs.eg.db` libraries; matching non-human gene symbols does not establish orthology or species-native pathway validity. Non-human pathway support remains unresolved; no species-native pathway claim is made here. LFQ-MBR assumes one technically compatible cohort per OSDR assay.
 
 > Note: All outputs are written to a subdirectory within `--output_dir`. If `--results_dir` is specified, its value is used as the subdirectory name. Otherwise, the subdirectory defaults to `results/` when `--accession` is not provided, or to the GLDS accession (`GLDS-X`) when `--accession` is provided.
 
@@ -410,10 +420,10 @@ Standard Nextflow resource usage logs are also produced as follows:
 
 The post-processing workflow is designed to validate processed data generated by the main workflow, package processing information, purge file paths when necessary, generate an md5sum table, and update the assay table for OSDR datasets.
 
-To run the post-processing workflow, use the `--postprocessing true` parameter in the Nextflow run command.
+To run the post-processing workflow, use the `--post_processing true` parameter in the Nextflow run command. Reuse the original `--output_dir` and `--results_dir` (or accession) so this targets the completed output directory, which must contain `processing_info/`. Post-processing can clean paths and create packaging/validation files; run it on a review copy when the original outputs must remain unchanged.
 
 ```bash
-nextflow run NF_PPP_1.0.0/main.nf \ 
+nextflow run workflow_code/main.nf \
    -profile singularity,local \
    --post_processing true
 ```
@@ -468,10 +478,14 @@ The GeneLab Proteomics Processing Pipeline and Workflow software also makes use 
 
 ---
 **Developed by:**  
-A
+[STUB]
 
 **Maintained by:**  
-B
+[STUB]
 
 **Contributors:**  
-C
+[STUB]
+
+## Review checkpoint
+
+The [2026-11-06 comprehensive review](../../Review/REVIEW_2026-11-06.md) records the fixes, focused checks, historical output staging and unresolved release gates for this branch. This review is not scientific or NASA release approval.

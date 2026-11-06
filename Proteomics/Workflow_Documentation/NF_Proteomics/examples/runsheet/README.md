@@ -9,6 +9,8 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 
 ## Examples
 
+These are format examples with `/path/to/...` input placeholders, not validated production metadata. Biological independence, technical-replicate handling, and pool/bridge choices require dataset-specific review; examples do not establish AWG approval.
+
 1. **LFQ-MBR**:
    - [Runsheet for OSD-209](OSD-209_proteomics_LFQ_v1_runsheet.csv)
 2. **TMT**:
@@ -74,7 +76,7 @@ The runsheet is a CSV file that contains the metadata required for processing ma
 | channel | string | TMT channel. | 127N |
 | Factor Value[<name, e.g. Spaceflight>] | string | A set of one or more columns specifying the experimental group the sample belongs to. In the simplest form, a column named 'Factor Value[group]' is sufficient. | male |
 | Original Sample Name | string | Used to map the sample name that will be used for processing to the original sample name. This is often identical except in cases where the original name includes spaces or weird characters. | Earth M1 |
-| Bioreplicate | string | Biological replicate ID for MSstatsTMT `BioReplicate` and FragPipeAnalystR `replicate`. Required when `require_bioreplicate` is true (default). If that flag is false: from this column if set; else `Source Name`; else `Sample Name`. | 1 |
+| Bioreplicate | string | Biological replicate ID for MSstatsTMT `BioReplicate` and FragPipeAnalystR `replicate`. Required when `require_bioreplicate` is true (default). If that flag is false: from this column if set; else sequential numeric IDs within each condition, keyed by `Source Name` (or `Sample Name` when Source Name is absent). | 1 |
 
 ### Required for production (biological independence)
 

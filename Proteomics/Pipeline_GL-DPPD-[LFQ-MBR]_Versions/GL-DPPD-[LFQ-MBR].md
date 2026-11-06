@@ -59,7 +59,7 @@ Alexis Torres (GeneLab Data Processing Team)
 |FragPipe|24.0|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
 |MultiQC|1.35|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.48|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
-|R|4.6.1|[https://www.r-project.org/](https://www.r-project.org/)|
+|R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
 |MSstats|4.18.1|[https://msstats.org/](https://msstats.org/)|
 |FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
 
@@ -702,7 +702,7 @@ java -Djava.awt.headless=true -Xmx64G \
 - **combined_ion.tsv** (FDR-filtered ions from all samples; one row per peptide sequence, charge, and modification state; PSMs collapsed)
 - **combined_site_\*.tsv** (site-specific modification reports, e.g., combined_site_C_57.0215.tsv for carbamidomethylation, combined_site_M_15.9949.tsv for oxidation)
 - **msstats.csv** (IonQuant table formatted for MSstats)
-- **msstats_ptm.csv** (IonQuant site-level table formatted for MSstatsPTM)
+- **msstats_ptm.csv** (IonQuant modification/site-report table).
 - reprint.int.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein intensities)
 - reprint.spc.tsv (input file for the Resource for Evaluation of Protein Interaction Networks (REPRINT) containing protein spectral counts)
 <!-- - *.mbrbin (match-between-runs binary data file for MBR feature matching) -->
@@ -841,6 +841,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 
@@ -868,6 +869,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 

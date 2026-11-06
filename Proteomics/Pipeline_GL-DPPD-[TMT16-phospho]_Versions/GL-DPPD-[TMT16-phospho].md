@@ -61,7 +61,7 @@ Alexis Torres (GeneLab Data Processing Team)
 |FragPipe|24.0|[https://fragpipe.nesvilab.org/](https://fragpipe.nesvilab.org/)|
 |MultiQC|1.35|[https://multiqc.info/](https://multiqc.info/)|
 |pmultiqc|0.0.48|[https://github.com/bigbio/pmultiqc](https://github.com/bigbio/pmultiqc)|
-|R|4.6.1|[https://www.r-project.org/](https://www.r-project.org/)|
+|R|4.5.2|[https://www.r-project.org/](https://www.r-project.org/)|
 |MSstatsTMT|2.18.0|[https://msstats.org/](https://msstats.org/)|
 |MSstatsPTM|2.12.0|[https://msstats.org/](https://msstats.org/)|
 |FragPipeAnalystR|1.1.1|[https://github.com/Nesvilab/FragPipeAnalystR](https://github.com/Nesvilab/FragPipeAnalystR)|
@@ -839,6 +839,8 @@ done < mod_ids.txt
 
 > Note: The same command is run once per enabled residue variable modification. The TMT16-phospho preset runs it for oxidation (`M`) and phosphorylation (`STY`).
 
+> Note: Analysis is PTM-only by default. For protein adjustment, supply a matched global-proteome TMT run’s `msstats.csv` and MSstatsTMT annotation via `--msstats_protein_csv` and `--msstats_protein_annotation`. The primary comparison file contains the adjusted model when available; otherwise, it contains the PTM-only model.
+
 **Parameter Definitions:**
 
 - `fragpipe_ptm_mod_id.py` – prints one enabled residue variable modification per line from the FragPipe workflow
@@ -860,6 +862,8 @@ done < mod_ids.txt
 
 - **msstatstmtptm_comparison_\<mod\>_GLProteomics.csv** (primary MSstatsPTM comparisons for that modification)
 - **msstatstmtptm_ptm_comparison_\<mod\>_GLProteomics.csv** (site-level model)
+- msstatstmtptm_protein_comparison_\<mod\>_GLProteomics.csv (protein-level comparisons; produced when matched global-proteome inputs are supplied and a protein model is generated)
+- msstatstmtptm_adjusted_comparison_\<mod\>_GLProteomics.csv (protein-adjusted site comparisons; produced when matched global-proteome inputs are supplied and an adjusted model is generated)
 - **msstatstmtptm_contrasts_\<mod\>_GLProteomics.csv** (contrast definitions)
 
 <br>
@@ -894,6 +898,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 
@@ -921,6 +926,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 
@@ -947,6 +953,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 
@@ -974,6 +981,7 @@ Rscript FragPipeAnalystR_main.R \
   --volcano_display_names "true" \
   --volcano_show_gene "true" \
   --gene_annotations $annotations_link \
+  --assay_suffix "_GLProteomics" \
   --output_dir "output/"
 ```
 
