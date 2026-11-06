@@ -961,7 +961,11 @@ cat("Saved RData:", rdata_path, "\n")
     return(invisible(NULL))
   }
   err <- tryCatch({
-    utils::zip(dest, files = rel_zip)
+    zip_status <- utils::zip(dest, files = rel_zip)
+    if (!isTRUE(zip_status == 0L) || !file.exists(dest) ||
+        !isTRUE(file.info(dest)$size > 0)) {
+      stop("Archive command failed or produced no nonempty archive")
+    }
     NULL
   }, error = function(e) e)
   if (!is.null(err)) {
