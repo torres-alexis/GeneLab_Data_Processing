@@ -6,20 +6,6 @@ import re
 import sys
 import json
 
-
-def _extract_glds(identifiers):
-    """OSDR API returns identifiers as a list or legacy string."""
-    if isinstance(identifiers, (list, tuple)):
-        return [str(x) for x in identifiers if re.fullmatch(r"GLDS-\d+", str(x))]
-    return re.findall(r"GLDS-\d+", str(identifiers or ""))
-
-
-def _identifiers_include(identifiers, token):
-    if isinstance(identifiers, (list, tuple)):
-        return token in [str(x) for x in identifiers]
-    return token in str(identifiers or "")
-
-
 def get_osd_and_glds(accession, api_url):
     # Fetch data from the API
     try:
@@ -45,8 +31,17 @@ def get_osd_and_glds(accession, api_url):
         for osd_id, osd_data in data.items():
             if osd_id == accession:
                 metadata = osd_data.get("metadata", {})
-                identifiers = metadata.get("identifiers", "")
-                glds_accessions = _extract_glds(identifiers)
+                identifiers = metadata.get("identifiers", [])
+                # Normalize to list to handle single and multiple entries the same way
+                if isinstance(identifiers, str):
+                    identifiers = [identifiers]
+                elif not isinstance(identifiers, list):
+                    identifiers = []
+
+                glds_accessions = [
+                    x for x in identifiers
+                    if isinstance(x, str) and x.startswith("GLDS-")
+                ]
                 break
     
     elif accession.startswith('GLDS-'):
@@ -56,7 +51,7 @@ def get_osd_and_glds(accession, api_url):
         for osd_id, osd_data in data.items():
             metadata = osd_data.get("metadata", {})
             identifiers = metadata.get("identifiers", "")
-            if _identifiers_include(identifiers, accession):
+            if accession in re.findall(r'\bGLDS-\d+\b', identifiers) if isinstance(identifiers, str) else accession in identifiers:
                 osd_accession = metadata.get("accession")
                 break
     else:
