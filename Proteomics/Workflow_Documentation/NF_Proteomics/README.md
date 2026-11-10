@@ -6,6 +6,8 @@
 <a href="images/GL-proteomics-subwayplot.png"><img src="images/GL-proteomics-subwayplot.png" alt="GL proteomics subway plot"></a>
 </p>
 
+For experimental technical-replicate selection, see the [opt-in pick-best procedure](docs/pick_best_technical_replicates.md). It does not change the workflow default.
+
 ## General Workflow Information
 
 ### Implementation Tools
