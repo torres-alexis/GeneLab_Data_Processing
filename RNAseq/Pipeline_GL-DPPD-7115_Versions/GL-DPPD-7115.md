@@ -20,10 +20,29 @@ Jonathan Galazka (OSDR Project Scientist)
 
 ---
 
+## Nextflow version scope
+
+These pipeline documents describe the analysis steps; workflow flags and delivered files depend on the version run. The development notes below refer to the [DEV_v2.1.1](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/tree/DEV_v2.1.1), not a released NASA v2.1.1. For released behavior, use [v2.1.0](https://github.com/nasa/GeneLab_RNASeq_Workflow/tree/v2.1.0) or [v2.0.2](https://github.com/nasa/GeneLab_RNASeq_Workflow/tree/v2.0.2).
+
+In DEV_v2.1.1, Bowtie2 writes SAM, `SAM_TO_BAM` runs `samtools view -bS -F 4`, and `SORT_AND_INDEX_BAM` sorts and indexes the resulting BAM. Steps 4a, 4c, 4d and 4e below show these operations. In both v2.0.2 and v2.1.0, the same SAM-to-BAM conversion and unmapped-read exclusion occur in a pipe inside the Bowtie2 alignment process, rather than in a separate task. The final `*_sorted.bam` and `.bai` filenames are unchanged.
+
+### DEV_v2.1.1 workflow inputs and outputs
+
+- Select the eukaryotic route with `--mode default` (the default), or the prokaryotic route with `--mode microbes`. These mode values also apply to v2.0.2 and v2.1.0; `--microbes` is not the workflow flag.
+- `--entry_point` accepts `raw_reads`, `trimmed_reads`, `bam_files`, `genes_results` (eukaryotes only), `counts_table`, or `dge_table`. The last annotates an existing DGE table without rerunning DESeq2. See the [required inputs](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/blob/DEV_v2.1.1/README.md#4e-entry-points-and-required-inputs).
+- `--strandedness auto` infers strandedness for read entry points. BAM entry requires `none`, `forward`, or `reverse`: supply the STAR transcriptome BAM for the default route, or the sorted Bowtie2 BAM for microbes. These are workflow options, not the RSEM/featureCounts command-line options shown later.
+- `--stage_only` publishes the runsheet and staged inputs, then exits. `--post_processing` updates the assay table and checksums for existing results; it does not rerun the analysis.
+- Workflow publishing to the local results directory places unnormalized count tables in `03-FeatureCounts`, normalized/VST tables in `04-DESeq2_NormCounts`, and DGE/contrast/sample tables in `05-DESeq2_DGE`. The R examples below describe intermediate calculations, not a second delivered copy of the unnormalized tables in `04`.
+- When the runsheet contains multiple organism parts, DGE runs separately for each part and labels the outputs accordingly. The `03` raw-count tables remain dataset-wide. The rRNA-removed analysis reuses the corresponding standard analysis’s sample and contrast tables rather than publishing duplicate side tables.
+
+Released workflow links use tags such as `v2.1.0`, not `NF_RCP_2.1.0`. While reviewing development output, use the development branch link above rather than assuming a NASA `v2.1.1` tag exists.
+
+---
+
 ## Initial Pipeline Release: General Info  
 
 This is the initial release of the RNAseq pipeline documentation for prokaryotic organisms.  
-> Note: This pipeline has been wrapped into the RNAseq Nextflow workflow and is implemented when the `--microbes` parameter is used as indicated in the [workflow documentation](../Workflow_Documentation/NF_RCP/README.md)  
+> Note: This pipeline has been wrapped into the RNAseq Nextflow workflow and is implemented when `--mode microbes` is used as indicated in the [workflow documentation](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/blob/DEV_v2.1.1/README.md)
 
 Differences from the [eukaryotic pipeline, GL-DPPD-7101-G](../Pipeline_GL-DPPD-7101_Versions/GL-DPPD-7101-G.md):
 - Bowtie2 is used for alignment instead of STAR 
@@ -36,6 +55,8 @@ Differences from the [eukaryotic pipeline, GL-DPPD-7101-G](../Pipeline_GL-DPPD-7
 
 # Table of contents  
 
+- [**Nextflow version scope**](#nextflow-version-scope)
+  - [DEV_v2.1.1 workflow inputs and outputs](#dev_v211-workflow-inputs-and-outputs)
 - [**Software used**](#software-used)
 - [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
   - [**1. Raw Data QC**](#1-raw-data-qc)
@@ -51,7 +72,7 @@ Differences from the [eukaryotic pipeline, GL-DPPD-7101-G](../Pipeline_GL-DPPD-7
     - [4b. Compile Alignment Logs](#4b-compile-alignment-logs)
     - [4c. Convert SAM to BAM](#4c-convert-sam-to-bam)
     - [4d. Sort Aligned Reads](#4d-sort-aligned-reads)
-    - [4e. Index Sorted Aligned Reads](#4d-index-sorted-aligned-reads)
+    - [4e. Index Sorted Aligned Reads](#4e-index-sorted-aligned-reads)
   - [**5. Create Reference BED File**](#5-create-reference-bed-file)
     - [5a. Convert GTF to genePred File](#5a-convert-gtf-to-genePred-file)
     - [5b. Convert genePred to BED File](#5b-convert-genePred-to-bed-file)
@@ -415,6 +436,8 @@ samtools view -bS -F 4 --threads NumberOfThreads /path/to/*.sam > /path/to/outpu
 
 ### 4d. Sort Aligned Reads
 
+The command below uses an example memory allowance. The Nextflow workflow calculates `-m` as 80% of the task memory divided by its allocated CPUs.
+
 ```bash
 samtools sort -m 3G \
   --threads NumberOfThreads \
@@ -427,7 +450,7 @@ samtools sort -m 3G \
 - `-m` – memory available per thread, `3G` indicates 3 gigabytes, this can be changed based on user resources
 - `--threads` – number of threads available on server node to sort genome alignment files
 - `-o` – output file name (sorted BAM)
-- `/path/to/*.sam` – path to the SAM file(s), provided as a positional argument
+- `/path/to/*.bam` – path to the BAM file(s) from Step 4c, provided as a positional argument
 
 **Input Data:**
 
@@ -452,7 +475,7 @@ samtools index -@ NumberOfThreads /path/to/*_sorted.bam
 
 **Input Data:**
 
-- *_sorted.bam (sorted mapping to genome file, output from [Step 4c](#4c-sort-aligned-reads))
+- *_sorted.bam (sorted mapping to genome file, output from [Step 4d](#4d-sort-aligned-reads))
 
 **Output Data:**
 
@@ -591,8 +614,8 @@ geneBody_coverage.py -r /path/to/annotation/BED/file \
 **Input Data:**
 
 - *.bed (genome annotation in BED format, output from [Step 5b](#5b-convert-genepred-to-bed-file))
-- *_sorted.bam (sorted mapping to genome file, output from [Step 4c](#4c-sort-aligned-reads))
-- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4d](#4d-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
+- *_sorted.bam (sorted mapping to genome file, output from [Step 4d](#4d-sort-aligned-reads))
+- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4e](#4e-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
 
 **Output Data:**
 
@@ -651,8 +674,8 @@ inner_distance.py -r /path/to/annotation/BED/file \
 **Input Data:**
 
 - *.bed (genome annotation in BED format, output from [Step 5b](#5b-convert-genepred-to-bed-file))
-- *_sorted.bam (sorted mapping to genome file, output from [Step 4c](#4c-sort-aligned-reads))
-- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4d](#4d-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
+- *_sorted.bam (sorted mapping to genome file, output from [Step 4d](#4d-sort-aligned-reads))
+- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4e](#4e-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
 
 **Output Data:**
 
@@ -706,8 +729,8 @@ read_distribution.py -r /path/to/annotation/BED/file \
 **Input Data:**
 
 - *.bed (genome annotation in BED format, output from [Step 5b](#5b-convert-genepred-to-bed-file))
-- *_sorted.bam (sorted mapping to genome file, output from [Step 4c](#4c-sort-aligned-reads))
-- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4d](#4d-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
+- *_sorted.bam (sorted mapping to genome file, output from [Step 4d](#4d-sort-aligned-reads))
+- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4e](#4e-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
 
 **Output Data:**
 
@@ -790,8 +813,8 @@ featureCounts -p \
 **Input Data:**
 
 - *.gtf (genome annotation, this pipeline version uses the gtf file indicated in the `gtf` column of the [GL-DPPD-7110-A_annotations.csv](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) GeneLab Annotations file)
-- *_sorted.bam (sorted mapping to genome file, output from [Step 4c](#4c-sort-aligned-reads))
-- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4d](#4d-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
+- *_sorted.bam (sorted mapping to genome file, output from [Step 4d](#4d-sort-aligned-reads))
+- *_sorted.bam.bai (index of sorted mapping to genome file, output from [Step 4e](#4e-index-sorted-aligned-reads), although not indicated in the command, this file must be present in the same directory as the respective \*_sorted.bam file)
 
 **Output Data:**
 
@@ -949,7 +972,7 @@ df[~rna_mask].to_csv(filtered_output, sep='\t', index=False)
 
 ### 8a. Create Sample RunSheet
 
-> Note: Rather than running the command below to create the runsheet needed for processing, the runsheet may also be created manually by following the [file specification](../Workflow_Documentation/NF_RCP/examples/runsheet/README.md).
+> Note: Rather than running the command below to create the runsheet needed for processing, the runsheet may also be created manually by following the [file specification](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/blob/DEV_v2.1.1/examples/runsheet/README.md).
 
 ```bash
 ### Download the *ISA.zip file from the Open Science Data Repository ###
@@ -1322,7 +1345,7 @@ VSTCounts <- tryCatch({
 normCounts <- normCounts + 1
 
 ### Calculate LRT statistics ###
-dds_lrt <- DESeq(dds, test = "LRT", reduced = ~1)
+dds_lrt <- DESeq(dds, test = "LRT", reduced = ~1, parallel = TRUE, BPPARAM = BPPARAM)
 res_lrt <- results(dds_lrt)
 
 ```

@@ -20,6 +20,26 @@ Danielle Lopez (OSDR Deputy Project Manager)
 
 ---
 
+## Nextflow version scope
+
+These pipeline documents describe the analysis steps; workflow flags and delivered files depend on the version run. The development notes below refer to the [DEV_v2.1.1](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/tree/DEV_v2.1.1), not a released NASA v2.1.1. For released behavior, use [v2.1.0](https://github.com/nasa/GeneLab_RNASeq_Workflow/tree/v2.1.0) or [v2.0.2](https://github.com/nasa/GeneLab_RNASeq_Workflow/tree/v2.0.2).
+
+In DEV_v2.1.1, STAR writes an unsorted genome BAM, then Samtools sorts and indexes it in a separate process. The alignment/sorting examples below reflect that change. In both v2.0.2 and v2.1.0, STAR instead writes `*_Aligned.sortedByCoord.out.bam` with `--outSAMtype BAM SortedByCoordinate`, followed by the downstream Samtools sort/index step. The final sorted genome BAM name remains `*_Aligned.sortedByCoord_sorted.out.bam` in all three versions. The separate `*_Aligned.toTranscriptome.out.bam` is the input to RSEM; it is not the coordinate-sorted genome BAM.
+
+### DEV_v2.1.1 workflow inputs and outputs
+
+- Select the eukaryotic route with `--mode default` (the default), or the prokaryotic route with `--mode microbes`. These mode values also apply to v2.0.2 and v2.1.0; `--microbes` is not the workflow flag.
+- `--entry_point` accepts `raw_reads`, `trimmed_reads`, `bam_files`, `genes_results` (eukaryotes only), `counts_table`, or `dge_table`. The last annotates an existing DGE table without rerunning DESeq2. See the [required inputs](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/blob/DEV_v2.1.1/README.md#4e-entry-points-and-required-inputs).
+- `--strandedness auto` infers strandedness for read entry points. BAM entry requires `none`, `forward`, or `reverse`: supply the STAR transcriptome BAM for the default route, or the sorted Bowtie2 BAM for microbes. These are workflow options, not the RSEM/featureCounts command-line options shown later.
+- `--stage_only` publishes the runsheet and staged inputs, then exits. `--post_processing` updates the assay table and checksums for existing results; it does not rerun the analysis.
+- Workflow publishing to the local results directory places unnormalized count tables in `03-RSEM_Counts`, normalized/VST tables in `04-DESeq2_NormCounts`, and DGE/contrast/sample tables in `05-DESeq2_DGE`. The R examples below describe intermediate calculations, not a second delivered copy of the unnormalized tables in `04`.
+- With `--drop_unalignable true` (the development default), samples at or above `--unalignable_threshold` (default: 60% unalignable reads) in the RSEM MultiQC statistics are excluded from DGE for the `raw_reads`, `trimmed_reads`, and `bam_files` entry points. This filter does not apply to microbes, `genes_results`, or `counts_table` entry.
+- When the runsheet contains multiple organism parts, DGE runs separately for each part and labels the outputs accordingly. The `03` raw-count tables remain dataset-wide. The rRNA-removed analysis reuses the corresponding standard analysis’s sample and contrast tables rather than publishing duplicate side tables.
+
+Released workflow links use tags such as `v2.1.0`, not `NF_RCP_2.1.0`. While reviewing development output, use the development branch link above rather than assuming a NASA `v2.1.1` tag exists.
+
+---
+
 ## Updates from previous version  
 
 Updated [Ensembl Reference Files](../../GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv) to the following releases:
@@ -95,6 +115,8 @@ DESeq2 Analysis Workflow
 
 # Table of contents  
 
+- [**Nextflow version scope**](#nextflow-version-scope)
+  - [DEV_v2.1.1 workflow inputs and outputs](#dev_v211-workflow-inputs-and-outputs)
 - [**Software used**](#software-used)
 - [**General processing overview with example commands**](#general-processing-overview-with-example-commands)
   - [**1. Raw Data QC**](#1-raw-data-qc)
@@ -396,7 +418,6 @@ STAR genome reference, which consists of the following files:
 
 ```bash
 STAR --twopassMode Basic \
- --limitBAMsortRAM 65000000000 \
  --genomeDir /path/to/STAR/genome/directory \
  --outSAMunmapped Within \
  --outFilterType BySJout \
@@ -412,9 +433,8 @@ STAR --twopassMode Basic \
  --sjdbScore 1 \
  --readFilesCommand zcat \
  --runThreadN NumberOfThreads \
- --outSAMtype BAM SortedByCoordinate \
+ --outSAMtype BAM Unsorted \
  --quantMode TranscriptomeSAM GeneCounts \
- --outSAMheaderHD @HD VN:1.4 SO:coordinate \
  --outFileNamePrefix /path/to/STAR/output/directory/<sample_id> \
  --outReadsUnmapped Fastx \
  --genomeLoad NoSharedMemory \
@@ -430,7 +450,6 @@ gzip *_unmapped.fastq
 **Parameter Definitions:**
 
 - `--twopassMode` – specifies 2-pass mapping mode; the `Basic` option instructs STAR to perform the 1st pass mapping, then automatically extract junctions, insert them into the genome index, and re-map all reads in the 2nd mapping pass
-- `--limitBAMsortRAM` – maximum RAM available (in bytes) to sort the bam files, the example above indicates 65GB
 - `--genomeDir` – specifies the path to the directory where the STAR reference is stored
 - `--outSAMunmapped` – specifies output of unmapped reads in the sam format; the `Within` option instructs STAR to output the unmapped reads within the main sam file
 - `--outFilterType` – specifies the type of filtering; the `BySJout` option instructs STAR to keep only those reads that contain junctions that passed filtering in the SJ.out.tab output file
@@ -446,9 +465,8 @@ gzip *_unmapped.fastq
 - `--sjdbScore` – additional alignment score for alignments that cross database junctions
 - `--readFilesCommand` – specifies command needed to interpret input files; the `zcat` option indicates input files are compressed with gzip and zcat will be used to uncompress the gzipped input files
 - `--runThreadN` – indicates the number of threads to be used for STAR alignment and should be set to the number of available cores on the server node
-- `--outSAMtype` – specifies desired output format; the `BAM SortedByCoordinate` options specify that the output file will be sorted by coordinate and be in the bam format
+- `--outSAMtype` – specifies desired output format; `BAM Unsorted` writes the genome alignments in BAM format without coordinate sorting; sorting and indexing follow in Steps 4d and 4e
 - `--quantMode` – specifies the type(s) of quantification desired; the `TranscriptomeSAM` option instructs STAR to output a separate sam/bam file containing alignments to the transcriptome and the `GeneCounts` option instructs STAR to output a tab delimited file containing the number of reads per gene
-- `--outSAMheaderHD` – indicates a header line for the sam/bam file
 - `--outFileNamePrefix` – specifies the path to and prefix for the output file names; for GeneLab the prefix is the sample id
 - `outReadsUnmapped` - specifies how to output unmapped and partially mapped reads (where only one mate of a paired-end read is mapped); the `Fastx` option outputs unmapped reads in separate fastq files 
 - `--genomeLoad` – controls how the genome index is loaded into memory; `NoSharedMemory` specifies that each job will have its own private copy of the genome rather than using shared memory. This is the only option compatible with `--twopassMode Basic`.
@@ -461,8 +479,8 @@ gzip *_unmapped.fastq
 
 **Output Data:**
 
-- *Aligned.sortedByCoord.out.bam (sorted mapping to genome)
-- **\*_GLbulkRNAseq_Aligned.toTranscriptome.out.bam** (sorted mapping to transcriptome)
+- *Aligned.out.bam (unsorted mapping to genome)
+- **\*_GLbulkRNAseq_Aligned.toTranscriptome.out.bam** (alignments to the transcriptome)
 - **\*_GLbulkRNAseq_Log.final.out** (log file containing alignment info/stats such as reads mapped, etc)
 - *ReadsPerGene.out.tab (tab delimitated file containing STAR read counts per gene with 4 columns that correspond to different strandedness options: column 1 = gene ID, column 2 = counts for unstranded RNAseq, column 3 = counts for 1st read strand aligned with RNA, column 4 = counts for 2nd read strand aligned with RNA)
 - *Log.out (main log file containing detailed info about the STAR run)
@@ -561,22 +579,24 @@ sessionInfo()
 
 ### 4d. Sort Aligned Reads
 
+The command below uses an example memory allowance. The Nextflow workflow calculates `-m` as 80% of the task memory divided by its allocated CPUs.
+
 ```bash
 samtools sort -m 3G \
   --threads NumberOfThreads \
   -o /path/to/*Aligned.sortedByCoord_sorted.out.bam \
-  /path/to/*Aligned.sortedByCoord.out.bam
+  /path/to/*Aligned.out.bam
 ```
 
 **Parameter Definitions:**
 
 - `-m` – memory available per thread, `3G` indicates 3 gigabytes, this can be changed based on user resources
 - `--threads` – number of threads available on server node to sort genome alignment files
-- `/path/to/*Aligned.sortedByCoord.out.bam` – path to the *Aligned.sortedByCoord.out.bam output files from the [STAR alignment step](#4a-align-reads-to-reference-genome-with-star), provided as a positional argument
+- `/path/to/*Aligned.out.bam` – path to the *Aligned.out.bam output files from the [STAR alignment step](#4a-align-reads-to-reference-genome-with-star), provided as a positional argument
 
 **Input Data:**
 
-- *Aligned.sortedByCoord.out.bam (sorted mapping to genome file, output from [Step 4a](#4a-align-reads-to-reference-genome-with-star))
+- *Aligned.out.bam (unsorted mapping to genome file, output from [Step 4a](#4a-align-reads-to-reference-genome-with-star))
 
 **Output Data:**
 
@@ -962,7 +982,7 @@ rsem-calculate-expression --num-threads NumberOfThreads \
 **Input Data:**
 
 - RSEM genome reference (output from [Step 7](#7-build-rsem-reference))
-- *Aligned.toTranscriptome.out.bam (sorted mapping to transcriptome, output from [Step 4a](#4a-align-reads-to-reference-genome-with-star))
+- *Aligned.toTranscriptome.out.bam (alignments to the transcriptome, output from [Step 4a](#4a-align-reads-to-reference-genome-with-star))
 
 **Output Data:**
 
@@ -1110,7 +1130,7 @@ echo "*: ${rRNA_count} rRNA entries removed." > *_rRNA_counts.txt
 
 ### 9a. Create Sample RunSheet
 
-> Note: Rather than running the command below to create the runsheet needed for processing, the runsheet may also be created manually by following the [file specification](../Workflow_Documentation/NF_RCP/examples/runsheet/README.md).
+> Note: Rather than running the command below to create the runsheet needed for processing, the runsheet may also be created manually by following the [file specification](https://github.com/torres-alexis/GeneLab_RNASeq_Workflow/blob/DEV_v2.1.1/examples/runsheet/README.md).
 
 ```bash
 ### Download the *ISA.zip file from the Open Science Data Repository ###
@@ -1500,7 +1520,7 @@ VSTCounts <- tryCatch({
 normCounts <- normCounts + 1
 
 ### Calculate LRT statistics ###
-dds_lrt <- DESeq(dds, test = "LRT", reduced = ~1)
+dds_lrt <- DESeq(dds, test = "LRT", reduced = ~1, parallel = TRUE, BPPARAM = BPPARAM)
 res_lrt <- results(dds_lrt)
 
 ```
