@@ -2666,7 +2666,7 @@ final_results_bc1 <- map(pairwise_comp_df, function(col){
       select(-contains("Intercept")) %>%
       set_names(
         c("taxon",
-          glue("Lnfc.SE_({group2})v({group1})"))
+          glue("Lnfc-SE_({group2})v({group1})"))
       )
     
     # W    
@@ -2684,7 +2684,7 @@ final_results_bc1 <- map(pairwise_comp_df, function(col){
       select(-contains("Intercept")) %>%
       set_names(
         c("taxon",
-          glue("P.value_({group2})v({group1})"))
+          glue("P-value_({group2})v({group1})"))
       )
     
     # q_val
@@ -2693,7 +2693,7 @@ final_results_bc1 <- map(pairwise_comp_df, function(col){
       select(-contains("Intercept")) %>% 
       set_names(
         c("taxon",
-          glue("Q.value_({group2})v({group1})"))
+          glue("Q-value_({group2})v({group1})"))
       )
     
     # Diff_abn
@@ -2775,10 +2775,10 @@ volcano_plots <- map(comp_names, function(comparison){
   # Construct column names for columns to be selected
   comp_col  <- c(
     glue("Lnfc_{comparison}"),
-    glue("Lnfc.SE_{comparison}"),
+    glue("Lnfc-SE_{comparison}"),
     glue("Stat_{comparison}"),
-    glue("P.value_{comparison}"),
-    glue("Q.value_{comparison}"),
+    glue("P-value_{comparison}"),
+    glue("Q-value_{comparison}"),
     glue("Diff_{comparison}")
   )
 
@@ -2813,8 +2813,8 @@ volcano_plots <- map(comp_names, function(comparison){
   }
 
   # Make plot
-  p <- ggplot(sub_res_df %>% mutate(diff = Q.value <= p_val), 
-              aes(x=Lnfc, y=-log10(Q.value), 
+  p <- ggplot(sub_res_df %>% mutate(diff = `Q-value` <= p_val), 
+              aes(x=Lnfc, y=-log10(`Q-value`), 
                   color=diff, label=!!sym(feature))) +
     geom_point(alpha=0.7, size=2) +
     scale_color_manual(values=c("TRUE"="red", "FALSE"="black"),
@@ -2822,7 +2822,7 @@ volcano_plots <- map(comp_names, function(comparison){
                                 paste0("qval \u2264 ", p_val))) +
     geom_hline(yintercept = -log10(p_val), linetype = "dashed") +
     ggrepel::geom_text_repel(show.legend = FALSE) +
-    expandy(-log10(sub_res_df$Q.value)) + # Expand plot y-limit
+    expandy(-log10(sub_res_df$`Q-value`)) + # Expand plot y-limit
     coord_cartesian(clip = 'off') +
     scale_y_continuous(oob = scales::oob_squish_infinite) + # prevent clipping of infinite values
     labs(x= x_label, y="-log10(Q-value)", 
@@ -3011,10 +3011,10 @@ zip -q ancombc1_volcano_plots_<tech_type>_GLAmpSeq.zip *_volcano_<tech_type>_GLA
   - Normalized abundance values for each ASV for each sample
   - For each pairwise group comparison:
     - natural log of the fold change (Lnfc)
-    - standard error for the lnFC (Lnfc.SE)
+    - standard error for the lnFC (Lnfc-SE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Q.value)
+    - P-value (P-value)
+    - Adjusted p-value (Q-value)
   - All.mean (mean across all samples)
   - All.stdev (standard deviation across all samples) 
   - For each group:
@@ -3102,12 +3102,12 @@ tryCatch({
       new_colnames <- c(
         feature,  # Keep the feature column name
         glue("Lnfc_{comparison_name}"),
-        glue("Lnfc.SE_{comparison_name}"),
+        glue("Lnfc-SE_{comparison_name}"),
         glue("Stat_{comparison_name}"),
-        glue("P.value_{comparison_name}"),
-        glue("Q.value_{comparison_name}"),
+        glue("P-value_{comparison_name}"),
+        glue("Q-value_{comparison_name}"),
         glue("Diff_{comparison_name}"),
-        glue("Passed_ss_{comparison_name}")
+        glue("Passed-ss_{comparison_name}")
       )
     } else {
       stop("Could not identify group-specific column for 2-group comparison")
@@ -3122,12 +3122,13 @@ tryCatch({
                                                 pattern=glue("(.+)_{group}(.+)"),
                                                 replacement=glue("\\1_(\\2)v({ref_group})")) %>% 
                                 str_replace(pattern = "^lfc_", replacement = "Lnfc_") %>% 
-                                str_replace(pattern = "^se_", replacement = "Lnfc.SE_") %>% 
+                                str_replace(pattern = "^se_", replacement = "Lnfc-SE_") %>% 
                                 str_replace(pattern = "^W_", replacement = "Stat_") %>%
-                                str_replace(pattern = "^p_", replacement = "P.value_") %>%
-                                str_replace(pattern = "^q_", replacement = "Q.value_") %>%
+                                str_replace(pattern = "^p_", replacement = "P-value_") %>%
+                                str_replace(pattern = "^q_", replacement = "Q-value_") %>%
+                                str_replace(pattern = "^diff_robust_", replacement = "Diff-robust_") %>%
                                 str_replace(pattern = "^diff_", replacement = "Diff_") %>%
-                                str_replace(pattern = "^passed_ss_", replacement = "Passed_ss_")
+                                str_replace(pattern = "^passed_ss_", replacement = "Passed-ss_")
                                 
                               # Columns with normal two groups comparison
                               } else if(str_count(colname,group) == 2){
@@ -3136,12 +3137,13 @@ tryCatch({
                                                 pattern=glue("(.+)_{group}(.+)_{group}(.+)"),
                                                 replacement=glue("\\1_(\\2)v(\\3)")) %>% 
                                 str_replace(pattern = "^lfc_", replacement = "Lnfc_") %>% 
-                                str_replace(pattern = "^se_", replacement = "Lnfc.SE_") %>% 
+                                str_replace(pattern = "^se_", replacement = "Lnfc-SE_") %>% 
                                 str_replace(pattern = "^W_", replacement = "Stat_") %>%
-                                str_replace(pattern = "^p_", replacement = "P.value_") %>%
-                                str_replace(pattern = "^q_", replacement = "Q.value_") %>%
+                                str_replace(pattern = "^p_", replacement = "P-value_") %>%
+                                str_replace(pattern = "^q_", replacement = "Q-value_") %>%
+                                str_replace(pattern = "^diff_robust_", replacement = "Diff-robust_") %>%
                                 str_replace(pattern = "^diff_", replacement = "Diff_") %>%
-                                str_replace(pattern = "^passed_ss_", replacement = "Passed_ss_")
+                                str_replace(pattern = "^passed_ss_", replacement = "Passed-ss_")
                                 
                                 # Feature/ ASV column 
                               } else{
@@ -3297,7 +3299,7 @@ output_file <- glue("{diff_abund_out_dir}{output_prefix}ancombc2_differential_ab
 # Write out merged stats table but before that 
 # drop ANCOMBC inferred differential abundance columns
 write_csv(merged_df %>%
-            select(-starts_with("diff_")),
+            select(-starts_with("Diff_"), -starts_with("Diff-robust_")),
           output_file)
 
 # ---------------------- Visualization --------------------------------------- #
@@ -3306,12 +3308,12 @@ volcano_plots <- map(uniq_comps, function(comparison){
   
   comp_col <- c(
     glue("Lnfc_{comparison}"),
-    glue("Lnfc.SE_{comparison}"),
+    glue("Lnfc-SE_{comparison}"),
     glue("Stat_{comparison}"),
-    glue("P.value_{comparison}"),
-    glue("Q.value_{comparison}"),
+    glue("P-value_{comparison}"),
+    glue("Q-value_{comparison}"),
     glue("Diff_{comparison}"),
-    glue("Passed_ss_{comparison}")
+    glue("Passed-ss_{comparison}")
   )
   
   sub_res_df <- res_df %>% 
@@ -3343,15 +3345,15 @@ volcano_plots <- map(uniq_comps, function(comparison){
   }
   #######################################
   
-  p <- ggplot(sub_res_df %>% mutate(diff = Q.value <= p_val),
-              aes(x=Lnfc, y=-log10(Q.value), color=diff, label=!!sym(feature))) +
+  p <- ggplot(sub_res_df %>% mutate(diff = `Q-value` <= p_val),
+              aes(x=Lnfc, y=-log10(`Q-value`), color=diff, label=!!sym(feature))) +
     geom_point(alpha=0.7, size=2) +
     scale_color_manual(values=c("TRUE"="red", "FALSE"="black"),
                        labels=c(paste0("qval > ", p_val), 
                                 paste0("qval \u2264 ", p_val))) +
     geom_hline(yintercept = -log10(p_val), linetype = "dashed") +
     ggrepel::geom_text_repel(show.legend = FALSE) + 
-    expandy(-log10(sub_res_df$Q.value)) + # Expand plot y-limit
+    expandy(-log10(sub_res_df$`Q-value`)) + # Expand plot y-limit
     coord_cartesian(clip = 'off') +
     scale_y_continuous(oob = scales::oob_squish_infinite) + # prevent clipping of infinite values
     labs(x= x_label, y="-log10(Q-value)", 
@@ -3436,10 +3438,10 @@ zip -q ancombc2_volcano_plots_<tech_type>_GLAmpSeq.zip *_volcano_<tech_type>_GLA
   - Normalized abundance values for each ASV for each sample
   - For each pairwise group comparison:
     - natural log of the fold change (Lnfc)
-    - standard error for the lnFC (Lnfc.SE)
+    - standard error for the lnFC (Lnfc-SE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Q.value)
+    - P-value (P-value)
+    - Adjusted p-value (Q-value)
   - All.mean (mean across all samples)
   - All.stdev (standard deviation across all samples) 
   - For each group:
@@ -3559,8 +3561,8 @@ df <- results(deseq_modeled, contrast = c(group, group2, group1)) %>%
               glue("Log2fc_({group2})v({group1})"),
               glue("lfcSE_({group2})v({group1})"), 
               glue("Stat_({group2})v({group1})"), 
-              glue("P.value_({group2})v({group1})"),
-              glue("Adj.p.value_({group2})v({group1})") 
+              glue("P-value_({group2})v({group1})"),
+              glue("Adj-p-value_({group2})v({group1})") 
             ))
             
   merged_stats_df <<- merged_stats_df %>% 
@@ -3782,8 +3784,8 @@ zip -q deseq2_volcano_plots_<tech_type>_GLAmpSeq.zip *_volcano_<tech_type>_GLAmp
     - log2 of the fold change (Log2fc)
     - standard error for the log2FC (lfcSE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Adj.p.value)
+    - P-value (P-value)
+    - Adjusted p-value (Adj-p-value)
   - All.mean (mean across all samples)
   - All.stdev (standard deviation across all samples) 
   - For each group:
