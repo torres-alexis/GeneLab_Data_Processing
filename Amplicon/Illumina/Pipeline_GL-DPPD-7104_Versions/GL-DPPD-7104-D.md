@@ -87,7 +87,7 @@ Software Updates and Changes:
   - [**5. Calculate Error Model, Apply DADA2 Algorithm, Assign Taxonomy, and Create Output Tables**](#5-calculate-error-model-apply-dada2-algorithm-assign-taxonomy-and-create-output-tables)
     - [5a. Learning the Error Rates](#5a-learning-the-error-rates)
     - [5b. Inferring Sequences](#5b-inferring-sequences)
-    - [5c. Merging Forward and Reverse Reads; Not Needed if Data are Single-End](#5c-merging-forward-and-reverse-reads-not-needed-if-data-are-single-end)
+    - [5c. Merging Forward and Reverse Reads; Skip if Data are Single-End](#5c-merging-forward-and-reverse-reads-skip-if-data-are-single-end)
     - [5d. Generating Sequence Table with Counts per Sample](#5d-generating-sequence-table-with-counts-per-sample)
     - [5e. Removing Putative Chimeras](#5e-removing-putative-chimeras)
     - [5f. Assigning Taxonomy](#5f-assigning-taxonomy)
