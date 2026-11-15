@@ -155,7 +155,6 @@ Software Updates and Changes:
 
 
 # Reference databases used
-<update figshare links once the updated DBs are downloaded>
   
 |Program used|Database|GeneLab Figshare Link|GeneLab Download Date|Original DECIPHER Download Link|
 |:-----------|:-------|:--------------------|:-------------------:|:------------|
