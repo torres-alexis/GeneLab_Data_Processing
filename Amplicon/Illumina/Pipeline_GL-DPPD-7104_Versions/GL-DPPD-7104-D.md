@@ -305,7 +305,7 @@ The following is an example from a [GLDS-200](https://osdr.nasa.gov/bio/repo/dat
 filtered_out <- filterAndTrim(fwd="sample1_<tech_type>_GLAmpSeq_R1_trimmed.fastq.gz",
                               filt="sample1_<tech_type>_GLAmpSeq_R1_filtered.fastq.gz",
                               rev="sample1_<tech_type>_GLAmpSeq_R2_trimmed.fastq.gz", 
-                              filt.rev="sample1_<tech_type>_GLAmpSeq_R1_filtered.fastq.gz",
+                              filt.rev="sample1_<tech_type>_GLAmpSeq_R2_filtered.fastq.gz",
                               truncLen=c(220, 160), maxN=0, maxEE=c(2,2),
                               truncQ=2, rm.phix=TRUE, compress=TRUE, multithread=TRUE)
 ```
