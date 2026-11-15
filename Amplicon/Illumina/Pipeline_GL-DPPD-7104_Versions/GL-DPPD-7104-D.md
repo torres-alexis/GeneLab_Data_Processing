@@ -2245,7 +2245,7 @@ if (is.null(ps)) {
           title = element_text(face = "bold", size = 14))
   
   # Save VSD validation plot
-  ggsave(filename = glue("{beta_diversity_out_dir}/{output_prefix}vsd_validation_plot_<tech_type>{assay.suffix}.png"),
+  ggsave(filename = glue("{beta_diversity_out_dir}/{output_prefix}vsd_validation_plot_<tech_type>{assay_suffix}.png"),
          plot = mead_sd_plot, width = 14, height = 10, 
          dpi = 300, units = "in", limitsize = FALSE)
   }
@@ -2832,7 +2832,7 @@ volcano_plots <- map(comp_names, function(comparison){
     theme(legend.position="top", legend.key = element_rect(colour=NA),
           plot.caption = element_text(face = 'bold.italic'))
   # Save plot
-  file_name <- glue("{output_prefix}{comparison %>% str_replace_all('[:space:]+','_')}_volcano_<tech_type>{assay.suffix}.png")
+  file_name <- glue("{output_prefix}{comparison %>% str_replace_all('[:space:]+','_')}_volcano_<tech_type>{assay_suffix}.png")
   ggsave(filename = file_name,
          plot = p, device = "png", width = plot_width_inches,
          height = plot_height_inches, units = "in",
@@ -3362,7 +3362,7 @@ volcano_plots <- map(uniq_comps, function(comparison){
           plot.caption = element_text(face = 'bold.italic'))
 
   # Save plot
-  file_name <-  glue("{output_prefix}{comparison %>% str_replace_all('[:space:]+','_')}_volcano<_tech_type>{assay.suffix}.png")
+  file_name <-  glue("{output_prefix}{comparison %>% str_replace_all('[:space:]+','_')}_volcano_<tech_type>{assay_suffix}.png")
   ggsave(filename = file_name,
          plot = p, device = "png",
          width = plot_width_inches,
@@ -3529,7 +3529,7 @@ deseq_modeled <- tryCatch({
 
 # Make ASV Sparsity plot
 sparsity_plot <- plotSparsity(deseq_modeled) 
-ggsave(filename = glue("{diff_abund_out_dir}/{output_prefix}asv_sparsity_plot_<tech_type>{assay.suffix}.png"),
+ggsave(filename = glue("{diff_abund_out_dir}/{output_prefix}asv_sparsity_plot_<tech_type>{assay_suffix}.png"),
        plot = sparsity_plot, width = 14, height = 10, dpi = 300, units = "in")
 
 # Get unique group comparison as a matrix
