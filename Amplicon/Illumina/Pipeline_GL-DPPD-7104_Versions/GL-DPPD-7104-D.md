@@ -1377,30 +1377,25 @@ Beta diversity results may be unreliable."))
 
   ```R
   ancombc2 <- function(data, ...) {
+    bad_taxa <- character(0)
+    max_drops <- nrow(data)
+    repeat {
+      result <- tryCatch(
+        ANCOMBC::ancombc2(data = data[!rownames(data) %in% bad_taxa, ], ...),
+        error = function(cnd) cnd
+      )
+      if (!inherits(result, "error")) return(result)
 
-    tryCatch(
-      ANCOMBC::ancombc2(data = data, ...),
-      error = function(cnd) {
-              
-        res <- find_bad_taxa(cnd)
-        if( is.data.frame(res[[1]]) ){
-          # Returns a manually created empty data.frame
-          return(res)
-        }else{
-          # Returns the names of the bad taxa to exclude from further analysis
-          bad_taxa <- res # renaming for readability
-        }
-        
-        # Second error catcher in case it fails the first one 
-        tryCatch(
-          ANCOMBC::ancombc2(data = data[!rownames(data) %in% bad_taxa, ], ...),
-          
-          error = function(cnd) {
-            # Returns a manually created empty data.frame
-            find_bad_taxa(cnd)
-          })   
+      res <- find_bad_taxa(result)
+      if (is.data.frame(res[[1]])) return(res)
+
+      new_bad <- setdiff(res, bad_taxa)
+      if (length(new_bad) == 0 || length(bad_taxa) + length(new_bad) > max_drops) {
+        stop(conditionMessage(result))
       }
-    )
+      message("ANCOMBC2 excluding: ", paste(new_bad, collapse = ", "))
+      bad_taxa <- c(bad_taxa, new_bad)
+    }
   }
   ```
   **Custom Functions Used:**
