@@ -798,7 +798,7 @@ library(hexbin)
     # insufficient for diversity analysis
     if(max(seq_per_sample) < 100){
       
-      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure{assay_suffix}.txt")
+      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure_<tech_type>{assay_suffix}.txt")
       writeLines(
         text = glue("The maximum sequence count per sample ({max(seq_per_sample)}) is less than 100.
 Therefore, beta diversity analysis with rarefaction cannot be performed. Check VST method normalization instead."),
@@ -820,7 +820,7 @@ Therefore, beta diversity analysis with rarefaction cannot be performed. Check V
       # Error if the depth that ends up being used is also less than 100
     if(depth < 100){
       
-      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure{assay_suffix}.txt")
+      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure_<tech_type>{assay_suffix}.txt")
       writeLines(
         text = glue("The rarefaction depth being used in the analysis ({depth}) is less than 100.
 Therefore, beta diversity analysis with rarefaction cannot be performed. Check VST method normalization instead."),
@@ -847,7 +847,7 @@ Beta diversity results may be unreliable."))
     remaining_groups <- unique(metadata[rownames(metadata) %in% survived_samples, groups_colname])
     
     if(length(remaining_groups) < 2){
-      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure{assay_suffix}.txt")
+      warning_file <- glue("{beta_diversity_out_dir}{output_prefix}beta_diversity_failure_<tech_type>{assay_suffix}.txt")
       writeLines(
         text = glue("Not enough groups remain after rarefaction at {depth} (only {length(remaining_groups)}). Skipping beta diversity with rarefaction."),
         con = warning_file
@@ -856,7 +856,7 @@ Beta diversity results may be unreliable."))
     }
 
     # Write rarefaction depth used into file
-    depth_file <- glue("{beta_diversity_out_dir}{output_prefix}rarefaction_depth{assay_suffix}.txt")
+    depth_file <- glue("{beta_diversity_out_dir}{output_prefix}rarefaction_depth_<tech_type>{assay_suffix}.txt")
     writeLines(
       text = as.character(depth),
       con = depth_file
