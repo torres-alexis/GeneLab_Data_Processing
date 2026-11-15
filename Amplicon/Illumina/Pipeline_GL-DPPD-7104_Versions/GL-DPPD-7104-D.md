@@ -84,7 +84,7 @@ Software Updates and Changes:
   - [**4. Filtered Data QC**](#4-filtered-data-qc)
     - [4a. Filtered Data QC](#4a-filtered-data-qc)
     - [4b. Compile Filtered Data QC](#4b-compile-filtered-data-qc)
-  - [**5. Calculate Error model, Apply DADA2 Algorithm, Assign Taxonomy, and Create Output Tables**](#5-calculate-error-model-apply-dada2-algorithm-assign-taxonomy-and-create-output-tables)
+  - [**5. Calculate Error Model, Apply DADA2 Algorithm, Assign Taxonomy, and Create Output Tables**](#5-calculate-error-model-apply-dada2-algorithm-assign-taxonomy-and-create-output-tables)
     - [5a. Learning the Error Rates](#5a-learning-the-error-rates)
     - [5b. Inferring Sequences](#5b-inferring-sequences)
     - [5c. Merging Forward and Reverse Reads; Not Needed if Data are Single-End](#5c-merging-forward-and-reverse-reads-not-needed-if-data-are-single-end)
@@ -399,7 +399,7 @@ zip -r filtered_multiqc_<tech_type>_GLAmpSeq_data.zip filtered_multiqc_<tech_typ
 
 ---
 
-## 5. Calculate Error Mdel, Apply DADA2 Algorithm, Assign Taxonomy, and Create Output Tables
+## 5. Calculate Error Model, Apply DADA2 Algorithm, Assign Taxonomy, and Create Output Tables
 > The following is run in an R environment.  
 
 These example commands as written assume paired-end data, with notes included on what would be different if working with single-end data. The taxonomy reference database used below is an example only, suitable for the example 16S dataset ([GLDS-200](https://osdr.nasa.gov/bio/repo/data/studies/OSD-200)) used here. Other taxonomy references databases designed for DECIPHER can be found here: [https://decipher.codes/Downloads.html](https://decipher.codes/Downloads.html)  
