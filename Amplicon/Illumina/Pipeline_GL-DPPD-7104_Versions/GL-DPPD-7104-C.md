@@ -108,6 +108,7 @@ Software Updates and Changes:
     - [7a. Rarefaction Curves](#7a-rarefaction-curves)
     - [7b. Richness and Diversity Estimates](#7b-richness-and-diversity-estimates)
     - [7c. Plot Richness and Diversity Estimates](#7c-plot-richness-and-diversity-estimates)
+    - [7d. Package Alpha Diversity Plots](#7d-package-alpha-diversity-plots)
   - [**8. Beta Diversity Analysis**](#8-beta-diversity-analysis)
   - [**9. Taxonomy Plots**](#9-taxonomy-plots)
   - [**10. Differential Abundance Testing**](#10-differential-abundance-testing)
@@ -167,6 +168,10 @@ Software Updates and Changes:
 > Exact processing commands for specific datasets are available in the [GLDS_Processing_Scripts](../GLDS_Processing_Scripts) sub-directory of this repository, and/or are provided with their processed data in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).
 >
 > Output files listed in **bold** below are included with each Amplicon Seq processed dataset in the [Open Science Data Repository (OSDR)](https://osdr.nasa.gov/bio/repo/).
+>
+> In output filenames, \<tech_type> is the target region: 16S, 18S, or ITS. Commands below use 16S as the example. For the Nextflow workflow, set --assay_suffix to "_16S_GLAmpSeq", "_18S_GLAmpSeq", or "_ITS_GLAmpSeq" to include this label; the default remains "_GLAmpSeq".
+>
+> Plot ZIP files are generated only when the corresponding plots are available. Run the packaging commands below from the indicated output directory, using the same output_prefix and assay_suffix as the preceding steps.
 
 ---
 
@@ -200,9 +205,9 @@ fastqc -o raw_fastqc_output *.fastq.gz
 ### 1b. Compile Raw Data QC  
 
 ```
-multiqc --interactive -n raw_multiqc_GLAmpSeq -o /path/to/raw_multiqc/output/raw_multiqc_GLAmpSeq_report /path/to/directory/containing/raw_fastqc/files
+multiqc --interactive -n raw_multiqc -o /path/to/raw_multiqc/output/raw_multiqc_report /path/to/directory/containing/raw_fastqc/files
 
-zip -r raw_multiqc_GLAmpSeq_report.zip raw_multiqc_GLAmpSeq_report
+zip -r raw_multiqc_16S_GLAmpSeq_report.zip raw_multiqc_report
 ```
 
 **Parameter Definitions:**
@@ -218,9 +223,9 @@ zip -r raw_multiqc_GLAmpSeq_report.zip raw_multiqc_GLAmpSeq_report
 
 **Output Data:**
 
-* **raw_multiqc_GLAmpSeq_report.zip** (zip containing the following)
-  * **raw_multiqc_GLAmpSeq.html** (multiqc output html summary)
-  * **raw_multiqc_GLAmpSeq_data** (directory containing multiqc output data)
+* **raw_multiqc_\<tech_type>_GLAmpSeq_report.zip** (zip containing the following)
+  * **raw_multiqc.html** (multiqc output html summary)
+  * **raw_multiqc_data** (directory containing multiqc output data)
 
 <br>  
 
@@ -260,8 +265,8 @@ cutadapt -a ^GTGCCAGCMGCCGCGGTAA...ATTAGATACCCSBGTAGTCC -A ^GGACTACVSGGGTATCTAAT
 **Output Data:**
 
 * **\*trimmed.fastq.gz** (trimmed reads)
-* **trimmed-read-counts_GLAmpSeq.tsv** (per sample read counts before and after trimming)
-* **cutadapt_GLAmpSeq.log** (log file of standard output and error from cutadapt)
+* **trimmed-read-counts_\<tech_type>_GLAmpSeq.tsv** (per sample read counts before and after trimming)
+* **cutadapt_\<tech_type>_GLAmpSeq.log** (log file of standard output and error from cutadapt)
 
 <br>
 
@@ -309,7 +314,7 @@ filtered_out <- filterAndTrim(fwd="sample1_R1_trimmed.fastq.gz", filt="sample1_R
 **Output Data:**
 
 * **\*filtered.fastq.gz** (filtered reads)
-* **filtered-read-counts_GLAmpSeq.tsv** (a tab-separated file containing per sample read counts before and after filtering)
+* **filtered-read-counts_\<tech_type>_GLAmpSeq.tsv** (a tab-separated file containing per sample read counts before and after filtering)
 
 <br>
 
@@ -342,9 +347,9 @@ fastqc -o filtered_fastqc_output/ *filtered.fastq.gz
 
 ### 4b. Compile Filtered Data QC
 ```bash
-multiqc --interactive -n filtered_multiqc_GLAmpSeq -o /path/to/filtered_multiqc/output/filtered_multiqc_GLAmpSeq_report /path/to/directory/containing/filtered_fastqc/files
+multiqc --interactive -n filtered_multiqc -o /path/to/filtered_multiqc/output/filtered_multiqc_report /path/to/directory/containing/filtered_fastqc/files
 
-zip -r filtered_multiqc_GLAmpSeq_report.zip filtered_multiqc_GLAmpSeq_report
+zip -r filtered_multiqc_16S_GLAmpSeq_report.zip filtered_multiqc_report
 ```
 
 **Parameter Definitions:**
@@ -360,9 +365,9 @@ zip -r filtered_multiqc_GLAmpSeq_report.zip filtered_multiqc_GLAmpSeq_report
 
 **Output Data:**
 
-* **filtered_multiqc_GLAmpSeq_report.zip** (zip containing the following)
-  * **filtered_multiqc_GLAmpSeq_report.html** (multiqc output html summary)
-  * **filtered_multiqc_GLAmpSeq_data** (directory containing multiqc output data)
+* **filtered_multiqc_\<tech_type>_GLAmpSeq_report.zip** (zip containing the following)
+  * **filtered_multiqc.html** (multiqc output html summary)
+  * **filtered_multiqc_data** (directory containing multiqc output data)
 
 <br>
 
@@ -517,6 +522,7 @@ load("SILVA_SSU_r138_2_2024.RData")
 
 ## Classifying sequences:
 tax_info <- IdTaxa(test=dna, trainingSet=trainingSet, strand="both", processors=NULL)
+```
 
 **Parameter Definitions:** 
 
@@ -555,13 +561,13 @@ for (i in 1:dim(seqtab.nochim)[2]) {
 
 ## Making then writing a fasta of final ASV seqs: ##
 asv_fasta <- c(rbind(asv_headers, asv_seqs))
-write(asv_fasta, "ASVs_GLAmpSeq.fasta")
+write(asv_fasta, "ASVs_16S_GLAmpSeq.fasta")
 
 ## Making then writing a count table: ##
 asv_tab <- t(seqtab.nochim)
 row.names(asv_tab) <- sub(">", "", asv_headers)
 
-write.table(asv_tab, "counts_GLAmpSeq.tsv", sep="\t", quote=F, col.names=NA)
+write.table(asv_tab, "counts_16S_GLAmpSeq.tsv", sep="\t", quote=F, col.names=NA)
 
 ## Creating table of taxonomy and setting any that are unclassified as "NA": ##
 ranks <- c("domain", "phylum", "class", "order", "family", "genus", "species")
@@ -574,16 +580,24 @@ tax_tab <- t(sapply(tax_info, function(x) {
 colnames(tax_tab) <- ranks
 rownames(tax_tab) <- gsub(pattern=">", replacement="", x=asv_headers)
 
-write.table(tax_tab, "taxonomy_GLAmpSeq.tsv", sep = "\t", quote=F, col.names=NA)
+write.table(tax_tab, "taxonomy_16S_GLAmpSeq.tsv", sep = "\t", quote=F, col.names=NA)
 
 ## Generating then writing biom file format: ##
 biom_object <- make_biom(data=asv_tab, observation_metadata=tax_tab)
-write_biom(biom_object, "taxonomy-and-counts_GLAmpSeq.biom")
+write_biom(biom_object, "taxonomy-and-counts_16S_GLAmpSeq.biom")
 
 ## Making a combined taxonomy and count table ##
 tax_and_count_tab <- merge(tax_tab, asv_tab)
-write.table(tax_and_count_tab, "taxonomy-and-counts_GLAmpSeq.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+write.table(tax_and_count_tab, "taxonomy-and-counts_16S_GLAmpSeq.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 ```
+
+Package the BIOM file:
+
+```bash
+zip -j -q taxonomy-and-counts_16S_GLAmpSeq.biom.zip taxonomy-and-counts_16S_GLAmpSeq.biom
+```
+
+The -j option omits directory paths and -q suppresses progress messages.
 
 **Input Data:**
 
@@ -592,12 +606,13 @@ write.table(tax_and_count_tab, "taxonomy-and-counts_GLAmpSeq.tsv", sep="\t", quo
 
 **Output Data:**
 
-* **ASVs_GLAmpSeq.fasta** (a fasta file containing the inferred sequences)
-* **counts_GLAmpSeq.tsv** (a tab-separated file containing the sample feature count table)
-* **taxonomy_GLAmpSeq.tsv** (a tab-separated file containing the taxonomy table)
-* **taxonomy-and-counts_GLAmpSeq.tsv** (a tab-separated file containing the combined taxonomy and count table)
-* **taxonomy-and-counts_GLAmpSeq.biom** (a biom-formatted file containing the count and taxonomy table)
-* **read-count-tracking_GLAmpSeq.tsv** (a tab-separated file containing the read counts at each processing step)
+* **ASVs_\<tech_type>_GLAmpSeq.fasta** (a fasta file containing the inferred sequences)
+* **counts_\<tech_type>_GLAmpSeq.tsv** (a tab-separated file containing the sample feature count table)
+* **taxonomy_\<tech_type>_GLAmpSeq.tsv** (a tab-separated file containing the taxonomy table)
+* **taxonomy-and-counts_\<tech_type>_GLAmpSeq.tsv** (a tab-separated file containing the combined taxonomy and count table)
+* **taxonomy-and-counts_\<tech_type>_GLAmpSeq.biom.zip** (ZIP file containing the following)
+  * **taxonomy-and-counts_\<tech_type>_GLAmpSeq.biom** (a biom-formatted file containing the count and taxonomy table)
+* **read-count-tracking_\<tech_type>_GLAmpSeq.tsv** (a tab-separated file containing the read counts at each processing step)
 
 <br>
 
@@ -1428,14 +1443,14 @@ publication_format <- theme_bw() +
 ```R
 diff_abund_out_dir <- "differential_abundance/"
 if(!dir.exists(diff_abund_out_dir)) dir.create(diff_abund_out_dir)
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 custom_palette <- {COLOR_VECTOR}
 groups_colname <- "groups"
 sample_colname <- "Sample Name"
 metadata_file <- file.path("{OSD-Accession-ID}_AmpSeq_v{version}_runsheet.csv")
-features_file <- file.path("counts_GLAmpSeq.tsv")
-taxonomy_file <- file.path("taxonomy_GLAmpSeq.tsv")
+features_file <- file.path("counts_16S_GLAmpSeq.tsv")
+taxonomy_file <- file.path("taxonomy_16S_GLAmpSeq.tsv")
 
 # Read-in metadata and convert from tibble to dataframe
 metadata <- read_csv(file = metadata_file) %>% as.data.frame()
@@ -1517,8 +1532,8 @@ taxonomy_table <- read.table(file = taxonomy_file, header = TRUE,
 * `sample_colname` (a string specifying the name of the column in the metadata table containing the sample names)
 * `custom_palette` (a vector of strings specifying a custom color palette for coloring plots, output from [6b.iii. Set Variables](#6biii-set-variables))
 * {OSD-Accession-ID}_AmpSeq_v{version}_runsheet.csv (a comma-separated sample metadata file containing sample group information, output from [Step 6a](#6a-create-sample-runsheet))
-*	counts_GLAmpSeq.tsv (a tab-separated file containing sample feature counts table (i.e. ASV or OTU table), output from [Step 5g](#5g-generating-and-writing-standard-outputs))
-* taxonomy_GLAmpSeq.tsv (a tab-separated file containing feature taxonomy table containing ASV taxonomy assignments, output from [Step 5g](#5g-generating-and-writing-standard-outputs))
+*	counts_\<tech_type>_GLAmpSeq.tsv (a tab-separated file containing sample feature counts table (i.e. ASV or OTU table), output from [Step 5g](#5g-generating-and-writing-standard-outputs))
+* taxonomy_\<tech_type>_GLAmpSeq.tsv (a tab-separated file containing feature taxonomy table containing ASV taxonomy assignments, output from [Step 5g](#5g-generating-and-writing-standard-outputs))
 
 **Output Data:**
 
@@ -1531,8 +1546,8 @@ taxonomy_table <- read.table(file = taxonomy_file, header = TRUE,
 * `deseq2_sample_names` (a character vector of unique sample names)
 * `group_colors` (a named character vector of colors for each group)
 * `group_levels` (a character vector of unique group names)
-* **differential_abundance/<output_prefix>SampleTable_GLAmpSeq.csv** (a comma-separated file containing a table with two columns: "Sample Name" and "groups"; the output_prefix denotes the method used to compute the differential abundance)
-* **differential_abundance/<output_prefix>contrasts_GLAmpSeq.csv** (a comma-separated file listing all pairwise group comparisons)
+* **differential_abundance/<output_prefix>SampleTable_\<tech_type>_GLAmpSeq.csv** (a comma-separated file containing a table with two columns: "Sample Name" and "groups"; the output_prefix denotes the method used to compute the differential abundance)
+* **differential_abundance/<output_prefix>contrasts_\<tech_type>_GLAmpSeq.csv** (a comma-separated file listing all pairwise group comparisons)
 
 <br>
 
@@ -1657,7 +1672,7 @@ group_colors <- {NAMED_VECTOR}
 groups_colname <- "groups"
 rarefaction_depth <- 500
 legend_title <- "Groups"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 
 # Create phyloseq object
@@ -1743,7 +1758,7 @@ ggsave(filename = glue("{alpha_diversity_out_dir}/{output_prefix}rarefaction_cur
 **Output Data:**
 
 * `ps.rarefied` (a phyloseq object of the sample features (i.e. ASV) with feature counts derived from the `feature_table`, resampled such that all samples have the same library size)
-* **alpha_diversity/<output_prefix>rarefaction_curves_GLAmpSeq.png** (plot containing the rarefaction curves for each sample)
+* alpha_diversity/<output_prefix>rarefaction_curves_\<tech_type>_GLAmpSeq.png (plot containing the rarefaction curves for each sample)
 
 <br>
 
@@ -1751,7 +1766,7 @@ ggsave(filename = glue("{alpha_diversity_out_dir}/{output_prefix}rarefaction_cur
 ```R
 metadata <- {DATAFRAME}
 groups_colname <- "groups"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 
 # ------------------  Richness and diversity estimates  ------------------#
@@ -1877,8 +1892,8 @@ write_csv(x = diversity_table,
 
 **Output Data:**
 
-* **alpha_diversity/<output_prefix>statistics_table_GLAmpSeq.csv** (a comma-separated table containing the z-score, p-value, and adjusted p-value statistics for each pairwise comparison for all metrics evaluated, Observed, Chao1, Shannon, and Simpson)
-* **alpha_diversity/<output_prefix>summary_table_GLAmpSeq.csv** (a comma-separated table containing the sample number and mean +/- standard error of each metric (Observed, Chao1, Shannon, and Simpson) for each group)
+* **alpha_diversity/<output_prefix>statistics_table_\<tech_type>_GLAmpSeq.csv** (a comma-separated table containing the z-score, p-value, and adjusted p-value statistics for each pairwise comparison for all metrics evaluated, Observed, Chao1, Shannon, and Simpson)
+* **alpha_diversity/<output_prefix>summary_table_\<tech_type>_GLAmpSeq.csv** (a comma-separated table containing the sample number and mean +/- standard error of each metric (Observed, Chao1, Shannon, and Simpson) for each group)
 
 <br>
 
@@ -1889,7 +1904,7 @@ sample_info_tab <- {DATAFRAME}
 metadata <- {DATAFRAME}
 groups_colname <- "groups"
 legend_title <- "Groups"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 
 # ------------------ Make richness by sample dot plots ---------------------- #
@@ -2018,8 +2033,26 @@ ggsave(filename = glue("{output_prefix}richness_and_diversity_estimates_by_group
 
 **Output Data:**
 
-* **alpha_diversity/<output_prefix>richness_and_diversity_estimates_by_sample_GLAmpSeq.png** (dot plots containing richness and diversity estimates for each sample)
-* **alpha_diversity/<output_prefix>richness_and_diversity_estimates_by_group_GLAmpSeq.png** (box plots containing richness and diversity estimates for each group)
+* alpha_diversity/<output_prefix>richness_and_diversity_estimates_by_sample_\<tech_type>_GLAmpSeq.png (dot plots containing richness and diversity estimates for each sample)
+* alpha_diversity/<output_prefix>richness_and_diversity_estimates_by_group_\<tech_type>_GLAmpSeq.png (box plots containing richness and diversity estimates for each group)
+
+<br>
+
+---
+
+### 7d. Package Alpha Diversity Plots
+
+Run from the alpha_diversity output directory after Steps 7a and 7c:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}alpha_diversity_plots${assay_suffix}.zip" "${output_prefix}"*"${assay_suffix}.png"
+```
+
+**Output Data:**
+
+* **alpha_diversity/\<output_prefix>alpha_diversity_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the rarefaction curves and richness and diversity plots from Steps 7a and 7c)
 
 <br>
 
@@ -2040,7 +2073,7 @@ group_colors <- {NAMED_VECTOR}
 groups_colname <- "groups"
 rarefaction_depth <- 500
 legend_title <- "Groups"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 distance_methods <- c("euclidean", "bray")
 normalization_methods <- c("vst", "rarefy")
@@ -2177,6 +2210,15 @@ walk2(.x = normalization_methods, .y = distance_methods,
 
 })
 ```
+
+Package the plots from the beta_diversity output directory:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}euclidean_distance_plots${assay_suffix}.zip" "${output_prefix}euclidean"*"${assay_suffix}.png"
+zip -q "${output_prefix}bray_curtis_plots${assay_suffix}.zip" "${output_prefix}bray"*"${assay_suffix}.png"
+```
 **Custom Functions Used:**
 
 * [transform_phyloseq()](#transform_phyloseq)
@@ -2199,11 +2241,12 @@ walk2(.x = normalization_methods, .y = distance_methods,
 
 **Output Data:**
 
-* **beta_diversity/<output_prefix><distance_method>_dendrogram_GLAmpSeq.png** (dendrogram(s) of the specified distance, Euclidean or Bray-Curtis, - based hierarchical clustering of the samples, colored by experimental groups)
-* **beta_diversity/<output_prefix><distance_method>_adonis_table_GLAmpSeq.csv** (comma-separated table(s) containing the degrees of freedom (df), sum of squares (SumOfSqs), coefficient of determination (R^2), F-statistic (statistic), and p-value for the model (variation explained by experimental groups) and residual (unexplained variation) sources of variation (terms) for the specified distance analysis, Euclidean or Bray-Curtis)
-* **beta_diversity/<output_prefix><distance_method>_variance_table_GLAmpSeq.csv** (comma-separated table(s) containing the degrees of freedom (df), sum of squares (sumsq), mean square (meansq), F-statistic (statistic), and p-value for the groups (variation explained by experimental groups) and residual (unexplained variation) sources of variation (terms) for the specified distance analysis, Euclidean or Bray-Curtis)
-* **beta_diversity/<output_prefix><distance_method>_PCoA_without_labels_GLAmpSeq.png** (Principle Coordinates Analysis plots of VST transformed and rarefy transformed ASV counts for Euclidean and Bray-Curtis distance methods, respectively, without sample labels)
-* **beta_diversity/<output_prefix><distance_method>_PCoA_w_labels_GLAmpSeq.png** (Principle Coordinates Analysis plots of VST transformed and rarefy transformed ASV counts for Euclidean and Bray-Curtis distance methods, respectively, with sample labels)
+* **beta_diversity/\<output_prefix>euclidean_distance_plots_\<tech_type>_GLAmpSeq.zip** and **beta_diversity/\<output_prefix>bray_curtis_plots_\<tech_type>_GLAmpSeq.zip** (ZIP files containing the plots for the corresponding distance method)
+  * **<output_prefix><distance_method>_dendrogram_\<tech_type>_GLAmpSeq.png** (dendrogram(s) of the specified distance, Euclidean or Bray-Curtis, - based hierarchical clustering of the samples, colored by experimental groups)
+  * **<output_prefix><distance_method>_PCoA_without_labels_\<tech_type>_GLAmpSeq.png** (Principle Coordinates Analysis plots of VST transformed and rarefy transformed ASV counts for Euclidean and Bray-Curtis distance methods, respectively, without sample labels)
+  * **<output_prefix><distance_method>_PCoA_w_labels_\<tech_type>_GLAmpSeq.png** (Principle Coordinates Analysis plots of VST transformed and rarefy transformed ASV counts for Euclidean and Bray-Curtis distance methods, respectively, with sample labels)
+* **beta_diversity/<output_prefix><distance_method>_adonis_table_\<tech_type>_GLAmpSeq.csv** (comma-separated table(s) containing the degrees of freedom (df), sum of squares (SumOfSqs), coefficient of determination (R^2), F-statistic (statistic), and p-value for the model (variation explained by experimental groups) and residual (unexplained variation) sources of variation (terms) for the specified distance analysis, Euclidean or Bray-Curtis)
+* **beta_diversity/<output_prefix><distance_method>_variance_table_\<tech_type>_GLAmpSeq.csv** (comma-separated table(s) containing the degrees of freedom (df), sum of squares (sumsq), mean square (meansq), F-statistic (statistic), and p-value for the groups (variation explained by experimental groups) and residual (unexplained variation) sources of variation (terms) for the specified distance analysis, Euclidean or Bray-Curtis)
 * **beta_diversity/<output_prefix>vsd_validation_plot.png** (VST transformation validation diagnostic plot)
 
 <br>
@@ -2223,7 +2266,7 @@ taxonomy_table <- {DATAFRAME}
 custom_palette <- {COLOR_VECTOR}
 publication_format <- {GGPLOT_THEME}
 groups_colname <- "groups"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 
 # -------------------------Prepare feature tables -------------------------- #
@@ -2392,6 +2435,15 @@ walk2(.x = group_relAbundance_tbs, .y = taxon_levels,
                            })
 ```
 
+Package the plots from the taxonomy_plots output directory:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}sample_taxonomy_plots${assay_suffix}.zip" "${output_prefix}samples_"*"${assay_suffix}.png"
+zip -q "${output_prefix}group_taxonomy_plots${assay_suffix}.zip" "${output_prefix}groups_"*"${assay_suffix}.png"
+```
+
 **Custom Functions Used**
 
 * [make_feature_table()](#make_feature_table)
@@ -2413,8 +2465,10 @@ walk2(.x = group_relAbundance_tbs, .y = taxon_levels,
 
 **Output Data:**
 
-* **taxonomy_plots/<output_prefix>samples_<taxon_level>_GLAmpSeq.png** (barplots of the relative abundance of the specified taxon level for each sample)
-* **taxonomy_plots/<output_prefix>groups_<taxon_level>_GLAmpSeq.png** (barplots of the relative abundance of the specified taxon level for each group)
+* **taxonomy_plots/\<output_prefix>sample_taxonomy_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the sample-wise plots)
+  * **<output_prefix>samples_<taxon_level>_\<tech_type>_GLAmpSeq.png** (barplots of the relative abundance of the specified taxon level for each sample)
+* **taxonomy_plots/\<output_prefix>group_taxonomy_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the group-wise plots)
+  * **<output_prefix>groups_<taxon_level>_\<tech_type>_GLAmpSeq.png** (barplots of the relative abundance of the specified taxon level for each group)
 
 Where `taxon_level` is all of phylum, class, order, family, genus, and species.
 
@@ -2444,7 +2498,7 @@ taxonomy_table <- {DATAFRAME}
 feature <- "ASV"
 groups_colname <- "groups"
 samples_column <- "Sample Name"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 target_region <- "16S" # "16S", "18S" or "ITS"
 output_prefix <- ""
 prevalence_cutoff <- 0
@@ -2800,10 +2854,18 @@ merged_df <- merged_df %>%
 output_file <- glue("{diff_abund_out_dir}/{output_prefix}ancombc1_differential_abundance{assay_suffix}.csv")
 # Write combined table to file but before that drop
 # all columns of inferred differential abundance by ANCOMBC 
-write_csv(merged_df %>%
-            select(-starts_with("Diff_")),
-          output_file)
+final_output <- merged_df %>% select(-starts_with("Diff_"))
+colnames(final_output) <- gsub("\\.", "-", colnames(final_output))
+write_csv(final_output, output_file)
 
+```
+
+Package the volcano plots from the differential_abundance/ancombc1 output directory:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}ancombc1_volcano_plots${assay_suffix}.zip" "${output_prefix}"*_volcano.png
 ```
 **Custom Functions Used:**
 
@@ -2847,23 +2909,24 @@ write_csv(merged_df %>%
 
 **Output Data:**
 
-* **differential_abundance/ancombc1/<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pariwise comparison)
-* **differential_abundance/ancombc1/<output_prefix>ancombc1_differential_abundance_GLAmpSeq.csv** (a comma-separated ANCOM-BC1 differential abundance results table containing the following columns:
+* **differential_abundance/ancombc1/\<output_prefix>ancombc1_volcano_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the following, generated only when volcano plots are available)
+  * **<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pairwise comparison)
+* **differential_abundance/ancombc1/<output_prefix>ancombc1_differential_abundance_\<tech_type>_GLAmpSeq.csv** (a comma-separated ANCOM-BC1 differential abundance results table containing the following columns:
   - ASV (identified ASVs)
   - taxonomic assignment columns
   - NCBI identifier for the best taxonomic assignment for each ASV 
   - Normalized abundance values for each ASV for each sample
   - For each pairwise group comparison:
     - natural log of the fold change (Lnfc)
-    - standard error for the lnFC (Lnfc.SE)
+    - standard error for the lnFC (Lnfc-SE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Q.value)
-  - All.mean (mean across all samples)
-  - All.stdev (standard deviation across all samples) 
+    - P-value (P-value)
+    - Adjusted p-value (Q-value)
+  - All-mean (mean across all samples)
+  - All-stdev (standard deviation across all samples)
   - For each group:
-    - Group.Mean_(group) (mean within group)
-    - Group.Stdev_(group) (standard deviation within group))
+    - Group-Mean_(group) (mean within group)
+    - Group-Stdev_(group) (standard deviation within group))
 
 <br>
 
@@ -2881,7 +2944,7 @@ feature <- "ASV"
 target_region <- "16S" # "16S" , "18S" or "ITS"
 groups_colname <- "groups"
 samples_column <- "Sample Name"
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 output_prefix <- ""
 prevalence_cutoff <- 0  # from [Step 6b.v. Preprocessing]
 library_cutoff <- 0  # from [Step 6b.v. Preprocessing]
@@ -3140,9 +3203,9 @@ merged_df <- merged_df %>%
 output_file <- glue("{diff_abund_out_dir}{output_prefix}ancombc2_differential_abundance{assay_suffix}.csv")
 # Write out merged stats table but before that 
 # drop ANCOMBC inferred differential abundance columns
-write_csv(merged_df %>%
-            select(-starts_with("diff_")),
-          output_file)
+final_output <- merged_df %>% select(-starts_with("Diff_"))
+colnames(final_output) <- gsub("\\.", "-", colnames(final_output))
+write_csv(final_output, output_file)
 
 # ---------------------- Visualization --------------------------------------- #
 # ------------ Make volcano ---------------- #
@@ -3217,6 +3280,14 @@ volcano_plots <- map(uniq_comps, function(comparison){
 })
 ```
 
+Package the volcano plots from the differential_abundance/ancombc2 output directory:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}ancombc2_volcano_plots${assay_suffix}.zip" "${output_prefix}"*_volcano.png
+```
+
 **Custom Functions Used**
 
 * [expandy()](#expandy)
@@ -3261,23 +3332,24 @@ volcano_plots <- map(uniq_comps, function(comparison){
 
 **Output Data:**
 
-* **differential_abundance/ancombc2/<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pariwise comparison)
-* **differential_abundance/ancombc2/<output_prefix>ancombc2_differential_abundance_GLAmpSeq.csv** (a comma-separated ANCOM-BC2 differential abundance results table containing the following columns:
+* **differential_abundance/ancombc2/\<output_prefix>ancombc2_volcano_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the following, generated only when volcano plots are available)
+  * **<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pairwise comparison)
+* **differential_abundance/ancombc2/<output_prefix>ancombc2_differential_abundance_\<tech_type>_GLAmpSeq.csv** (a comma-separated ANCOM-BC2 differential abundance results table containing the following columns:
   - ASV (identified ASVs)
   - taxonomic assignment columns
   - NCBI identifier for the best taxonomic assignment for each ASV 
   - Normalized abundance values for each ASV for each sample
   - For each pairwise group comparison:
     - natural log of the fold change (Lnfc)
-    - standard error for the lnFC (Lnfc.SE)
+    - standard error for the lnFC (Lnfc-SE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Q.value)
-  - All.mean (mean across all samples)
-  - All.stdev (standard deviation across all samples) 
+    - P-value (P-value)
+    - Adjusted p-value (Q-value)
+  - All-mean (mean across all samples)
+  - All-stdev (standard deviation across all samples)
   - For each group:
-    - Group.Mean_(group) (mean within group)
-    - Group.Stdev_(group) (standard deviation within group))
+    - Group-Mean_(group) (mean within group)
+    - Group-Stdev_(group) (standard deviation within group))
 
 <br>
 
@@ -3295,7 +3367,7 @@ taxonomy_table <- {DATAFRAME}
 feature <- "ASV"
 samples_column <- "Sample Name"
 groups_colname <- "groups" 
-assay_suffix <- "_GLAmpSeq"
+assay_suffix <- "_16S_GLAmpSeq"
 target_region <- "16S" # "16S", "18S" or "ITS"
 output_prefix <- ""
 
@@ -3497,9 +3569,9 @@ merged_df <- merged_df %>%
 output_file <- glue("{diff_abund_out_dir}/{output_prefix}deseq2_differential_abundance{assay_suffix}.csv")
 # Writing out results of differential abundance using DESeq2
 # after dropping baseMean columns
-write_csv(merged_df %>%
-            select(-starts_with("baseMean_")), 
-          output_file)
+final_output <- merged_df %>% select(-starts_with("baseMean_"))
+colnames(final_output) <- gsub("\\.", "-", colnames(final_output))
+write_csv(final_output, output_file)
 
 # ------------------------- Make volcano plots ------------------------ #
 # Loop over group pairs and make a volcano comparing the pair 
@@ -3568,6 +3640,14 @@ walk(pairwise_comp_df, function(col){
 })
 ```
 
+Package the volcano plots from the differential_abundance/deseq2 output directory:
+
+```bash
+output_prefix=""
+assay_suffix="_16S_GLAmpSeq"
+zip -q "${output_prefix}deseq2_volcano_plots${assay_suffix}.zip" "${output_prefix}"*_volcano.png
+```
+
 **Custom Functions Used:**
 
 * [expandy()](#expandy)
@@ -3593,8 +3673,9 @@ walk(pairwise_comp_df, function(col){
 
 **Output Data:**
 
-* **differential_abundance/deseq2/<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pariwise comparison)
-* **differential_abundance/deseq2/<output_prefix>deseq2_differential_abundance_GLAmpSeq.csv** (a comma-separated DESeq2 differential abundance results table containing the following columns:
+* **differential_abundance/deseq2/\<output_prefix>deseq2_volcano_plots_\<tech_type>_GLAmpSeq.zip** (ZIP file containing the following, generated only when volcano plots are available)
+  * **<output_prefix>(\<group1\>)v(\<group2\>)_volcano.png** (volcano plots for each pairwise comparison)
+* **differential_abundance/deseq2/<output_prefix>deseq2_differential_abundance_\<tech_type>_GLAmpSeq.csv** (a comma-separated DESeq2 differential abundance results table containing the following columns:
   - ASV (identified ASVs)
   - taxonomic assignment columns
   - NCBI identifier for the best taxonomic assignment for each ASV 
@@ -3603,13 +3684,13 @@ walk(pairwise_comp_df, function(col){
     - log2 of the fold change (Log2fc)
     - standard error for the log2FC (lfcSE)
     - test statistic from the primary result (Stat)
-    - P-value (P.value)
-    - Adjusted p-value (Adj.p.value)
-  - All.mean (mean across all samples)
-  - All.stdev (standard deviation across all samples) 
+    - P-value (P-value)
+    - Adjusted p-value (Adj-p-value)
+  - All-mean (mean across all samples)
+  - All-stdev (standard deviation across all samples)
   - For each group:
-    - Group.Mean_(group) (mean within group)
-    - Group.Stdev_(group) (standard deviation within group))
+    - Group-Mean_(group) (mean within group)
+    - Group-Stdev_(group) (standard deviation within group))
 * **differential_abundance/deseq2/<output_prefix>asv_sparsity_plot.png** (a diagnostic plot of ASV sparsity to be used to assess if running DESeq2 is appropriate)
 <br>
 
